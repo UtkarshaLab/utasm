@@ -1220,9 +1220,39 @@
     // %1 = a, %2 = b, %3 = mod
 %endmacro
 
-// Modular Exponentiation stub
+// Modular Exponentiation (Binary Exponentiation)
+// %1 = base, %2 = exp, %3 = mod
 %macro exp_mod 3
-    // %1 = base, %2 = exp, %3 = mod
+    push    rax
+    push    rbx
+    push    rcx
+    mov     rax, 1                 // result
+    mov     rcx, %1                // base
+    mov     rbx, %2                // exponent
+%%loop:
+    test    rbx, rbx
+    jz      %%done
+    test    rbx, 1
+    jz      %%square
+    mul     rcx                    // rax = rax * rcx
+    xor     rdx, rdx
+    div     qword %3
+    mov     rax, rdx               // result = (result * base) % mod
+%%square:
+    push    rax
+    mov     rax, rcx
+    mul     rax                    // rax = rcx * rcx
+    xor     rdx, rdx
+    div     qword %3
+    mov     rcx, rdx               // base = (base * base) % mod
+    pop     rax
+    shr     rbx, 1
+    jmp     %%loop
+%%done:
+    // Result is in rax
+    pop     rcx
+    pop     rbx
+    add     rsp, 8                 // rax is preserved as result
 %endmacro
 
 // ---- Low-Level "Magic" -------------------
@@ -1240,10 +1270,55 @@
 
 // Preprocessor-time register check
 %macro is_reg_64 1
-    // Logic: use %ifidni and a list of registers
+    %assign %%is_reg 0
+    %ifidni %1, rax
+        %assign %%is_reg 1
+    %elifidni %1, rbx
+        %assign %%is_reg 1
+    %elifidni %1, rcx
+        %assign %%is_reg 1
+    %elifidni %1, rdx
+        %assign %%is_reg 1
+    %elifidni %1, rsi
+        %assign %%is_reg 1
+    %elifidni %1, rdi
+        %assign %%is_reg 1
+    %elifidni %1, rbp
+        %assign %%is_reg 1
+    %elifidni %1, rsp
+        %assign %%is_reg 1
+    %elifidni %1, r8
+        %assign %%is_reg 1
+    %elifidni %1, r9
+        %assign %%is_reg 1
+    %elifidni %1, r10
+        %assign %%is_reg 1
+    %elifidni %1, r11
+        %assign %%is_reg 1
+    %elifidni %1, r12
+        %assign %%is_reg 1
+    %elifidni %1, r13
+        %assign %%is_reg 1
+    %elifidni %1, r14
+        %assign %%is_reg 1
+    %elifidni %1, r15
+        %assign %%is_reg 1
+    %endif
+    %if %%is_reg == 0
+        %error "Expected 64-bit register, got: %1"
+    %endif
 %endmacro
 
-// Self-Check stub
+// Self-Check (simple additive checksum)
 %macro self_check 0
-    // Logic: calculate checksum of current segment
+    push_volatile
+    lea     rsi, [$$]              // start of section
+    mov     rcx, ($ - $$)          // current size
+    xor     rax, rax
+%%loop:
+    add     al, [rsi]
+    inc     rsi
+    loop    %%loop
+    // rax contains sum
+    pop_volatile
 %endmacro
