@@ -1056,3 +1056,27 @@
 %macro v_permute_64 3
     vpermpd %1, %2, %3
 %endmacro
+
+// ---- Code Integrity & Introspection ------
+
+// Insert a code signature (bootstrap/forensics)
+%macro code_signature 1
+    db      "UTASM_SIG:", %1, 0
+%endmacro
+
+// Assert register is not zero
+%macro assert_not_zero 1
+    test    %1, %1
+    jz      .error_null
+%endmacro
+
+// Verify stack alignment (16-byte)
+%macro stack_align_check 0
+    test    rsp, 0xF
+    jnz     .error_stack_unaligned
+%endmacro
+
+// Hotpatch Stub (5-byte NOP)
+%macro hotpatch_stub 0
+    db      0x0F, 0x1F, 0x44, 0x00, 0x00 // standard 5-byte NOP
+%endmacro
