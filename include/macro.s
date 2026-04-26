@@ -244,3 +244,77 @@
 %macro align_to 1
     align   %1
 %endmacro
+
+// ---- Diagnostics & Debugging -------------
+
+// Print a literal string to stderr (bootstrap-only)
+%macro debug_print_str 1
+    [SECTION .rodata]
+    %%str: db %1, 10, 0
+    %%len: equ $ - %%str
+    [SECTION .text]
+    mov     rdi, 2                 // stderr
+    lea     rsi, [%%str]
+    mov     rdx, %%len
+    call    io_write
+%endmacro
+
+// Dump a 64-bit register in hex to stderr
+%macro debug_dump_hex 1
+    push_volatile
+    mov     rdi, %1
+    call    error_uint_to_hex      // assumes this utility exists or similar
+    pop_volatile
+%endmacro
+
+// ---- Atomic Operations (x86_64) ----------
+
+// Atomic increment of a 64-bit memory location
+%macro atomic_inc_64 1
+    lock inc qword [%1]
+%endmacro
+
+// Atomic add to a 64-bit memory location
+%macro atomic_add_64 2
+    lock add qword [%1], %2
+%endmacro
+
+// ---- Local Variables (Stack) -------------
+
+// Start a local variable block
+%macro locals_start 0
+    %push   locals
+    %assign %$base_offset 0
+%endmacro
+
+// Define a local variable on the stack
+// Usage: local_var my_var, 8
+%macro local_var 2
+    %assign %$base_offset %$base_offset + %2
+    %define %1 [rbp - %$base_offset]
+%endmacro
+
+// End a local variable block and reserve space
+%macro locals_end 0
+    sub     rsp, %$base_offset
+    %pop    locals
+%endmacro
+
+// ---- Profiling ---------------------------
+
+// Read CPU timestamp counter into rdx:rax
+%macro start_timer 0
+    cpuid                          // serialize
+    rdtsc
+    push    rdx
+    push    rax
+%endmacro
+
+// Stop timer and calculate delta in rax
+%macro stop_timer 0
+    rdtscp
+    pop     rcx                    // old rax
+    pop     r8                     // old rdx
+    sub     rax, rcx
+    sbb     rdx, r8                // rdx:rax = delta cycles
+%endmacro
