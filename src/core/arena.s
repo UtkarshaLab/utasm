@@ -2,7 +2,7 @@
  ============================================
  File     : src/core/arena.s
  Project  : utasm
- Version  : 0.0.1
+ Version  : 0.1.0
  Author   : Utkarsha Lab
  License  : Apache-2.0
  ============================================

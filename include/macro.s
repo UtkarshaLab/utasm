@@ -1,10 +1,12 @@
 /*
- ============================================================================
- File        : include/macro.s
- Project     : utasm
- Description : Comprehensive Standard Utility Macro Library
- Documentation: Technical specification for all hardware and software kernels.
- ============================================================================
+ ============================================
+ File     : include/macro.s
+ Project  : utasm
+ Version  : 0.1.0
+ Author   : Utkarsha Lab
+ License  : Apache-2.0
+ Description: Standard utility macro library for utasm.
+ ============================================
 */
 
 // ============================================================================
@@ -784,7 +786,7 @@
     test    rdx, rdx
     jz      %%done
     xor     rax, rdx
-    mov     r11, 0x100000001b3
+    mov     r11, 0x10000.1.0b3
     mul     r11
     inc     rcx
     jmp     %%loop
@@ -1136,7 +1138,7 @@
     %assign %%i 1
     %rep %%len
         %substr %%char %1 %%i
-        %assign %%hash ((%%hash ^ %%char) * 0x100000001b3)
+        %assign %%hash ((%%hash ^ %%char) * 0x10000.1.0b3)
         %assign %%i %%i + 1
     %endrep
     %define %2 %%hash
