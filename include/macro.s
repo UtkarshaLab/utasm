@@ -477,3 +477,87 @@
 %macro jump_table_end 0
     [SECTION .text]
 %endmacro
+
+// ---- Fast Hashing (FNV-1a) ---------------
+
+// Hash a null-terminated string into a 64-bit register
+// Usage: hash_fnv1a_64 rsi, r8
+%macro hash_fnv1a_64 2
+    mov     rax, 0xcbf29ce484222325 // offset basis
+    mov     rcx, %1
+%%loop:
+    movzx   rdx, byte [rcx]
+    test    rdx, rdx
+    jz      %%done
+    xor     rax, rdx
+    mov     r11, 0x100000001b3      // fnv prime
+    mul     r11
+    inc     rcx
+    jmp     %%loop
+%%done:
+    mov     %2, rax
+%endmacro
+
+// ---- Unified Syscall Suite (AMD64) -------
+
+%macro syscall_0 1
+    mov     rax, %1
+    syscall
+%endmacro
+
+%macro syscall_1 2
+    mov     rax, %1
+    mov     rdi, %2
+    syscall
+%endmacro
+
+%macro syscall_2 3
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    syscall
+%endmacro
+
+%macro syscall_3 4
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
+    syscall
+%endmacro
+
+%macro syscall_4 5
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
+    mov     r10, %5                // Syscall ABI uses r10 for 4th arg
+    syscall
+%endmacro
+
+// ---- Unit Testing Helpers ----------------
+
+%macro test_begin 1
+    [SECTION .rodata]
+    %%name: db %1, 0
+    [SECTION .text]
+    debug_print_str "TEST: "
+    debug_print_str %1
+%endmacro
+
+%macro assert_eq 2
+    cmp     %1, %2
+    je      %%ok
+    debug_print_str "ASSERTION FAILED!"
+    trap_arch
+%%ok:
+%endmacro
+
+// ---- SMC & Cache Safeties ----------------
+
+// Flush instruction cache (AMD64 is usually coherent, but good practice)
+%macro icache_flush 0
+    wbinvd                         // Privileged, but used in some kernels
+    // Alternative: mfencing
+    mfence
+%endmacro
