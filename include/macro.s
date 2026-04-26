@@ -1010,3 +1010,30 @@
     rdseed  %1
     jnc     %%retry
 %endmacro
+
+// ---- Memory Barriers & Sync --------------
+
+// Memory Fences
+%macro lfence_sync 0
+    lfence
+%endmacro
+
+%macro sfence_sync 0
+    sfence
+%endmacro
+
+// Transactional Memory (Intel TSX)
+%macro xbegin_sync 1
+    xbegin  %1
+%endmacro
+
+%macro xend_sync 0
+    xend
+%endmacro
+
+// Wait for Monitor
+%macro mwait_sync 2
+    mov     eax, %1
+    mov     ecx, %2
+    mwait
+%endmacro
