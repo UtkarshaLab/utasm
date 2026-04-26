@@ -1037,3 +1037,22 @@
     mov     ecx, %2
     mwait
 %endmacro
+
+// ---- Vectorized Data Processing ----------
+
+// Vector String Compare (SSE 4.2)
+%macro vstr_cmp 3
+    movdqu  xmm0, [%1]
+    movdqu  xmm1, [%2]
+    pcmpistri xmm0, xmm1, %3       // comparison mode
+%endmacro
+
+// Broadcast scalar to all elements (AVX)
+%macro v_broadcast_64 2
+    vbroadcastsd %1, %2
+%endmacro
+
+// Permute elements (AVX)
+%macro v_permute_64 3
+    vpermpd %1, %2, %3
+%endmacro
