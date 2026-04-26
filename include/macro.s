@@ -1540,3 +1540,31 @@
     ptest   %1, %1
     // ZF clear if any bit set
 %endmacro
+
+// ---- Code Resilience & Self-Repair -------
+
+// Self-Repair logic placeholder
+%macro repair_stub 1
+    call    self_check
+    cmp     al, [%%sum_ptr]
+    je      %%ok
+    // Logic: restore from backup %1
+%%ok:
+%endmacro
+
+// Assert address is cache-line aligned (64 bytes)
+%macro assert_cache_aligned 1
+    test    %1, 63
+    jnz     .error_cache_split
+%endmacro
+
+// Skip N bytes of instructions using NOPs
+%macro skip_insn 1
+    %if %1 == 1
+        nop
+    %elif %1 == 2
+        dw 0x9066                  // 66 90
+    %elif %1 == 5
+        db 0x0F, 0x1F, 0x44, 0x00, 0x00
+    %endif
+%endmacro
