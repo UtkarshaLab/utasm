@@ -32,6 +32,7 @@
 //   rax = result directly (no error code)
 
 [SECTION .text]
+    cld                             // ensure direction flag is always forward
 
 // ---- str_len ----------------------------
 /*
@@ -631,9 +632,19 @@ str_to_int:
 
     // result = result * base + digit
     imul    rbx, r12
+    jo      .overflow
     add     rbx, rcx
+    jo      .overflow
     inc     rdi
     jmp     .parse_loop
+
+.overflow:
+    mov     rax, EXIT_INVALID_IMM
+    xor     rdx, rdx
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
 
 .apply_sign:
     test    r13, r13               // negative?
