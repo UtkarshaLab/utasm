@@ -180,3 +180,67 @@
     cmp     %1, %2
     cmovl   %1, %2
 %endmacro
+
+// ---- High-Level Flow Control -------------
+// Uses NASM context stack to manage unique labels.
+
+// IF <reg/mem>, <cond>, <val>
+// Example: IF rax, e, 0
+%macro IF 3
+    %push   if
+    cmp     %1, %3
+    jn%2    %$else_label
+%endmacro
+
+%macro ELSE 0
+    %ifctx if
+        %push   else
+        jmp     %$endif_label
+        %$else_label:
+    %else
+        %error "ELSE without IF"
+    %endif
+%endmacro
+
+%macro ENDIF 0
+    %ifctx else
+        %$endif_label:
+        %pop    else
+        %pop    if
+    %elifctx if
+        %$else_label:
+        %pop    if
+    %else
+        %error "ENDIF without IF"
+    %endif
+%endmacro
+
+// WHILE <reg/mem>, <cond>, <val>
+%macro WHILE 3
+    %push   while
+    %$loop_start:
+    cmp     %1, %3
+    jn%2    %$loop_end
+%endmacro
+
+%macro ENDWHILE 0
+    %ifctx while
+        jmp     %$loop_start
+        %$loop_end:
+        %pop    while
+    %else
+        %error "ENDWHILE without WHILE"
+    %endif
+%endmacro
+
+// ---- Alignment ---------------------------
+
+// Align to 64-byte cache line boundary
+%macro align_cache 0
+    align   64
+%endmacro
+
+// Generic alignment
+%macro align_to 1
+    align   %1
+%endmacro
