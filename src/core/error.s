@@ -508,15 +508,27 @@ error_summary:
 
 .print_summary:
     // print error count
+    movzx   rdi, word [rbx + ASMCTX_err_count]
+    call    error_uint_to_str
     mov     rdi, STDERR_FILENO
-    lea     rsi, [msg_summary_errors]
-    mov     rdx, msg_summary_errors_len
+    mov     rsi, rdx
+    call    error_write_str
+
+    lea     rsi, [msg_summary_errors_label]
+    mov     rdx, msg_summary_errors_label_len
+    mov     rdi, STDERR_FILENO
     call    error_write_raw
 
     // print warning count
+    movzx   rdi, word [rbx + ASMCTX_warn_count]
+    call    error_uint_to_str
     mov     rdi, STDERR_FILENO
-    lea     rsi, [msg_summary_warnings]
-    mov     rdx, msg_summary_warnings_len
+    mov     rsi, rdx
+    call    error_write_str
+
+    lea     rsi, [msg_summary_warnings_label]
+    mov     rdx, msg_summary_warnings_label_len
+    mov     rdi, STDERR_FILENO
     call    error_write_raw
 
     mov     rdi, STDERR_FILENO
@@ -687,35 +699,31 @@ error_write_str:
  Clobbers : rcx, r8, r9, r10
 */
 error_uint_to_str:
-    lea     rdx, [uint_buf + 20]   // start at end of buffer
-    mov     byte [rdx], 0          // null terminator
-    mov     rax, rdi               // value
-    mov     rcx, 10                // base
+    lea     r8, [uint_buf + 20]     // build from end
+    mov     byte [r8], 0            // null terminator
+    mov     rax, rdi                // value to convert
+    mov     rcx, 10                 // base 10
 
     test    rax, rax
-    jnz     .convert_loop
+    jnz     .loop
 
-    dec     rdx
-    mov     byte [rdx], '0'
-    xor     rax, rax
-    ret
+    dec     r8
+    mov     byte [r8], '0'
+    jmp     .done
 
-.convert_loop:
+.loop:
     test    rax, rax
-    jz      .convert_done
-    xor     rdx, rdx               // clear for div
-    div     rcx                    // rax = quotient, rdx = remainder
-    add     dl, '0'
-    dec     rdx
-    // note: rdx used for both — save carefully
-    push    rax
-    lea     rax, [uint_buf + 20]
-    sub     rax, rdx               // this needs rework — see .data section
-    pop     rax
-    jmp     .convert_loop
+    jz      .done
+    xor     rdx, rdx
+    div     rcx                     // rax = quot, rdx = rem
+    add     dl, '0'                 // convert rem to char
+    dec     r8
+    mov     byte [r8], dl           // store char
+    jmp     .loop
 
-.convert_done:
-    xor     rax, rax
+.done:
+    xor     rax, rax                // EXIT_OK
+    mov     rdx, r8                 // pointer to string
     ret
 
 // ============================================================================
@@ -772,13 +780,13 @@ msg_prefix_fatal_len equ $ - msg_prefix_fatal
 
 // ---- summary -----------------------------
 
-msg_summary_errors:
-    db      "utasm: error(s) and warning(s) generated.", 10
-msg_summary_errors_len equ $ - msg_summary_errors
+msg_summary_errors_label:
+    db      " error(s) and ", 0
+msg_summary_errors_label_len equ $ - msg_summary_errors_label - 1
 
-msg_summary_warnings:
-    db      ""
-msg_summary_warnings_len equ $ - msg_summary_warnings
+msg_summary_warnings_label:
+    db      " warning(s) generated.", 0
+msg_summary_warnings_label_len equ $ - msg_summary_warnings_label - 1
 
 // ---- misc --------------------------------
 
