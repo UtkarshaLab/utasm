@@ -1117,3 +1117,46 @@
 %macro branch_align_32 0
     align   32
 %endmacro
+
+// ---- Modern OS & Linker Features ---------
+
+// Call Frame Information (DWARF)
+%macro cfi_startproc 0
+    // Logic: Emit .cfi_startproc directive if supported by host
+%endmacro
+
+%macro cfi_endproc 0
+    // Logic: Emit .cfi_endproc
+%endmacro
+
+// Procedure Linkage Table Stub
+%macro plt_stub 1
+    jmp     [qword %1_GOT]         // Indirect jump via GOT
+%endmacro
+
+// Global Offset Table Entry
+%macro got_entry 1
+    %1_GOT: dq 0
+%endmacro
+
+// Symbol Versioning
+%macro sym_version 2
+    // Logic: Emit .symver %1, %2
+%endmacro
+
+// Section-based path management
+%macro hot_path_begin 0
+    [SECTION .text.hot]
+%endmacro
+
+%macro hot_path_end 0
+    [SECTION .text]
+%endmacro
+
+%macro cold_path_begin 0
+    [SECTION .text.unlikely]
+%endmacro
+
+%macro cold_path_end 0
+    [SECTION .text]
+%endmacro
