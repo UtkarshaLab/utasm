@@ -34,7 +34,7 @@
 // When err_count >= MAX_ERRORS, utasm stops immediately.
 // When CTX_FLAG_WERROR is set, warnings are treated as errors.
 //
-// Calling convention (AMD64 Linux):
+// Calling convention (AMD64):
 //   args  : rdi, rsi, rdx, rcx, r8, r9
 //   return: rax = error code, rdx = result
 //   callee saved: rbx, r12-r15, rbp

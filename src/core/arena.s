@@ -33,7 +33,7 @@
 //   - if arena is full, utasm exits with EXIT_OOM
 //   - no growing — size is fixed at arena_init time
 //
-// Calling convention (AMD64 Linux):
+// Calling convention (AMD64):
 //   args  : rdi, rsi, rdx, rcx, r8, r9
 //   return: rax = error code, rdx = result pointer
 //   callee saved: rbx, r12-r15, rbp

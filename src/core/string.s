@@ -19,7 +19,7 @@
 // The lexer, parser, preprocessor, symbol table, and error reporter
 // all depend on these routines.
 //
-// Calling convention (AMD64 Linux):
+// Calling convention (AMD64):
 //   args  : rdi, rsi, rdx, rcx, r8, r9
 //   return: rax = error code, rdx = result
 //   callee saved: rbx, r12-r15, rbp

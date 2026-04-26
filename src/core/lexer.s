@@ -39,7 +39,7 @@
 //   on unterminated string → error_emit + EXIT_UNEXPECTED_EOF
 //   all errors go through AsmCtx error reporter
 //
-// Calling convention (AMD64 Linux):
+// Calling convention (AMD64):
 //   args  : rdi, rsi, rdx, rcx, r8, r9
 //   return: rax = error code, rdx = result
 //   callee saved: rbx, r12-r15, rbp
