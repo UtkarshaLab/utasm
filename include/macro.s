@@ -312,7 +312,7 @@
     mov     rax, [%2]
     mov     [%1 + rax], %4
     inc     rax
-    and     rax, %3
+    and     rax, %3                // mask must be (size-1)
     mov     [%2], rax
 %endmacro
 
@@ -428,9 +428,9 @@
 
 %macro extract_bits 4
     mov     %1, %2
-    if %3, ne, 0
+    %if %3 != 0
         shr     %1, %3
-    endif
+    %endif
     and     %1, ((1 << %4) - 1)
 %endmacro
 
@@ -486,6 +486,21 @@
 %macro max_64 2
     cmp     %1, %2
     cmovl   %1, %2
+%endmacro
+
+%macro min_3 3
+    min_64  %1, %2
+    min_64  %1, %3
+%endmacro
+
+%macro max_3 3
+    max_64  %1, %2
+    max_64  %1, %3
+%endmacro
+
+%macro clamp 3
+    max_64  %1, %2
+    min_64  %1, %3
 %endmacro
 
 %macro bsr_log2 2
@@ -694,6 +709,30 @@
     %endrep
 %endmacro
 
+// Hardware Hardware Crypto/Random
+%macro aes_enc_round 2
+    aesenc  %1, %2
+%endmacro
+
+%macro sha256_round 2
+    sha256rnds2 %1, %2, xmm0
+%endmacro
+
+%macro rdrand_64 1
+    rdrand  %1
+%endmacro
+
+%macro rdseed_64 1
+    rdseed  %1
+%endmacro
+
+%macro rdtsc_64 1
+    rdtsc
+    shl     rdx, 32
+    or      rax, rdx
+    mov     %1, rax
+%endmacro
+
 // ============================================================================
 // 9. VECTOR OPERATIONS (SIMD)
 // ============================================================================
@@ -747,6 +786,12 @@
     pcmpistri xmm0, xmm1, %3
 %endmacro
 
+%macro vstr_find_byte 2
+    movdqu  xmm0, [%1]
+    movd    xmm1, %2
+    pcmpistri xmm0, xmm1, 0x00
+%endmacro
+
 %macro v_abs_diff 2
     psadbw  %1, %2
 %endmacro
@@ -757,6 +802,10 @@
 
 %macro v_any_set 1
     ptest   %1, %1
+%endmacro
+
+%macro v_mask_mov 3
+    // Logic: vmovdqu64 %1{%2}, %3
 %endmacro
 
 // ============================================================================
@@ -798,6 +847,16 @@
     syscall
 %endmacro
 
+%macro syscall_5 6
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
+    mov     r10, %5
+    mov     r8, %6
+    syscall
+%endmacro
+
 %macro syscall_6 7
     mov     rax, %1
     mov     rdi, %2
@@ -807,6 +866,22 @@
     mov     r8, %6
     mov     r9, %7
     syscall
+%endmacro
+
+%macro mmap_anon 2
+    mov     rdi, 0
+    mov     rsi, %1
+    mov     rdx, 0x3               // PROT_READ | PROT_WRITE
+    mov     r10, 0x22              // MAP_PRIVATE | MAP_ANONYMOUS
+    mov     r8, -1
+    mov     r9, 0
+    syscall_6 9, rdi, rsi, rdx, r10, r8, r9
+    mov     %2, rax
+%endmacro
+
+%macro get_tls_var 2
+    mov     rax, [%1]
+    mov     %2, [gs:rax]
 %endmacro
 
 // ============================================================================
@@ -829,6 +904,13 @@
     mov     rdi, %1
     call    error_uint_to_hex
     pop_volatile
+%endmacro
+
+%macro debug_break_on 2
+    cmp     %1, %2
+    jne     %%skip
+    int3
+%%skip:
 %endmacro
 
 %macro test_begin 1
@@ -953,7 +1035,39 @@
 %endmacro
 
 // ============================================================================
-// 13. LINKER & FORENSICS
+// 13. SECURITY & HARDENING
+// ============================================================================
+
+%macro stack_canary_init 1
+    mov     rax, [gs:0x28]
+    mov     %1, rax
+%endmacro
+
+%macro stack_canary_check 1
+    mov     rax, [gs:0x28]
+    cmp     rax, %1
+    jne     .error_stack_corrupted
+%endmacro
+
+%macro erase_mem 2
+    zero_mem %1, %2
+%endmacro
+
+%macro jmp_obfuscate 1
+    push    rax
+    mov     rax, %1
+    xor     rax, 0x5555555555555555
+    xor     rax, 0x5555555555555555
+    xchg    rax, [rsp]
+    ret
+%endmacro
+
+%macro shadow_stack_push 1
+    // Logic: rdssp, wrss (if supported)
+%endmacro
+
+// ============================================================================
+// 14. LINKER & FORENSICS
 // ============================================================================
 
 %macro plt_stub 1
@@ -962,6 +1076,26 @@
 
 %macro got_entry 1
     %1_GOT: dq 0
+%endmacro
+
+%macro sym_version 2
+    // Logic: Emit .symver %1, %2
+%endmacro
+
+%macro hot_path_begin 0
+    [SECTION .text.hot]
+%endmacro
+
+%macro hot_path_end 0
+    [SECTION .text]
+%endmacro
+
+%macro cold_path_begin 0
+    [SECTION .text.unlikely]
+%endmacro
+
+%macro cold_path_end 0
+    [SECTION .text]
 %endmacro
 
 %macro hook_prologue 0
