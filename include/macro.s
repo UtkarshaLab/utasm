@@ -1592,3 +1592,32 @@
 %macro encode_utf8 1
     // Logic: convert 32-bit codepoint to bytes
 %endmacro
+
+// ---- Microbenchmarking & Profiling -------
+
+// Start benchmark (CPU instructions)
+%macro bench_start 0
+    xor     ecx, ecx
+    rdpmc
+    push    rdx
+    push    rax
+%endmacro
+
+// End benchmark
+%macro bench_end 0
+    xor     ecx, ecx
+    rdpmc
+    pop     rcx                    // old rax
+    pop     r8                     // old rdx
+    sub     rax, rcx
+    sbb     rdx, r8                // result in rdx:rax
+%endmacro
+
+// Stall check
+%macro stall_check 2
+    // %1 = start_time, %2 = threshold
+    rdtsc
+    sub     rax, %1
+    cmp     rax, %2
+    jg      .error_stall
+%endmacro
