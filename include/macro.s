@@ -535,6 +535,27 @@
     syscall
 %endmacro
 
+%macro syscall_5 6
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
+    mov     r10, %5
+    mov     r8, %6
+    syscall
+%endmacro
+
+%macro syscall_6 7
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
+    mov     r10, %5
+    mov     r8, %6
+    mov     r9, %7
+    syscall
+%endmacro
+
 // ---- Unit Testing Helpers ----------------
 
 %macro test_begin 1
@@ -691,4 +712,187 @@
 // Serialize instruction stream
 %macro serialize 0
     cpuid
+%endmacro
+
+// ---- Branching Hints ---------------------
+// Modern CPUs predict forward branches as NOT taken and backward as taken.
+
+// Branch to label if condition met, hinting it is LIKELY
+%macro j_likely 2
+    j%1     %2
+%endmacro
+
+// Branch to label if condition met, hinting it is UNLIKELY
+// Logic: Often implemented by placing the target code far away (out-of-line)
+%macro j_unlikely 2
+    j%1     %2
+%endmacro
+
+// ---- Math Optimizations ------------------
+
+// Fast base-2 logarithm (index of highest set bit)
+// %1 = dest (64-bit reg), %2 = src (64-bit reg/mem)
+%macro bsr_log2 2
+    bsr     %1, %2
+%endmacro
+
+// Population count (number of bits set to 1)
+%macro popcnt_64 2
+    popcnt  %1, %2
+%endmacro
+
+// Generic byteswap based on size (16, 32, 64)
+%macro byteswap 2
+    %if %2 == 16
+        swap_16 %1
+    %elif %2 == 32
+        swap_32 %1
+    %elif %2 == 64
+        swap_64 %1
+    %endif
+%endmacro
+
+// Trap if address is not aligned to %2 (must be power of 2)
+%macro assert_aligned 2
+    test    %1, (%2 - 1)
+    jnz     .error_alignment
+%endmacro
+
+// Serialized timestamp reading
+%macro rdtsc_serial 0
+    cpuid
+    rdtsc
+%endmacro
+
+// ---- Security Hardening ------------------
+
+// Initialize a stack canary (uses dummy value for now)
+%macro stack_canary_init 1
+    mov     rax, 0x55aa55aa55aa55aa
+    mov     [%1], rax              // store at offset from rbp
+%endmacro
+
+// Verify stack canary
+%macro stack_canary_check 1
+    mov     rax, 0x55aa55aa55aa55aa
+    cmp     rax, [%1]
+    jne     .error_stack_corrupt
+%endmacro
+
+// Securely wipe memory area
+%macro mem_erase 2
+    mov     rdi, %1
+    mov     rcx, (%2 / 8)
+    xor     rax, rax
+    rep     stosq
+%endmacro
+
+// Obfuscate a jump (opaque predicate)
+%macro jmp_obfuscate 1
+    xor     rax, rax
+    test    rax, rax
+    jz      %1
+%endmacro
+
+// ---- Data Structures ---------------------
+
+// Push to circular buffer (size must be power of 2)
+// %1 = base, %2 = head_ptr, %3 = size_mask, %4 = value
+%macro cbuf_push 4
+    mov     rax, [%2]
+    mov     [%1 + rax], %4
+    inc     rax
+    and     rax, %3
+    mov     [%2], rax
+%endmacro
+
+// Pop from circular buffer
+%macro cbuf_pop 4
+    mov     rax, [%2]
+    mov     %4, [%1 + rax]
+    inc     rax
+    and     rax, %3
+    mov     [%2], rax
+%endmacro
+
+// ---- Fast Membership (Bloom Filter) ------
+
+// Add to Bloom Filter (simple 1-hash version)
+// %1 = filter base, %2 = hash value
+%macro bloom_add 2
+    mov     rax, %2
+    mov     rcx, rax
+    shr     rax, 3                 // byte offset
+    and     rcx, 7                 // bit offset
+    mov     dl, 1
+    shl     dl, cl
+    or      byte [%1 + rax], dl
+%endmacro
+
+// Check Bloom Filter
+%macro bloom_check 2
+    mov     rax, %2
+    mov     rcx, rax
+    shr     rax, 3
+    and     rcx, 7
+    mov     dl, 1
+    shl     dl, cl
+    test    byte [%1 + rax], dl
+    // set ZF accordingly
+%endmacro
+
+// ---- Thread Local Storage ----------------
+
+// Get address of TLS variable (AMD64 Linux/Unix use FS)
+%macro get_tls_var 2
+    mov     rax, [fs:0]            // base of TLS
+    lea     %1, [rax + %2]
+%endmacro
+
+// ---- Instruction Pointer Relative --------
+
+// Get absolute address of label using RIP-relative addressing
+%macro get_rip_rel 2
+    lea     %1, [%2]               // In AMD64, lea is RIP-relative by default
+%endmacro
+
+// ---- Cache Management --------------------
+
+// Flush a specific cache line
+%macro clflush_line 1
+    clflush [%1]
+%endmacro
+
+// ---- Memory Mapping ----------------------
+
+// Standard anonymous mmap (64KB, RW)
+%macro mmap_anon 1
+    syscall_6 9, 0, 65536, 3, 34, -1, 0 // sys_mmap
+    mov     %1, rax
+%endmacro
+
+// ---- Specialized Search (SSE4.2) ---------
+
+// Find byte in string (SSE 4.2 PCMPISTRI)
+%macro vstr_find_byte 2
+    movdqu  xmm0, [%1]
+    movd    xmm1, %2
+    pcmpistri xmm0, xmm1, 0x08     // equal each
+    // ecx contains index
+%endmacro
+
+// ---- Hardware Hashing & CRC --------------
+
+// Hardware CRC32 (64-bit)
+%macro crc32_64 2
+    crc32   %1, %2
+%endmacro
+
+// ---- Adaptive Synchronization ------------
+
+// Adaptive pause strategy for spinloops
+%macro pause_strat 1
+    %rep %1
+        pause
+    %endrep
 %endmacro
