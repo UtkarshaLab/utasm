@@ -357,3 +357,31 @@
 %def UTASM_HEAP_BASE        0x10000000  // preferred heap region start address
 %def UTASM_HEAP_SIZE        0x10000000  // maximum heap reservation (256 MiB)
 %def UTASM_STACK_SIZE       0x100000    // default stack allocation (1 MiB)
+
+// ============================================================================
+// ARCHITECTURE: x86_64
+// ============================================================================
+
+// Standard 64-bit General Purpose Registers (GPRs)
+%def REG_RAX                0
+%def REG_RCX                1
+%def REG_RDX                2
+%def REG_RBX                3
+%def REG_RSP                4
+%def REG_RBP                5
+%def REG_RSI                6
+%def REG_RDI                7
+%def REG_R8                 8
+%def REG_R9                 9
+%def REG_R10                10
+%def REG_R11                11
+%def REG_R12                12
+%def REG_R13                13
+%def REG_R14                14
+%def REG_R15                15
+
+// Mnemonic IDs (internal)
+%def OP_MOV                 1
+%def OP_ADD                 2
+%def OP_SUB                 3
+%def OP_RET                 4

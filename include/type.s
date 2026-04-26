@@ -449,3 +449,70 @@
 %def PREP_ctx               16      // offset of AsmCtx pointer
 %def PREP_arena             24      // offset of Arena pointer
 %def PREP_SIZE              32      // total struct size
+
+// ============================================================================
+// STRUCT: Operand
+// ============================================================================
+// Represents a single operand of an instruction.
+// Size: 48 bytes. Aligned to 8 bytes.
+//
+// Layout:
+//   +0   tag       1 byte   always TAG_OPERAND
+//   +1   kind      1 byte   OP_REG, OP_IMM, OP_MEM, OP_SYMBOL
+//   +2   size      1 byte   1, 2, 4, 8 bytes
+//   +3   reg       1 byte   register ID (if kind == OP_REG or part of MEM)
+//   +4   pad       4 bytes  alignment padding
+//   +8   imm       8 bytes  immediate value or displacement
+//   +16  base      1 byte   base register for memory
+//   +17  index     1 byte   index register for memory
+//   +18  scale     1 byte   scale factor (1, 2, 4, 8)
+//   +19  pad2      5 bytes  alignment padding
+//   +24  sym       8 bytes  pointer to Symbol (if kind == OP_SYMBOL or part of MEM)
+//   +32  pad3      16 bytes reserved for future extensions
+// Total: 48 bytes
+
+%def TAG_OPERAND            0x0C
+
+%def OP_NONE                0x00
+%def OP_REG                 0x01
+%def OP_IMM                 0x02
+%def OP_MEM                 0x03
+%def OP_SYMBOL              0x04
+
+%def OPERAND_tag            0
+%def OPERAND_kind           1
+%def OPERAND_size           2
+%def OPERAND_reg            3
+%def OPERAND_imm            8
+%def OPERAND_base           16
+%def OPERAND_index          17
+%def OPERAND_scale          18
+%def OPERAND_sym            24
+%def OPERAND_SIZE           48
+
+// ============================================================================
+// STRUCT: Instruction
+// ============================================================================
+// Result of parsing one line of code. Passed to the encoder.
+// Size: 160 bytes. Aligned to 8 bytes.
+//
+// Layout:
+//   +0   tag       1 byte   always TAG_INSTRUCTION
+//   +1   op_id     2 bytes  internal mnemonic ID (OP_MOV, etc.)
+//   +3   nops      1 byte   number of operands (0-3)
+//   +4   pad       4 bytes  alignment padding
+//   +8   op0       48 bytes Operand 0
+//   +56  op1       48 bytes Operand 1
+//   +104 op2       48 bytes Operand 2
+//   +152 pad2      8 bytes  alignment padding
+// Total: 160 bytes
+
+%def TAG_INSTRUCTION        0x0D
+
+%def INST_tag               0
+%def INST_op_id             1
+%def INST_nops              3
+%def INST_op0               8
+%def INST_op1               56
+%def INST_op2               104
+%def INST_SIZE              160
