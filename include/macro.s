@@ -935,3 +935,52 @@
 %macro mulx_chain 3
     mulx    %1, %2, %3
 %endmacro
+
+// ---- OS Dev & Hardware Control -----------
+
+// Read/Write Control Registers (Privileged)
+%macro mov_cr0 2
+    mov     %1, cr0
+%endmacro
+
+%macro mov_cr3 2
+    mov     %1, cr3
+%endmacro
+
+// MSR Access
+%macro rdmsr_64 1
+    mov     ecx, %1
+    rdmsr
+    // edx:eax
+%endmacro
+
+// Port I/O
+%macro out_port_8 2
+    mov     dx, %1
+    mov     al, %2
+    out     dx, al
+%endmacro
+
+%macro in_port_8 2
+    mov     dx, %2
+    in      al, dx
+    mov     %1, al
+%endmacro
+
+// Descriptor Table Entries
+%macro gdt_entry 4
+    dw      %1 & 0xFFFF            // limit low
+    dw      %2 & 0xFFFF            // base low
+    db      (%2 >> 16) & 0xFF      // base middle
+    db      %3                     // access
+    db      (%4 << 4) | ((%1 >> 16) & 0x0F) // flags + limit high
+    db      (%2 >> 24) & 0xFF      // base high
+%endmacro
+
+// Get Current Core ID (AMD64)
+%macro get_core_id 1
+    mov     eax, 1
+    cpuid
+    shr     ebx, 24                // Initial APIC ID
+    mov     %1, rbx
+%endmacro
