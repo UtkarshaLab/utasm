@@ -24,7 +24,7 @@ sources = [
     "src/linker/reloc.s",
     "src/output/listing.s",
     "src/output/mapfile.s",
-    "src/output/symbol.s",
+    "src/output/symdump.s",
     "src/host/io.s",
     "src/host/mem.s",
     "src/host/qemu.s",
