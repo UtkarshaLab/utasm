@@ -1080,3 +1080,40 @@
 %macro hotpatch_stub 0
     db      0x0F, 0x1F, 0x44, 0x00, 0x00 // standard 5-byte NOP
 %endmacro
+// ---- Advanced Arch Optimizations --------
+
+// Non-temporal memory copy (bypasses cache)
+%macro memcpy_nt 3
+    mov     rdi, %1
+    mov     rsi, %2
+    mov     rcx, (%3 / 8)
+%%loop:
+    mov     rax, [rsi]
+    movnti  [rdi], rax
+    add     rsi, 8
+    add     rdi, 8
+    loop    %%loop
+    sfence                         // ensure NT stores are visible
+%endmacro
+
+// Warm cache lines for a structure
+%macro warm_cache 2
+    mov     rcx, (%2 / 64)         // assume 64-byte lines
+    mov     rax, %1
+%%loop:
+    prefetcht0 [rax]
+    add     rax, 64
+    loop    %%loop
+%endmacro
+
+// Hyper-threading hint (SMT)
+%macro smt_hint 1
+    // Logic: use low-priority hints or pause strategies
+    // for Intel, we can use specific NOPs
+    db      0x3E, 0x90             // DS-prefixed NOP as hint
+%endmacro
+
+// Align branch target for 32-byte fetch blocks
+%macro branch_align_32 0
+    align   32
+%endmacro
