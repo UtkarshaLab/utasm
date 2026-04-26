@@ -318,3 +318,76 @@
     sub     rax, rcx
     sbb     rdx, r8                // rdx:rax = delta cycles
 %endmacro
+
+// ---- Automated Struct Definitions --------
+
+// Start a struct definition
+%macro struc 1
+    %push   struc
+    %define %$struc_name %1
+    %assign %$offset 0
+%endmacro
+
+// Define a field within a struct
+%macro field 2
+    %def %{$struc_name}_%1 %$offset
+    %assign %$offset %$offset + %2
+%endmacro
+
+// End a struct definition
+%macro endstruc 0
+    %def %{$struc_name}_SIZE %$offset
+    %pop    struc
+%endmacro
+
+// ---- VTable (OO) Helpers -----------------
+
+// Start a virtual method table
+%macro vtable_begin 1
+    [SECTION .rodata]
+    align   8
+    %1:
+%endmacro
+
+// Add a method pointer to the vtable
+%macro vmethod 1
+    dq      %1
+%endmacro
+
+// End the vtable
+%macro vtable_end 0
+    [SECTION .text]
+%endmacro
+
+// ---- Exception Handling (TRY/CATCH) ------
+
+// Start a try block
+%macro try 0
+    %push   try
+    // Logic: we'd need a jump buffer, but for now we'll 
+    // use a context-based error brancher.
+%endmacro
+
+%macro catch 0
+    jmp     %$done_label
+    %$error_label:
+    %ifctx try
+        %push   catch
+    %endif
+%endmacro
+
+%macro endtry 0
+    %$done_label:
+    %ifctx catch
+        %pop    catch
+    %endif
+    %ifctx try
+        %pop    try
+    %endif
+%endmacro
+
+// Throw an error code
+%macro throw 1
+    mov     rax, %1
+    jmp     %$error_label
+%endmacro
