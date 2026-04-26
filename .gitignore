@@ -1,0 +1,28 @@
+# Build Output
+build/
+*.o
+*.elf
+*.bin
+*.lst
+*.map
+
+# Preprocessed Output
+*.pp.s
+
+# Debug
+*.dbg
+*.sym
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
