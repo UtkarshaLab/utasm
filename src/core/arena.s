@@ -124,19 +124,21 @@ arena_init:
 */
 global arena_alloc
 arena_alloc:
+    push    rbx
+    mov     rbx, rdi               // rbx = arena pointer (safe across zeroing)
+
     // validate tag
-    cmp     byte [rdi + ARENA_tag], TAG_ARENA
+    cmp     byte [rbx + ARENA_tag], TAG_ARENA
     jne     .bad_arena
 
     // align requested size up to 8 bytes
-    // formula: (size + 7) & ~7
     mov     rcx, rsi
     add     rcx, 7
     and     rcx, ~7                // rcx = aligned size
 
     // load current ptr and end
-    mov     rax, [rdi + ARENA_ptr] // rax = current free pointer
-    mov     r8,  [rdi + ARENA_end] // r8  = end of arena
+    mov     rax, [rbx + ARENA_ptr] // rax = current free pointer
+    mov     r8,  [rbx + ARENA_end] // r8  = end of arena
 
     // check if enough space remains
     mov     rdx, rax
@@ -144,25 +146,35 @@ arena_alloc:
     cmp     rdx, r8
     ja      .out_of_memory         // new ptr > end = no space
 
-    // zero the allocated region
-    push    rdi
-    push    rsi
-    mov     rdi, rax               // destination = current ptr
-    mov     rsi, rcx               // size = aligned size
-    call    arena_zero
-    pop     rsi
-    pop     rdi
+    // zero the allocated region (optimized using stosq)
+    mov     rdi, rax               // rdi = current ptr
+    push    rax                    // save start of block for return
+    mov     rax, 0                 // zero value
+    push    rcx                    // save aligned size
+    shr     rcx, 3                 // rcx = number of 8-byte quads
+    rep stosq                      // zero the memory
+    pop     rcx                    // restore aligned size
+    pop     rax                    // restore start of block
 
     // advance arena ptr
-    mov     rax, [rdi + ARENA_ptr]
-    mov     rdx, rax               // rdx = pointer to allocated block
-    mov     rcx, rsi
-    add     rcx, 7
-    and     rcx, ~7
-    add     rax, rcx
-    mov     [rdi + ARENA_ptr], rax // update ptr
+    mov     rdx, rax               // rdx = result pointer
+    add     rax, rcx               // rax = next free pointer
+    mov     [rbx + ARENA_ptr], rax // update arena state
 
     xor     rax, rax               // rax = EXIT_OK
+    pop     rbx
+    ret
+
+.out_of_memory:
+    mov     rax, EXIT_OOM
+    xor     rdx, rdx
+    pop     rbx
+    ret
+
+.bad_arena:
+    mov     rax, EXIT_INTERNAL
+    xor     rdx, rdx
+    pop     rbx
     ret
 
 .out_of_memory:
