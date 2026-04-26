@@ -38,7 +38,7 @@ extern error_new_from_errno
             rdx = buffer size (usize)
  Output   : rax = EXIT_OK or EXIT_FILE_WRITE
             rdx = number of bytes written (on success)
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_write
 io_write:
@@ -70,7 +70,7 @@ io_write:
             rdx = buffer size (usize)
  Output   : rax = EXIT_OK or EXIT_FILE_READ
             rdx = number of bytes read (0 on EOF)
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_read
 io_read:
@@ -107,7 +107,7 @@ io_read:
             rdx = file mode (permissions) when creating
  Output   : rax = EXIT_OK or EXIT_FILE_NOT_FOUND or EXIT_FILE_PERM
             rdx = file descriptor (on success)
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_open
 io_open:
@@ -150,7 +150,7 @@ io_open:
  Closes a file descriptor.
  Input    : rdi = file descriptor (i32)
  Output   : rax = EXIT_OK or EXIT_ERROR
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_close
 io_close:
@@ -179,7 +179,7 @@ io_close:
             rdx = whence (0=SEEK_SET, 1=SEEK_CUR, 2=SEEK_END)
  Output   : rax = EXIT_OK or EXIT_ERROR
             rdx = new file offset (on success)
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_lseek
 io_lseek:
@@ -213,7 +213,7 @@ io_lseek:
             r9  = offset (usize)
  Output   : rax = EXIT_OK or EXIT_OOM
             rdx = pointer to mapped memory (on success)
- Clobbers : r10, r11
+ Clobbers : rcx, r10, r11
 */
 global io_mmap
 io_mmap:
@@ -243,7 +243,7 @@ io_mmap:
  Input    : rdi = pointer to mapped memory
             rsi = length (usize)
  Output   : rax = EXIT_OK or EXIT_ERROR
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_munmap
 io_munmap:
@@ -270,7 +270,7 @@ io_munmap:
  Input    : rdi = file descriptor (i32)
             rsi = new length (usize)
  Output   : rax = EXIT_OK or EXIT_ERROR
- Clobbers : r10, r11
+ Clobbers : rcx, r11
 */
 global io_ftruncate
 io_ftruncate:
@@ -296,7 +296,7 @@ io_ftruncate:
  Checks if a file exists and is accessible.
  Input    : rdi = pointer to filename string
  Output   : rax = EXIT_OK (exists) or EXIT_FILE_NOT_FOUND
- Clobbers : rbx, r10, r11
+ Clobbers : rcx, r11
 */
 global io_exists
 io_exists:
@@ -330,7 +330,7 @@ io_exists:
  Input    : rdi = file descriptor (i32)
  Output   : rax = EXIT_OK or EXIT_ERROR
             rdx = file size in bytes (on success)
- Clobbers : rbx, r10, r11
+ Clobbers : rcx, r10, r11
 */
 global io_file_size
 io_file_size:
@@ -375,7 +375,7 @@ io_file_size:
             rdx = bytes to read (usize)
  Output   : rax = EXIT_OK or EXIT_FILE_READ
             rdx = actual bytes read (should equal input rdx on success)
- Clobbers : rbx, r12, r13, r10, r11
+ Clobbers : rcx, r10, r11
 */
 global io_read_full
 io_read_full:
@@ -437,7 +437,7 @@ io_read_full:
             rsi = buffer pointer (*const u8)
             rdx = bytes to write (usize)
  Output   : rax = EXIT_OK or EXIT_FILE_WRITE
- Clobbers : rbx, r12, r13, r10, r11
+ Clobbers : rcx, r10, r11
 */
 global io_write_full
 io_write_full:
