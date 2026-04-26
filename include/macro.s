@@ -1484,3 +1484,28 @@
     pop     rax
     iretq
 %endmacro
+
+// ---- High-Performance Atomics & Sync -----
+
+// Atomic Exchange (64-bit)
+%macro atomic_xchg 2
+    lock xchg [%1], %2
+%endmacro
+
+// Atomic 128-bit Compare-and-Swap
+// %1 = addr, %2 = old_lo, %3 = old_hi, %4 = new_lo, %5 = new_hi
+%macro atomic_cmpxchg_128 5
+    mov     rax, %2
+    mov     rdx, %3
+    mov     rbx, %4
+    mov     rcx, %5
+    lock cmpxchg16b [%1]
+%endmacro
+
+// Exponential Backoff for spinlocks
+%macro pause_backoff 1
+    mov     rcx, %1
+%%loop:
+    pause
+    loop    %%loop
+%endmacro
