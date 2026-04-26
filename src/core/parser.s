@@ -3,7 +3,7 @@
  File        : src/core/parser.s
  Project     : utasm
  Version     : 0.1.0
- Description : Industrial Instruction Parser and SIB Addressing Engine.
+ Description : Technical Instruction Parser and SIB Addressing Engine.
  ============================================================================
 */
 
