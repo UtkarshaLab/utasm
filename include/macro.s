@@ -1184,3 +1184,26 @@
     int3
 %%skip:
 %endmacro
+
+// ---- Advanced Vector & Parsing Logic -----
+
+// Scan for quotes in 16-byte block (SSE 4.2)
+%macro v_scan_quotes 1
+    movdqu  xmm0, [%1]
+    mov     rax, 0x2227            // " and '
+    movd    xmm1, eax
+    pcmpistri xmm0, xmm1, 0x00     // equal any
+%endmacro
+
+// Scan for commas in 16-byte block
+%macro v_scan_commas 1
+    movdqu  xmm0, [%1]
+    mov     rax, 0x2C              // ,
+    movd    xmm1, eax
+    pcmpistri xmm0, xmm1, 0x00
+%endmacro
+
+// Masked vector move (AVX-512 style stub)
+%macro v_mask_mov 3
+    // Logic: vmovdqu64 %1{%2}, %3
+%endmacro
