@@ -1416,3 +1416,71 @@
     cmp     %1, %3
     jg      .error_bounds
 %endmacro
+// ---- Advanced CPU State & Control --------
+
+// Save all GPRs and Flags
+%macro save_context 0
+    pushfq
+    push    rax
+    push    rbx
+    push    rcx
+    push    rdx
+    push    rsi
+    push    rdi
+    push    rbp
+    push    r8
+    push    r9
+    push    r10
+    push    r11
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+%endmacro
+
+// Restore all GPRs and Flags
+%macro restore_context 0
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     r11
+    pop     r10
+    pop     r9
+    pop     r8
+    pop     rbp
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rcx
+    pop     rbx
+    pop     rax
+    popfq
+%endmacro
+
+// Set Hardware Debug Register
+%macro set_debug_reg 2
+    mov     rax, %2
+    %if %1 == 0
+        mov     dr0, rax
+    %elif %1 == 1
+        mov     dr1, rax
+    %endif
+%endmacro
+
+// Interrupt Service Routine Frame
+%macro isr_entry 0
+    push    rax
+    push    rcx
+    push    rdx
+    push    rbp
+    mov     rbp, rsp
+%endmacro
+
+%macro isr_exit 0
+    pop     rbp
+    pop     rdx
+    pop     rcx
+    pop     rax
+    iretq
+%endmacro
