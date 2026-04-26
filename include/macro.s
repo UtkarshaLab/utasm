@@ -391,3 +391,89 @@
     mov     rax, %1
     jmp     %$error_label
 %endmacro
+
+// ---- Endianness Conversion ---------------
+
+// Swap bytes in 16-bit register
+%macro swap_16 1
+    xchg    %h1, %l1               // e.g. xchg ah, al
+%endmacro
+
+// Swap bytes in 32-bit register
+%macro swap_32 1
+    bswap   %1
+%endmacro
+
+// Swap bytes in 64-bit register
+%macro swap_64 1
+    bswap   %1
+%endmacro
+
+// ---- Bitfield Operations -----------------
+
+// Extract bitfield: dest, src, start_bit, num_bits
+%macro extract_bits 4
+    mov     %1, %2
+    if %3, ne, 0
+        shr     %1, %3
+    endif
+    and     %1, ((1 << %4) - 1)
+%endmacro
+
+// Insert bitfield: dest, val, start_bit, num_bits
+%macro insert_bits 4
+    push    rax
+    mov     rax, ((1 << %4) - 1)
+    and     %2, rax                // mask value
+    shl     rax, %3                // mask to position
+    not     rax
+    and     %1, rax                // clear dest bits
+    mov     rax, %2
+    shl     rax, %3
+    or      %1, rax                // insert bits
+    pop     rax
+%endmacro
+
+// ---- SIMD Abstractions (AMD64/SSE) -------
+
+// Move 128-bit aligned
+%macro v_mov 2
+    movaps  %1, %2
+%endmacro
+
+// Vector XOR
+%macro v_xor 2
+    pxor    %1, %2
+%endmacro
+
+// ---- Synchronization (Spinlocks) ---------
+
+// Acquire a spinlock (32-bit memory)
+%macro spin_lock 1
+%%retry:
+    lock bts dword [%1], 0
+    jc      %%retry
+%endmacro
+
+// Release a spinlock
+%macro spin_unlock 1
+    lock btr dword [%1], 0
+%endmacro
+
+// ---- Lookup Table Helpers ----------------
+
+// Define a jump table entry
+%macro jt_entry 1
+    dq      %1
+%endmacro
+
+// Define a named jump table
+%macro jump_table 1
+    [SECTION .rodata]
+    align   8
+    %1:
+%endmacro
+
+%macro jump_table_end 0
+    [SECTION .text]
+%endmacro
