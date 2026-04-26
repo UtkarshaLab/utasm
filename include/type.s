@@ -24,6 +24,45 @@
 %def TAG_INCLUDE_CTX        0x07
 %def TAG_ASM_CTX            0x08
 %def TAG_ARENA              0x09
+%def TAG_LEXER              0x0A
+
+
+// ============================================================================
+// STRUCT: LexerState
+// ============================================================================
+// Complete state of the lexer for one source file.
+// Passed to every lexer function.
+// Size: 104 bytes. Aligned to 8 bytes.
+//
+// Layout:
+//   +0   tag       1 byte   always TAG_LEXER
+//   +1   pad       7 bytes  alignment padding
+//   +8   buf       8 bytes  pointer to source file buffer
+//   +16  pos       8 bytes  current read position in buffer
+//   +24  end       8 bytes  pointer to one byte past end of buffer
+//   +32  file      8 bytes  pointer to source filename string
+//   +40  line      4 bytes  current line number (1-based)
+//   +44  col       2 bytes  current column number (1-based)
+//   +46  pad2      2 bytes  alignment padding
+//   +48  peek      32 bytes TOKEN_SIZE inline token storage
+//   +80  has_peek  1 byte   TRUE if peek slot is valid
+//   +81  pad3      7 bytes  alignment padding
+//   +88  ctx       8 bytes  pointer to AsmCtx
+//   +96  arena     8 bytes  pointer to Arena
+// Total: 104 bytes
+
+%def LEXER_tag              0       // offset of tag field
+%def LEXER_buf              8       // offset of buffer pointer
+%def LEXER_pos              16      // offset of current position
+%def LEXER_end              24      // offset of end pointer
+%def LEXER_file             32      // offset of filename pointer
+%def LEXER_line             40      // offset of line number
+%def LEXER_col              44      // offset of column number
+%def LEXER_peek             48      // offset of inline peek token
+%def LEXER_has_peek         80      // offset of peek valid flag
+%def LEXER_ctx              88      // offset of AsmCtx pointer
+%def LEXER_arena            96      // offset of Arena pointer
+%def LEXER_SIZE             104     // total struct size
 
 // ============================================================================
 // TOKEN TYPES
