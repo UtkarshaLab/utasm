@@ -4,7 +4,7 @@
  Project  : utasm
  Version  : 0.0.1
  Author   : Utkarsha Lab
- License  : Proprietary
+ License  : Apache-2.0
  ============================================
 */
 
