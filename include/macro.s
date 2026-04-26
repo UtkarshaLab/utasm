@@ -1621,3 +1621,18 @@
     cmp     rax, %2
     jg      .error_stall
 %endmacro
+
+// ---- Linker & Forensics ------------------
+
+// Hookable entry point (5-byte NOP)
+%macro hook_prologue 0
+    hotpatch_stub
+%endmacro
+
+// Opaque Constant calculation
+// %1 = dest, %2 = target_val
+%macro opaque_constant 2
+    mov     %1, (%2 / 2)
+    shl     %1, 1
+    add     %1, (%2 % 2)
+%endmacro
