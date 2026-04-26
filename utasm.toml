@@ -32,10 +32,10 @@ sources = [
 include = ["include/"]
 linker_script = "utasm.ld"
 output = "build/utasm"
-target = "aarch64"
+target = "amd64"
 
 [run]
-qemu = "qemu-system-aarch64"
+qemu = "qemu-system-x86_64"
 machine = "virt"
 memory = "256M"
 
