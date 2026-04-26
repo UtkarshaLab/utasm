@@ -12,6 +12,12 @@
 %inc "include/type.s"
 %inc "include/macro.s"
 
+extern error_new_from_errno
+extern symbol_add
+extern symbol_find
+extern str_to_int
+extern str_cmp
+
 // ============================================================================
 // PREPROCESSOR
 // ============================================================================
@@ -39,7 +45,7 @@ global prep_init
 prep_init:
     mov     byte [rdi + PREP_tag], TAG_PREPROCESSOR
     mov     byte [rdi + PREP_depth], 0
-    mov     byte [rdi + PREP_skipping], FALSE
+    mov     byte [rdi + PREP_skip_depth], 0
     mov     [rdi + PREP_lexer], rsi
     mov     [rdi + PREP_ctx], rdx
     mov     [rdi + PREP_arena], rcx
@@ -75,25 +81,22 @@ prep_next_token:
     je      .handle_eof
 
     // check if skipping
-    cmp     byte [rbx + PREP_skipping], TRUE
-    jne     .not_skipping
+    cmp     byte [rbx + PREP_skip_depth], 0
+    je      .not_skipping
 
-    // we are skipping. check for %if / %else / %endif
+    // we are skipping. only care about % directives
     cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
-    jne     .next                  // just consume and get next
+    jne     .next                  // consume everything else
 
-    // it's a %, could be %if/%endif. peek next
-    mov     rdi, [rbx + PREP_lexer]
+    // handle directive even when skipping
+    mov     rdi, rbx
     mov     rsi, r12
-    call    lexer_peek_token
-    // if it's "if", "ifdef", "ifndef", "else", "endif"
-    // we must handle them even when skipping to track depth.
-    // ... logic for depth tracking ...
-    // For now, let's just handle non-skipping logic.
+    call    prep_handle_directive
+    jmp     .next
 
 .not_skipping:
     cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
-    jne     .done                  // normal token, return it
+    jne     .done                  // normal token
 
     // it's a directive. handle it.
     mov     rdi, rbx
@@ -167,6 +170,30 @@ prep_handle_directive:
     test    rax, rax
     jz      .do_def
 
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_ifdef]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_ifdef
+
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_ifndef]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_ifndef
+
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_else]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_else
+
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_endif]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_endif
+
     // ... handle other directives ...
 
     xor     rax, rax
@@ -178,8 +205,30 @@ prep_handle_directive:
     jmp     .done
 
 .do_def:
-    // ... handle %def ...
-    xor     rax, rax
+    cmp     byte [rbx + PREP_skip_depth], 0
+    jne     .done                  // don't execute when skipping
+    mov     rdi, rbx
+    call    prep_handle_def
+    jmp     .done
+
+.do_ifdef:
+    mov     rdi, rbx
+    call    prep_handle_ifdef
+    jmp     .done
+
+.do_ifndef:
+    mov     rdi, rbx
+    call    prep_handle_ifndef
+    jmp     .done
+
+.do_else:
+    mov     rdi, rbx
+    call    prep_handle_else
+    jmp     .done
+
+.do_endif:
+    mov     rdi, rbx
+    call    prep_handle_endif
     jmp     .done
 
 .error:
@@ -330,3 +379,244 @@ dir_rep:    db "rep", 0
 dir_endrep: db "endrep", 0
 dir_macro:  db "macro", 0
 dir_endm:   db "endmacro", 0
+// ---- prep_handle_def --------------------
+/*
+ prep_handle_def
+ Handles the %def directive.
+ Input    : rdi = pointer to PrepState
+ Output   : rax = EXIT_OK or error code
+*/
+prep_handle_def:
+    push    rbx
+    push    r12
+    push    r13
+    mov     rbx, rdi               // rbx = PrepState
+
+    // 1. Lex the identifier (the constant name)
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r12, rsp               // r12 = name token
+    mov     rsi, r12
+    call    lexer_next_token
+    test    rax, rax
+    jnz     .error
+
+    cmp     byte [r12 + TOKEN_kind], TOK_IDENT
+    jne     .expected_ident
+
+    // Save the name pointer
+    mov     r13, [r12 + TOKEN_value]
+
+    // 2. Lex the value
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r12, rsp               // r12 = value token
+    mov     rsi, r12
+    call    lexer_next_token
+    test    rax, rax
+    jnz     .error
+
+    // 3. Create a symbol entry
+    sub     rsp, SYMBOL_SIZE
+    mov     rdi, rsp               // rdi = temp Symbol dest
+    
+    // zero out the struct
+    mov     rcx, 6                 // 48 / 8 = 6
+    xor     rax, rax
+    mov     r10, rdi               // save rdi
+    rep stosq
+    mov     rdi, r10               // restore rdi
+
+    mov     byte [rdi + SYMBOL_tag], TAG_SYMBOL
+    mov     byte [rdi + SYMBOL_kind], SYM_CONSTANT
+    mov     [rdi + SYMBOL_name], r13
+    
+    // handle value
+    cmp     byte [r12 + TOKEN_kind], TOK_NUMBER
+    jne     .finish_def            // for now, ignore non-numeric %def
+
+    push    rdi
+    mov     rdi, [r12 + TOKEN_value]
+    call    str_to_int             // from string.s
+    pop     rdi
+    mov     [rdi + SYMBOL_value], rdx
+
+.finish_def:
+    mov     rdi, [rbx + PREP_ctx]  // rdi = AsmCtx
+    mov     rsi, rsp               // rsi = pointer to temp Symbol on stack
+    call    symbol_add
+    test    rax, rax
+    jnz     .error
+
+    xor     rax, rax
+
+.error:
+    add     rsp, (TOKEN_SIZE * 2) + SYMBOL_SIZE
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.expected_ident:
+    mov     rax, EXIT_ERROR
+    jmp     .error
+
+// ---- prep_handle_ifdef ------------------
+/*
+ prep_handle_ifdef
+ Handles the %ifdef directive.
+*/
+prep_handle_ifdef:
+    push    rbx
+    push    r12
+    mov     rbx, rdi
+
+    // increment total depth
+    inc     byte [rbx + PREP_depth]
+
+    // if already skipping, just return
+    cmp     byte [rbx + PREP_skip_depth], 0
+    jne     .done
+
+    // next token must be an identifier
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r12, rsp
+    mov     rsi, r12
+    call    lexer_next_token
+    test    rax, rax
+    jnz     .error
+
+    cmp     byte [r12 + TOKEN_kind], TOK_IDENT
+    jne     .expected_ident
+
+    // check if symbol exists
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [r12 + TOKEN_value]
+    call    symbol_find
+    test    rax, rax
+    jz      .found
+
+    // not found -> start skipping
+    mov     al, [rbx + PREP_depth]
+    mov     [rbx + PREP_skip_depth], al
+
+.found:
+    xor     rax, rax
+
+.done:
+    add     rsp, TOKEN_SIZE
+    pop     r12
+    pop     rbx
+    ret
+
+.error:
+.expected_ident:
+    mov     rax, EXIT_ERROR
+    jmp     .done
+
+// ---- prep_handle_ifndef -----------------
+prep_handle_ifndef:
+    push    rbx
+    push    r12
+    mov     rbx, rdi
+
+    inc     byte [rbx + PREP_depth]
+    cmp     byte [rbx + PREP_skip_depth], 0
+    jne     .done
+
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r12, rsp
+    mov     rsi, r12
+    call    lexer_next_token
+    test    rax, rax
+    jnz     .error
+
+    cmp     byte [r12 + TOKEN_kind], TOK_IDENT
+    jne     .expected_ident
+
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [r12 + TOKEN_value]
+    call    symbol_find
+    test    rax, rax
+    jnz     .not_found             // not zero means error -> NOT found
+
+    // found -> start skipping (since it's ifndef)
+    mov     al, [rbx + PREP_depth]
+    mov     [rbx + PREP_skip_depth], al
+
+.not_found:
+    xor     rax, rax
+
+.done:
+    add     rsp, TOKEN_SIZE
+    pop     r12
+    pop     rbx
+    ret
+
+.error:
+.expected_ident:
+    mov     rax, EXIT_ERROR
+    jmp     .done
+
+// ---- prep_handle_else -------------------
+prep_handle_else:
+    push    rbx
+    mov     rbx, rdi
+
+    mov     al, [rbx + PREP_depth]
+    test    al, al
+    jz      .error                 // %else without %if
+
+    // 1. If we are currently skipping at THIS depth, we stop skipping.
+    cmp     al, [rbx + PREP_skip_depth]
+    je      .stop_skipping
+
+    // 2. If we are NOT skipping at any depth, we START skipping (because the %if was taken)
+    cmp     byte [rbx + PREP_skip_depth], 0
+    jne     .done                  // we are skipping at a higher level, do nothing
+
+    mov     [rbx + PREP_skip_depth], al
+    jmp     .done
+
+.stop_skipping:
+    mov     byte [rbx + PREP_skip_depth], 0
+
+.done:
+    xor     rax, rax
+    pop     rbx
+    ret
+
+.error:
+    mov     rax, EXIT_ERROR
+    pop     rbx
+    ret
+
+// ---- prep_handle_endif ------------------
+prep_handle_endif:
+    push    rbx
+    mov     rbx, rdi
+
+    mov     al, [rbx + PREP_depth]
+    test    al, al
+    jz      .error_no_if           // %endif without %if
+
+    // check if we were skipping at this depth
+    cmp     al, [rbx + PREP_skip_depth]
+    jne     .not_our_skip
+
+    // we were skipping and now we reached the matching %endif
+    mov     byte [rbx + PREP_skip_depth], 0
+
+.not_our_skip:
+    dec     byte [rbx + PREP_depth]
+    xor     rax, rax
+    jmp     .done
+
+.error_no_if:
+    mov     rax, EXIT_ERROR
+
+.done:
+    pop     rbx
+    ret
