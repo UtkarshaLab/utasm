@@ -360,9 +360,11 @@ lexer_next:
 // ---- << and >> --------------------------
 .lex_lshift:
     call    .token_begin
-    // check next char
+    // check next char — must have at least 2 bytes remaining (pos + 1 < end)
     mov     r13, [rbx + LEXER_pos]
-    cmp     r13, [rbx + LEXER_end]
+    mov     r10, [rbx + LEXER_end]
+    dec     r10                    // r10 = end - 1
+    cmp     r13, r10
     jge     .single_lt_not_supported
     movzx   rcx, byte [r13 + 1]
     cmp     rcx, '<'
@@ -381,7 +383,9 @@ lexer_next:
 .lex_rshift:
     call    .token_begin
     mov     r13, [rbx + LEXER_pos]
-    cmp     r13, [rbx + LEXER_end]
+    mov     r10, [rbx + LEXER_end]
+    dec     r10                    // r10 = end - 1
+    cmp     r13, r10
     jge     .single_gt_not_supported
     movzx   rcx, byte [r13 + 1]
     cmp     rcx, '>'
@@ -576,11 +580,25 @@ lexer_next:
     je      .lex_string_escape
 
     // normal character
+    // check buffer limit
+    cmp     r10, MAX_LINE - 1
+    jge     .lex_string_too_long
+
     mov     byte [r13 + r10], cl
     inc     r10
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
     jmp     .lex_string_loop
+
+.lex_string_too_long:
+    mov     rdi, [rbx + LEXER_ctx]
+    mov     rsi, [rbx + LEXER_file]
+    mov     edx, dword [rbx + LEXER_line]
+    movzx   rcx, word  [rbx + LEXER_col]
+    lea     r8,  [msg_string_too_long]
+    call    error_emit
+    mov     rax, EXIT_INTERNAL
+    jmp     .fail
 
 .lex_string_escape:
     // skip backslash
@@ -950,7 +968,7 @@ lexer_next:
     movzx   rcx, word  [rbx + LEXER_col]
     lea     r8,  [msg_unterminated_comment]
     call    error_emit
-    xor     rax, rax
+    mov     rax, EXIT_UNEXPECTED_EOF
     ret
 
 .skip_ws:
@@ -1142,3 +1160,5 @@ msg_unknown_char:
 
 msg_unexpected_token:
     db      "unexpected token", 0
+msg_string_too_long:
+    db      "string literal too long", 0
