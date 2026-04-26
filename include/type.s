@@ -289,6 +289,29 @@
 %def MACROEXP_SIZE          48      // total struct size
 
 // ============================================================================
+// STRUCT: MacroDef
+// ============================================================================
+// Definition of a preprocessor macro.
+// Size: 32 bytes. Aligned to 8 bytes.
+//
+// Layout:
+//   +0   tag       1 byte   always TAG_MACRO
+//   +1   nparams   1 byte   number of parameters
+//   +2   pad       6 bytes  alignment padding
+//   +8   name      8 bytes  pointer to macro name string
+//   +16  tokens    8 bytes  pointer to token array (body)
+//   +24  ntokens   4 bytes  number of tokens in the body
+//   +28  pad2      4 bytes  alignment padding
+// Total: 32 bytes
+
+%def MACRO_tag              0       // offset of tag field
+%def MACRO_nparams          1       // offset of parameter count
+%def MACRO_name             8       // offset of name pointer
+%def MACRO_tokens           16      // offset of body token array
+%def MACRO_ntokens          24      // offset of token count
+%def MACRO_SIZE             32      // total struct size
+
+// ============================================================================
 // STRUCT: IncludeCtx
 // ============================================================================
 // Tracks state of an active %inc file inclusion.

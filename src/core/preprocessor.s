@@ -194,6 +194,12 @@ prep_handle_directive:
     test    rax, rax
     jz      .do_endif
 
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_macro]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_macro
+
     // ... handle other directives ...
 
     xor     rax, rax
@@ -229,6 +235,11 @@ prep_handle_directive:
 .do_endif:
     mov     rdi, rbx
     call    prep_handle_endif
+    jmp     .done
+
+.do_macro:
+    mov     rdi, rbx
+    call    macro_handle_def
     jmp     .done
 
 .error:
@@ -608,6 +619,76 @@ prep_handle_endif:
 
     // we were skipping and now we reached the matching %endif
     mov     byte [rbx + PREP_skip_depth], 0
+// ---- macro_handle_def -------------------
+/*
+ macro_handle_def
+ Handles the %macro directive.
+ Input    : rdi = pointer to PrepState
+ Output   : rax = EXIT_OK or error code
+*/
+macro_handle_def:
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    mov     rbx, rdi               // rbx = PrepState
+
+    // 1. Lex the macro name
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r12, rsp               // r12 = name token
+    mov     rsi, r12
+    call    lexer_next_token
+    test    rax, rax
+    jnz     .error
+
+    cmp     byte [r12 + TOKEN_kind], TOK_IDENT
+    jne     .error_expected_ident
+
+    // 2. Lex the parameter count
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r13, rsp               // r13 = param count token
+    mov     rsi, r13
+    call    lexer_next_token
+    // ... logic for parsing param count ...
+    
+    // For now, let's just implement a stub that skips until %endmacro
+    // to keep the preprocessor running.
+
+.skip_loop:
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, r12
+    call    lexer_next_token
+    test    rax, rax
+    jnz     .error
+    
+    cmp     byte [r12 + TOKEN_kind], TOK_EOF
+    je      .error_eof
+    
+    cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
+    jne     .skip_loop
+    
+    // check if it is endmacro
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, r12
+    call    lexer_next_token
+    // ... comparison logic ...
+    
+    xor     rax, rax
+
+.error:
+    add     rsp, TOKEN_SIZE * 2
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.error_expected_ident:
+.error_eof:
+    mov     rax, EXIT_ERROR
+    jmp     .error
 
 .not_our_skip:
     dec     byte [rbx + PREP_depth]
