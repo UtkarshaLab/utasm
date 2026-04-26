@@ -580,3 +580,115 @@
         %error "pop_alloc without push_alloc"
     %endif
 %endmacro
+// ---- Software Prefetching ----------------
+
+// Prefetch data into all cache levels (T0 hint)
+%macro prefetch_read 1
+    prefetcht0 [%1]
+%endmacro
+
+// Prefetch data into L2 and higher (T1 hint)
+%macro prefetch_read_l2 1
+    prefetcht1 [%1]
+%endmacro
+
+// Prefetch data for intended write (AMD64/BMI)
+%macro prefetch_write 1
+    prefetchw [%1]
+%endmacro
+
+// ---- AMD64 Red Zone Management -----------
+// Red Zone is 128 bytes below RSP that is safe to use without adjusting RSP.
+
+// Store a 64-bit value into the Red Zone at given offset
+%macro rz_store 2
+    mov     [rsp - %2], %1
+%endmacro
+
+// Load a 64-bit value from the Red Zone
+%macro rz_load 2
+    mov     %1, [rsp - %2]
+%endmacro
+
+// Secure the Red Zone (use before calling other functions)
+%macro rz_secure 0
+    sub     rsp, 128
+%endmacro
+
+// Release the Red Zone
+%macro rz_release 0
+    add     rsp, 128
+%endmacro
+
+// ---- Data Serialization ------------------
+
+// Encode a 64-bit value to LEB128 (Variable Length Integer)
+// Input: %1 = value, %2 = dest buffer pointer
+// Output: %2 is advanced by the number of bytes written
+%macro encode_leb128 2
+    mov     rax, %1
+    mov     rdi, %2
+%%loop:
+    mov     dl, al
+    and     dl, 0x7F
+    shr     rax, 7
+    jz      %%done
+    or      dl, 0x80
+    mov     [rdi], dl
+    inc     rdi
+    jmp     %%loop
+%%done:
+    mov     [rdi], dl
+    inc     rdi
+    mov     %2, rdi
+%endmacro
+
+// ---- Hardware Feature Detection ----------
+
+// Verify if CPU supports a specific feature bit
+// %1 = leaf (eax), %2 = reg (ecx/edx), %3 = bit
+%macro require_cpu_feature 3
+    mov     eax, %1
+    xor     ecx, ecx
+    cpuid
+    bt      %2, %3
+    jnc     .error_cpu_feature
+%endmacro
+
+// ---- Coroutines & Context Switching ------
+
+// Save current context and switch to another stack
+// %1 = addr to save current RSP, %2 = addr to load next RSP
+%macro switch_context 2
+    push    rbp
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    mov     [%1], rsp              // save current stack top
+    mov     rsp, [%2]              // load new stack top
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    pop     rbp
+%endmacro
+
+// ---- Instruction Scheduling & Hints ------
+
+// Align a branch target for optimal fetch (typically 16 or 32 bytes)
+%macro align_branch 1
+    align   %1, db 0x90            // fill with NOPs
+%endmacro
+
+// Hint that the CPU should expect a loop (REP NOP / PAUSE)
+%macro cpu_relax 0
+    pause
+%endmacro
+
+// Serialize instruction stream
+%macro serialize 0
+    cpuid
+%endmacro
