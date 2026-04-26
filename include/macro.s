@@ -561,3 +561,22 @@
     // Alternative: mfencing
     mfence
 %endmacro
+// ---- Advanced Memory Pool Helpers -------
+
+// Save current arena pointer (checkpoint)
+%macro push_alloc 0
+    %push   arena
+    mov     r10, [rbx + PREP_arena] // assumes rbx = PrepState or similar
+    push    qword [r10 + ARENA_ptr]
+%endmacro
+
+// Restore arena pointer to last checkpoint
+%macro pop_alloc 0
+    %ifctx arena
+        mov     r10, [rbx + PREP_arena]
+        pop     qword [r10 + ARENA_ptr]
+        %pop    arena
+    %else
+        %error "pop_alloc without push_alloc"
+    %endif
+%endmacro
