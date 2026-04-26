@@ -793,6 +793,12 @@ msg_summary_warnings_label_len equ $ - msg_summary_warnings_label - 1
 msg_too_many_errors:
     db      "too many errors — stopping.", 0
 
+msg_system_error:
+    db      "system error (errno ", 0
+
+msg_system_error_suffix:
+    db      ")", 0
+
 msg_colon:
     db      ":"
 
@@ -801,6 +807,43 @@ msg_colon_space:
 
 msg_newline:
     db      10
+
+// ---- error_new_from_errno ----------------
+/*
+ error_new_from_errno
+ Translates a system errno into a diagnostic message.
+ Input    : rdi = errno (i64)
+ Output   : rax = EXIT_OK
+ Clobbers : r8, r9, r10
+*/
+global error_new_from_errno
+error_new_from_errno:
+    // for now, just print "system error (errno X)"
+    // we don't have a full strerror yet
+    push    rdi
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_system_error]
+    mov     rdx, 21
+    call    error_write_raw
+
+    pop     rdi
+    call    error_uint_to_str
+    mov     rdi, STDERR_FILENO
+    mov     rsi, rdx
+    call    error_write_str
+
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_system_error_suffix]
+    mov     rdx, 1
+    call    error_write_raw
+
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_newline]
+    mov     rdx, 1
+    call    error_write_raw
+
+    xor     rax, rax
+    ret
 
 // ---- integer conversion buffer -----------
 

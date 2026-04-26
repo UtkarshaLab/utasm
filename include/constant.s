@@ -215,6 +215,7 @@
 %def MAP_PRIVATE            2           // modifications are private copy-on-write
 %def MAP_ANONYMOUS          0x20        // mapping not backed by any file
 %def MAP_FIXED              0x10        // force mapping at requested address
+%def MAP_FAILED             -1          // mapping failure return value
 
 // ============================================================================
 // ERROR RETURN CODES (ERRNO VALUES)

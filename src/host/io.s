@@ -10,7 +10,8 @@
 
 %inc "include/constant.s"
 %inc "include/type.s"
-%inc "core/error.s"
+
+extern error_new_from_errno
 
 // ============================================================================
 // HOST I/O (Syscall Interface)
@@ -41,11 +42,6 @@
 */
 global io_write
 io_write:
-    push    rbx
-    mov     rbx, rdi               // save fd
-    mov     r10, rsi               // save buf
-    mov     r11, rdx               // save count
-
     mov     rax, AMD64_SYS_WRITE
     syscall
 
@@ -55,16 +51,14 @@ io_write:
 
     mov     rdx, rax               // rdx = bytes written
     xor     rax, rax               // rax = EXIT_OK
-    pop     rbx
     ret
 
 .error:
     neg     rax                    // convert negative error to positive errno
     mov     rdi, rax
-    call    error_new_from_errno   // assume this exists in error.s
+    call    error_new_from_errno
     mov     rax, EXIT_FILE_WRITE
     xor     rdx, rdx
-    pop     rbx
     ret
 
 // ---- io_read ----------------------------------
@@ -80,11 +74,6 @@ io_write:
 */
 global io_read
 io_read:
-    push    rbx
-    mov     rbx, rdi               // save fd
-    mov     r10, rsi               // save buf
-    mov     r11, rdx               // save count
-
     mov     rax, AMD64_SYS_READ
     syscall
 
@@ -94,13 +83,11 @@ io_read:
 
     mov     rdx, rax               // rdx = bytes read
     xor     rax, rax               // rax = EXIT_OK
-    pop     rbx
     ret
 
 .eof:
     xor     rax, rax               // rax = EXIT_OK
     xor     rdx, rdx               // rdx = 0 (EOF)
-    pop     rbx
     ret
 
 .error:
@@ -109,7 +96,6 @@ io_read:
     call    error_new_from_errno
     mov     rax, EXIT_FILE_READ
     xor     rdx, rdx
-    pop     rbx
     ret
 
 // ---- io_open ----------------------------------
@@ -125,11 +111,6 @@ io_read:
 */
 global io_open
 io_open:
-    push    rbx
-    mov     rbx, rdi               // save filename
-    mov     r10, rsi               // save flags
-    mov     r11, rdx               // save mode
-
     mov     rax, AMD64_SYS_OPEN
     syscall
 
@@ -138,7 +119,6 @@ io_open:
 
     mov     rdx, rax               // rdx = fd
     xor     rax, rax               // rax = EXIT_OK
-    pop     rbx
     ret
 
 .error:
@@ -162,7 +142,6 @@ io_open:
 
 .done:
     xor     rdx, rdx
-    pop     rbx
     ret
 
 // ---- io_close ---------------------------------
@@ -204,11 +183,6 @@ io_close:
 */
 global io_lseek
 io_lseek:
-    push    rbx
-    mov     rbx, rdi               // save fd
-    mov     r10, rsi               // save offset
-    mov     r11, rdx               // save whence
-
     mov     rax, AMD64_SYS_LSEEK
     syscall
 
@@ -217,7 +191,6 @@ io_lseek:
 
     mov     rdx, rax               // rdx = new offset
     xor     rax, rax               // EXIT_OK
-    pop     rbx
     ret
 
 .error:
@@ -226,7 +199,6 @@ io_lseek:
     call    error_new_from_errno
     mov     rax, EXIT_ERROR
     xor     rdx, rdx
-    pop     rbx
     ret
 
 // ---- io_mmap ----------------------------------
@@ -245,7 +217,7 @@ io_lseek:
 */
 global io_mmap
 io_mmap:
-    // All args are already in correct registers for syscall
+    mov     r10, rcx               // r10 = flags (AMD64 syscall ABI)
     mov     rax, AMD64_SYS_MMAP
     syscall
 
