@@ -292,7 +292,7 @@
 // STRUCT: IncludeCtx
 // ============================================================================
 // Tracks state of an active %inc file inclusion.
-// Size: 48 bytes. Aligned to 8 bytes.
+// Size: 56 bytes. Aligned to 8 bytes.
 //
 // Layout:
 //   +0   tag     1 byte   always TAG_INCLUDE_CTX
@@ -304,7 +304,8 @@
 //   +32  pos     8 bytes  current read position in buffer
 //   +40  line    4 bytes  current line number in this file
 //   +44  pad2    4 bytes  alignment padding
-// Total: 48 bytes
+//   +48  lexer   8 bytes  pointer to saved LexerState
+// Total: 56 bytes
 
 %def INCLUDECTX_tag         0       // offset of tag field
 %def INCLUDECTX_depth       1       // offset of depth field
@@ -313,7 +314,8 @@
 %def INCLUDECTX_buf         24      // offset of buffer pointer
 %def INCLUDECTX_pos         32      // offset of read position
 %def INCLUDECTX_line        40      // offset of line number
-%def INCLUDECTX_SIZE        48      // total struct size
+%def INCLUDECTX_lexer       48      // offset of saved lexer pointer
+%def INCLUDECTX_SIZE        56      // total struct size
 
 // ============================================================================
 // STRUCT: Arena
