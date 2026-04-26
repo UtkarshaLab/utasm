@@ -1509,3 +1509,34 @@
     pause
     loop    %%loop
 %endmacro
+
+// ---- Vectorized Logical Operations -------
+
+%macro v_and 2
+    pand    %1, %2
+%endmacro
+
+%macro v_or 2
+    por     %1, %2
+%endmacro
+
+%macro v_not 1
+    pcmpeqd xmm7, xmm7             // all ones
+    pxor    %1, xmm7
+%endmacro
+
+// Vector Absolute Difference
+%macro v_abs_diff 2
+    psadbw  %1, %2
+%endmacro
+
+// Vector state checks
+%macro v_all_zero 1
+    ptest   %1, %1
+    // ZF set if all zero
+%endmacro
+
+%macro v_any_set 1
+    ptest   %1, %1
+    // ZF clear if any bit set
+%endmacro
