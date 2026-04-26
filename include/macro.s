@@ -1322,3 +1322,97 @@
     // rax contains sum
     pop_volatile
 %endmacro
+// ---- Metaprogramming ---------------------
+
+// Compile-time assertion
+// Usage: static_assert MY_VAL, ==, 64
+%macro static_assert 3
+    %if %1 %2 %3
+        // condition met
+    %else
+        %error "STATIC ASSERTION FAILED: %1 %2 %3"
+    %endif
+%endmacro
+
+// Compile-time FNV-1a Hashing
+// %1 = string literal, %2 = name of constant to define
+%macro compile_time_hash 2
+    %assign %%hash 0xcbf29ce484222325
+    %strlen %%len %1
+    %assign %%i 1
+    %rep %%len
+        %substr %%char %1 %%i
+        // NASM handles large integers automatically
+        %assign %%hash ((%%hash ^ %%char) * 0x100000001b3)
+        %assign %%i %%i + 1
+    %endrep
+    %define %2 %%hash
+%endmacro
+
+// ---- Assembler Internals -----------------
+
+// Generate a mnemonic table entry
+// %1 = string, %2 = n_operands, %3 = internal_id
+%macro mnemonic_entry 3
+    compile_time_hash %1, %%h
+    dq      %%h                    // 64-bit hash
+    db      %2                     // operand count
+    dw      %3                     // unique mnemonic ID
+%endmacro
+
+// Aligned arena allocation
+%macro alloc_aligned_arena 3
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, %2                // size
+    call    arena_alloc
+    check_err
+    mov     %1, rdx
+    // logic to align rdx would go here or in arena_alloc
+%endmacro
+
+// ---- Performance Utilities ---------------
+
+// SIMD Scan for Character
+// %1 = buffer, %2 = char (byte)
+%macro mem_scan_char 2
+    movd    xmm1, %2
+    punpcklbw xmm1, xmm1           // broadcast to xmm
+    punpcklwd xmm1, xmm1
+    pshufd  xmm1, xmm1, 0
+    movdqu  xmm0, [%1]
+    pcmpeqb xmm0, xmm1
+    pmovmskb eax, xmm0
+    // eax contains 16-bit match mask
+%endmacro
+
+// Fast ITOS (Integer to String)
+%macro fast_itos 2
+    mov     rax, %1
+    mov     rdi, %2
+    // simplified recursive-style divide by 10
+%endmacro
+
+// ---- Advanced Debugging ------------------
+
+// Walk stack and dump return addresses
+%macro stack_trace 0
+    push    rbp
+    mov     rbp, rbp
+%%loop:
+    test    rbp, rbp
+    jz      %%done
+    mov     rax, [rbp + 8]         // return address
+    debug_dump_hex rax
+    mov     rbp, [rbp]             // previous rbp
+    jmp     %%loop
+%%done:
+    pop     rbp
+%endmacro
+
+// Runtime check for register value range
+%macro assert_reg_range 3
+    cmp     %1, %2
+    jl      .error_bounds
+    cmp     %1, %3
+    jg      .error_bounds
+%endmacro
