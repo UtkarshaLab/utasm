@@ -1,8 +1,14 @@
-; Technical Instruction Table for RISCV64
-; Generated from exhaustive source lists
+/*
+ ============================================================================
+ File        : src/arch/riscv64/table.s
+ Project     : utasm
+ Version     : 0.1.0
+ Description : RISCV64 Mnemonic and Register Lookup Tables.
+ ============================================================================
+*/
 
-%include "core/macro.s"
-%include "arch/riscv64.s"
+%inc "core/macro.s"
+%inc "arch/riscv64.s"
 
 section .data
 global mnemonic_table_riscv64

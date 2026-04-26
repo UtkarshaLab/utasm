@@ -1,8 +1,14 @@
-; Technical Instruction Table for AARCH64
-; Generated from exhaustive source lists
+/*
+ ============================================================================
+ File        : src/arch/aarch64/table.s
+ Project     : utasm
+ Version     : 0.1.0
+ Description : AArch64 Mnemonic and Register Lookup Tables.
+ ============================================================================
+*/
 
-%include "core/macro.s"
-%include "arch/aarch64.s"
+%inc "core/macro.s"
+%inc "arch/aarch64.s"
 
 section .data
 global mnemonic_table_aarch64

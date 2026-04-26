@@ -26,3 +26,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+#scratch codes for generation
+scratch/
