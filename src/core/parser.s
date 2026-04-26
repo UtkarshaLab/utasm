@@ -177,15 +177,15 @@ parser_get_arch_tables:
         lea     rax, [amd64_mnemonic_table]
         lea     rdx, [amd64_register_table]
     ELSEIF cl, e, TARGET_AARCH64
-        extern aarch64_mnemonic_table
+        extern mnemonic_table_aarch64
         extern aarch64_register_table
-        lea     rax, [aarch64_mnemonic_table]
+        lea     rax, [mnemonic_table_aarch64]
         lea     rdx, [aarch64_register_table]
     ELSEIF cl, e, TARGET_RISCV64
-        extern riscv64_mnemonic_table
+        extern mnemonic_table_riscv64
         extern riscv64_register_table
-        lea     rax, [riscv64_mnemonic_table]
-        lea     rdx, [riscv64_mnemonic_table]
+        lea     rax, [mnemonic_table_riscv64]
+        lea     rdx, [riscv64_register_table]
     ELSE
         xor     rax, rax
         xor     rdx, rdx
