@@ -1,0 +1,44 @@
+[project]
+name = "utasm"
+version = "0.0.1"
+description = "Utkarsha Assembler — unified assembler and linker for Tattva OS"
+author = "Utkarsha Lab"
+license = "Proprietary"
+
+[build]
+sources = [
+    "src/main.s",
+    "src/cli.s",
+    "src/core/lexer.s",
+    "src/core/parser.s",
+    "src/core/preprocessor.s",
+    "src/core/symbol.s",
+    "src/core/error.s",
+    "src/encoder/aarch64.s",
+    "src/encoder/amd64.s",
+    "src/encoder/riscv64.s",
+    "src/linker/linker.s",
+    "src/linker/elf64.s",
+    "src/linker/binary.s",
+    "src/linker/script.s",
+    "src/linker/reloc.s",
+    "src/output/listing.s",
+    "src/output/mapfile.s",
+    "src/output/symbol.s",
+    "src/host/io.s",
+    "src/host/mem.s",
+    "src/host/qemu.s",
+]
+include = ["include/"]
+linker_script = "utasm.ld"
+output = "build/utasm"
+target = "aarch64"
+
+[run]
+qemu = "qemu-system-aarch64"
+machine = "virt"
+memory = "256M"
+
+[test]
+runner = "scripts/test.sh"
+dirs = ["tests/aarch64", "tests/amd64", "tests/riscv64", "tests/common"]
