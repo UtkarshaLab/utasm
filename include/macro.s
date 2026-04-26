@@ -1568,3 +1568,27 @@
         db 0x0F, 0x1F, 0x44, 0x00, 0x00
     %endif
 %endmacro
+
+// ---- Advanced Math & Encoding ------------
+
+// 64x64 -> 128-bit Multiply
+// %1 = val1, %2 = val2, %3 = res_lo, %4 = res_hi
+%macro mul_128 4
+    mov     rax, %1
+    mul     qword %2
+    mov     %3, rax
+    mov     %4, rdx
+%endmacro
+
+// Invert range of bits
+// %1 = reg, %2 = start, %3 = len
+%macro not_bits 3
+    mov     rax, ((1 << %3) - 1)
+    shl     rax, %2
+    xor     %1, rax
+%endmacro
+
+// UTF-8 Encode stub
+%macro encode_utf8 1
+    // Logic: convert 32-bit codepoint to bytes
+%endmacro
