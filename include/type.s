@@ -25,6 +25,7 @@
 %def TAG_ASM_CTX            0x08
 %def TAG_ARENA              0x09
 %def TAG_LEXER              0x0A
+%def TAG_PREPROCESSOR       0x0B
 
 
 // ============================================================================
@@ -398,3 +399,28 @@
 %def CTX_FLAG_LISTING       0x10    // generate listing file
 %def CTX_FLAG_MAPFILE       0x20    // generate map file
 %def CTX_FLAG_STRIP         0x40    // strip symbols from output
+
+// ============================================================================
+// STRUCT: PrepState
+// ============================================================================
+// State of the preprocessor.
+// Tracks nested conditionals and the active lexer.
+// Size: 32 bytes. Aligned to 8 bytes.
+//
+// Layout:
+//   +0   tag       1 byte   always TAG_PREPROCESSOR
+//   +1   depth     1 byte   current %if nesting depth
+//   +2   skipping  1 byte   TRUE if current branch is disabled
+//   +3   pad       5 bytes  alignment padding
+//   +8   lexer     8 bytes  pointer to current LexerState
+//   +16  ctx       8 bytes  pointer to AsmCtx
+//   +24  arena     8 bytes  pointer to Arena
+// Total: 32 bytes
+
+%def PREP_tag               0       // offset of tag field
+%def PREP_depth             1       // offset of depth field
+%def PREP_skipping          2       // offset of skipping flag
+%def PREP_lexer             8       // offset of current lexer pointer
+%def PREP_ctx               16      // offset of AsmCtx pointer
+%def PREP_arena             24      // offset of Arena pointer
+%def PREP_SIZE              32      // total struct size
