@@ -1,7 +1,7 @@
 [project]
 name = "utasm"
 version = "0.0.1"
-description = "Utkarsha Assembler — unified assembler and linker for Tattva OS"
+description = "Utkarsha Assembler — unified multi-architecture assembler and linker"
 author = "Utkarsha Lab"
 license = "Apache-2.0"
 
