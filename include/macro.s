@@ -10,7 +10,7 @@
 */
 
 // ============================================================================
-// 1. FUNCTION & CONTEXT MANAGEMENT
+// 1. SYSTEM & CONTEXT MANAGEMENT
 // ============================================================================
 
 // Function prologue: save RBP and set new frame
@@ -111,47 +111,86 @@
     pop     rbp
 %endmacro
 
+// ---- Local Variables (Stack) -------------
+
+%macro locals_start 0
+    %push   locals
+    %assign %$base_offset 0
+%endmacro
+
+%macro local_var 2
+    %assign %$base_offset %$base_offset + %2
+    %define %1 [rbp - %$base_offset]
+%endmacro
+
+%macro locals_end 0
+    sub     rsp, %$base_offset
+    %pop    locals
+%endmacro
+
+// ---- Exception Handling (TRY/CATCH) ------
+
+%macro try 0
+    %push   try
+%endmacro
+
+%macro catch 0
+    jmp     %$done_label
+    %$error_label:
+    %ifctx try
+        %push   catch
+    %endif
+%endmacro
+
+%macro endtry 0
+    %$done_label:
+    %ifctx catch
+        %pop    catch
+    %endif
+    %ifctx try
+        %pop    try
+    %endif
+%endmacro
+
+%macro throw 1
+    mov     rax, %1
+    jmp     %$error_label
+%endmacro
+
 // ============================================================================
 // 2. ERROR HANDLING & ASSERTIONS
 // ============================================================================
 
-// Branch to .error if RAX is non-zero
 %macro check_err 0
     test    rax, rax
     jnz     .error
 %endmacro
 
-// Branch to %1 if RAX is non-zero
 %macro check_err_to 1
     test    rax, rax
     jnz     %1
 %endmacro
 
-// Verify struct tag at [%1]
 %macro assert_tag 2
     cmp     byte [%1], %2
     jne     .error_tag
 %endmacro
 
-// Trap if address %1 is not aligned to %2
 %macro assert_aligned 2
     test    %1, (%2 - 1)
     jnz     .error_alignment
 %endmacro
 
-// Trap if address %1 is not cache-aligned (64 bytes)
 %macro assert_cache_aligned 1
     test    %1, 63
     jnz     .error_cache_split
 %endmacro
 
-// Trap if register %1 is zero
 %macro assert_not_zero 1
     test    %1, %1
     jz      .error_null
 %endmacro
 
-// Trap if %1 is outside range [%2, %3]
 %macro assert_reg_range 3
     cmp     %1, %2
     jl      .error_bounds
@@ -159,7 +198,6 @@
     jg      .error_bounds
 %endmacro
 
-// Verify 16-byte stack alignment
 %macro stack_align_check 0
     test    rsp, 0xF
     jnz     .error_stack_unaligned
@@ -169,7 +207,6 @@
 // 3. FLOW CONTROL (STRUCTURED)
 // ============================================================================
 
-// IF <val1>, <cond>, <val2>
 %macro IF 3
     %push   if
     cmp     %1, %3
@@ -199,7 +236,6 @@
     %endif
 %endmacro
 
-// WHILE <val1>, <cond>, <val2>
 %macro WHILE 3
     %push   while
     %$loop_start:
@@ -217,7 +253,6 @@
     %endif
 %endmacro
 
-// Branch hints
 %macro j_likely 2
     j%1     %2
 %endmacro
@@ -230,15 +265,13 @@
 // 4. MEMORY & DATA STRUCTURES
 // ============================================================================
 
-// Zero memory block: %1=ptr, %2=size (bytes)
 %macro zero_mem 2
     mov     rdi, %1
     mov     rcx, (%2 / 8)
     xor     rax, rax
-    rep stosq
+    rep     stosq
 %endmacro
 
-// Allocate memory on current arena: %1=dest_reg, %2=size
 %macro alloc_on_arena 2
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, %2
@@ -248,7 +281,6 @@
     mov     %1, rdx
 %endmacro
 
-// Aligned arena allocation
 %macro alloc_aligned_arena 3
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, %2
@@ -257,14 +289,12 @@
     mov     %1, rdx
 %endmacro
 
-// Save current arena pointer (checkpoint)
 %macro push_alloc 0
     %push   arena
     mov     r10, [rbx + PREP_arena]
     push    qword [r10 + ARENA_ptr]
 %endmacro
 
-// Restore arena pointer to last checkpoint
 %macro pop_alloc 0
     %ifctx arena
         mov     r10, [rbx + PREP_arena]
@@ -275,7 +305,6 @@
     %endif
 %endmacro
 
-// Define structure layout
 %macro struc 1
     %push   struc
     %define %$struc_name %1
@@ -292,7 +321,6 @@
     %pop    struc
 %endmacro
 
-// VTable Helpers
 %macro vtable_begin 1
     [SECTION .rodata]
     align   8
@@ -307,16 +335,14 @@
     [SECTION .text]
 %endmacro
 
-// Circular Buffer: Push
 %macro cbuf_push 4
     mov     rax, [%2]
     mov     [%1 + rax], %4
     inc     rax
-    and     rax, %3                // mask must be (size-1)
+    and     rax, %3
     mov     [%2], rax
 %endmacro
 
-// Circular Buffer: Pop
 %macro cbuf_pop 4
     mov     rax, [%2]
     mov     %4, [%1 + rax]
@@ -325,7 +351,6 @@
     mov     [%2], rax
 %endmacro
 
-// Bloom Filter: Add
 %macro bloom_add 2
     mov     rax, %2
     mov     rcx, rax
@@ -336,7 +361,6 @@
     or      byte [%1 + rax], dl
 %endmacro
 
-// Bloom Filter: Check
 %macro bloom_check 2
     mov     rax, %2
     mov     rcx, rax
@@ -345,6 +369,20 @@
     mov     dl, 1
     shl     dl, cl
     test    byte [%1 + rax], dl
+%endmacro
+
+%macro jt_entry 1
+    dq      %1
+%endmacro
+
+%macro jump_table 1
+    [SECTION .rodata]
+    align   8
+    %1:
+%endmacro
+
+%macro jump_table_end 0
+    [SECTION .text]
 %endmacro
 
 // ============================================================================
@@ -408,6 +446,28 @@
 
 %macro encode_utf8 1
     // Logic: convert 32-bit codepoint to bytes
+%endmacro
+
+%macro swap_16 1
+    xchg    %h1, %l1
+%endmacro
+
+%macro swap_32 1
+    bswap   %1
+%endmacro
+
+%macro swap_64 1
+    bswap   %1
+%endmacro
+
+%macro byteswap 2
+    %if %2 == 16
+        swap_16 %1
+    %elif %2 == 32
+        swap_32 %1
+    %elif %2 == 64
+        swap_64 %1
+    %endif
 %endmacro
 
 // ============================================================================
@@ -611,6 +671,12 @@
     loop    %%loop
 %endmacro
 
+%macro pause_strat 1
+    %rep %1
+        pause
+    %endrep
+%endmacro
+
 %macro xbegin_sync 1
     xbegin  %1
 %endmacro
@@ -682,6 +748,14 @@
     prefetcht0 [%1]
 %endmacro
 
+%macro prefetch_read_l2 1
+    prefetcht1 [%1]
+%endmacro
+
+%macro prefetch_write 1
+    prefetchw [%1]
+%endmacro
+
 %macro clflush_line 1
     clflush [%1]
 %endmacro
@@ -709,21 +783,40 @@
     %endrep
 %endmacro
 
-// Hardware Hardware Crypto/Random
+%macro get_rip_rel 2
+    lea     %1, [%2]
+%endmacro
+
+%macro ret_arch 0
+    ret
+%endmacro
+
+%macro trap_arch 0
+    int3
+%endmacro
+
+// ============================================================================
+// 9. HARDWARE CRYPTO & RANDOM
+// ============================================================================
+
 %macro aes_enc_round 2
     aesenc  %1, %2
 %endmacro
 
-%macro sha256_round 2
-    sha256rnds2 %1, %2, xmm0
+%macro sha256_round 3
+    sha256rnds2 %1, %2, %3
 %endmacro
 
 %macro rdrand_64 1
+%%retry:
     rdrand  %1
+    jnc     %%retry
 %endmacro
 
 %macro rdseed_64 1
+%%retry:
     rdseed  %1
+    jnc     %%retry
 %endmacro
 
 %macro rdtsc_64 1
@@ -733,8 +826,13 @@
     mov     %1, rax
 %endmacro
 
+%macro rdtsc_serial 0
+    cpuid
+    rdtsc
+%endmacro
+
 // ============================================================================
-// 9. VECTOR OPERATIONS (SIMD)
+// 10. VECTOR OPERATIONS (SIMD)
 // ============================================================================
 
 %macro v_mov 2
@@ -772,6 +870,10 @@
     pcmpistri xmm0, xmm1, 0x00
 %endmacro
 
+%macro v_mask_mov 3
+    // Logic: vmovdqu64 %1{%2}, %3
+%endmacro
+
 %macro v_broadcast_64 2
     vbroadcastsd %1, %2
 %endmacro
@@ -804,12 +906,8 @@
     ptest   %1, %1
 %endmacro
 
-%macro v_mask_mov 3
-    // Logic: vmovdqu64 %1{%2}, %3
-%endmacro
-
 // ============================================================================
-// 10. SYSTEM CALLS (AMD64)
+// 11. SYSTEM CALLS (AMD64)
 // ============================================================================
 
 %macro syscall_0 1
@@ -869,23 +967,17 @@
 %endmacro
 
 %macro mmap_anon 2
-    mov     rdi, 0
-    mov     rsi, %1
-    mov     rdx, 0x3               // PROT_READ | PROT_WRITE
-    mov     r10, 0x22              // MAP_PRIVATE | MAP_ANONYMOUS
-    mov     r8, -1
-    mov     r9, 0
-    syscall_6 9, rdi, rsi, rdx, r10, r8, r9
+    syscall_6 9, 0, %1, 3, 34, -1, 0
     mov     %2, rax
 %endmacro
 
 %macro get_tls_var 2
-    mov     rax, [%1]
-    mov     %2, [gs:rax]
+    mov     rax, [fs:0]
+    lea     %1, [rax + %2]
 %endmacro
 
 // ============================================================================
-// 11. DIAGNOSTICS & TESTING
+// 12. DIAGNOSTICS & TESTING
 // ============================================================================
 
 %macro debug_print_str 1
@@ -964,7 +1056,7 @@
 %endmacro
 
 // ============================================================================
-// 12. METAPROGRAMMING & INTERNALS
+// 13. METAPROGRAMMING & INTERNALS
 // ============================================================================
 
 %macro static_assert 3
@@ -1035,21 +1127,21 @@
 %endmacro
 
 // ============================================================================
-// 13. SECURITY & HARDENING
+// 14. SECURITY & HARDENING
 // ============================================================================
 
 %macro stack_canary_init 1
-    mov     rax, [gs:0x28]
-    mov     %1, rax
+    mov     rax, 0x55aa55aa55aa55aa
+    mov     [%1], rax
 %endmacro
 
 %macro stack_canary_check 1
-    mov     rax, [gs:0x28]
-    cmp     rax, %1
-    jne     .error_stack_corrupted
+    mov     rax, 0x55aa55aa55aa55aa
+    cmp     rax, [%1]
+    jne     .error_stack_corrupt
 %endmacro
 
-%macro erase_mem 2
+%macro mem_erase 2
     zero_mem %1, %2
 %endmacro
 
@@ -1066,8 +1158,24 @@
     // Logic: rdssp, wrss (if supported)
 %endmacro
 
+%macro rz_store 2
+    mov     [rsp - %2], %1
+%endmacro
+
+%macro rz_load 2
+    mov     %1, [rsp - %2]
+%endmacro
+
+%macro rz_secure 0
+    sub     rsp, 128
+%endmacro
+
+%macro rz_release 0
+    add     rsp, 128
+%endmacro
+
 // ============================================================================
-// 14. LINKER & FORENSICS
+// 15. LINKER & FORENSICS
 // ============================================================================
 
 %macro plt_stub 1
