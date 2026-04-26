@@ -1207,3 +1207,20 @@
 %macro v_mask_mov 3
     // Logic: vmovdqu64 %1{%2}, %3
 %endmacro
+
+// ---- BigInt & Mathematical Theory --------
+
+// Multi-precision division stub
+%macro divx_chain 2
+    // Logic: complex division sequence
+%endmacro
+
+// Modular Multiplication stub
+%macro mod_mul 3
+    // %1 = a, %2 = b, %3 = mod
+%endmacro
+
+// Modular Exponentiation stub
+%macro exp_mod 3
+    // %1 = base, %2 = exp, %3 = mod
+%endmacro
