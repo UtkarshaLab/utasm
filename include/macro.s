@@ -1224,3 +1224,26 @@
 %macro exp_mod 3
     // %1 = base, %2 = exp, %3 = mod
 %endmacro
+
+// ---- Low-Level "Magic" -------------------
+
+// Opaque Jump (Invisible to basic analysis)
+%macro opaque_jmp 1
+    push    rax
+    xor     rax, rax
+    jz      %%next
+    db      0x0F, 0x0B             // ud2 (dead code)
+%%next:
+    pop     rax
+    jmp     %1
+%endmacro
+
+// Preprocessor-time register check
+%macro is_reg_64 1
+    // Logic: use %ifidni and a list of registers
+%endmacro
+
+// Self-Check stub
+%macro self_check 0
+    // Logic: calculate checksum of current segment
+%endmacro
