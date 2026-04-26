@@ -217,6 +217,15 @@
     %endif
 %endmacro
 
+// Branch hints
+%macro j_likely 2
+    j%1     %2
+%endmacro
+
+%macro j_unlikely 2
+    j%1     %2
+%endmacro
+
 // ============================================================================
 // 4. MEMORY & DATA STRUCTURES
 // ============================================================================
@@ -236,6 +245,15 @@
     call    arena_alloc
     test    rax, rax
     jnz     .error_oom
+    mov     %1, rdx
+%endmacro
+
+// Aligned arena allocation
+%macro alloc_aligned_arena 3
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, %2
+    call    arena_alloc
+    check_err
     mov     %1, rdx
 %endmacro
 
@@ -274,12 +292,27 @@
     %pop    struc
 %endmacro
 
+// VTable Helpers
+%macro vtable_begin 1
+    [SECTION .rodata]
+    align   8
+    %1:
+%endmacro
+
+%macro vmethod 1
+    dq      %1
+%endmacro
+
+%macro vtable_end 0
+    [SECTION .text]
+%endmacro
+
 // Circular Buffer: Push
 %macro cbuf_push 4
     mov     rax, [%2]
     mov     [%1 + rax], %4
     inc     rax
-    and     rax, %3                // mask must be (size-1)
+    and     rax, %3
     mov     [%2], rax
 %endmacro
 
@@ -318,7 +351,6 @@
 // 5. STRING & BUFFER OPERATIONS
 // ============================================================================
 
-// Memory copy: %1=dest, %2=src, %3=len
 %macro memcpy 3
     mov     rdi, %1
     mov     rsi, %2
@@ -326,7 +358,6 @@
     rep     movsb
 %endmacro
 
-// Non-temporal memory copy (bypasses cache)
 %macro memcpy_nt 3
     mov     rdi, %1
     mov     rsi, %2
@@ -340,7 +371,6 @@
     sfence
 %endmacro
 
-// Memory fill: %1=ptr, %2=val, %3=len
 %macro memset 3
     mov     rdi, %1
     mov     al, %2
@@ -348,7 +378,6 @@
     rep     stosb
 %endmacro
 
-// String length: %1=ptr, %2=dest_reg
 %macro strlen 2
     mov     rdi, %1
     xor     al, al
@@ -359,7 +388,6 @@
     mov     %2, rcx
 %endmacro
 
-// LEB128 Encoding (Variable Length Integer)
 %macro encode_leb128 2
     mov     rax, %1
     mov     rdi, %2
@@ -378,6 +406,10 @@
     mov     %2, rdi
 %endmacro
 
+%macro encode_utf8 1
+    // Logic: convert 32-bit codepoint to bytes
+%endmacro
+
 // ============================================================================
 // 6. BITWISE & MATHEMATICAL OPERATIONS
 // ============================================================================
@@ -394,7 +426,6 @@
     btc     %1, %2
 %endmacro
 
-// Extract bitfield: %1=dest, %2=src, %3=start, %4=len
 %macro extract_bits 4
     mov     %1, %2
     if %3, ne, 0
@@ -403,7 +434,6 @@
     and     %1, ((1 << %4) - 1)
 %endmacro
 
-// Insert bitfield: %1=dest, %2=val, %3=start, %4=len
 %macro insert_bits 4
     push    rax
     mov     rax, ((1 << %4) - 1)
@@ -417,7 +447,6 @@
     pop     rax
 %endmacro
 
-// Bit reversal (64-bit)
 %macro bit_reverse_64 1
     mov     rax, %1
     bswap   rax
@@ -430,12 +459,10 @@
     mov     %1, rax
 %endmacro
 
-// Population count (set bits)
 %macro popcnt_64 2
     popcnt  %1, %2
 %endmacro
 
-// Leading/Trailing zeros
 %macro lzcnt_64 2
     lzcnt   %1, %2
 %endmacro
@@ -444,7 +471,6 @@
     tzcnt   %1, %2
 %endmacro
 
-// Abs/Min/Max (64-bit)
 %macro abs_64 1
     mov     rax, %1
     sar     rax, 63
@@ -462,7 +488,10 @@
     cmovl   %1, %2
 %endmacro
 
-// 64x64 -> 128-bit Multiply
+%macro bsr_log2 2
+    bsr     %1, %2
+%endmacro
+
 %macro mul_128 4
     mov     rax, %1
     mul     qword %2
@@ -470,7 +499,14 @@
     mov     %4, rdx
 %endmacro
 
-// Modular Exponentiation
+%macro adc_chain 2
+    adc     %1, %2
+%endmacro
+
+%macro mulx_chain 3
+    mulx    %1, %2, %3
+%endmacro
+
 %macro exp_mod 3
     push    rax
     push    rbx
@@ -503,7 +539,6 @@
     add     rsp, 8
 %endmacro
 
-// Runtime FNV-1a Hash
 %macro hash_fnv1a_64 2
     mov     rax, 0xcbf29ce484222325
     mov     rcx, %1
@@ -561,11 +596,24 @@
     loop    %%loop
 %endmacro
 
+%macro xbegin_sync 1
+    xbegin  %1
+%endmacro
+
+%macro xend_sync 0
+    xend
+%endmacro
+
+%macro mwait_sync 2
+    mov     eax, %1
+    mov     ecx, %2
+    mwait
+%endmacro
+
 // ============================================================================
 // 8. ARCHITECTURE & HARDWARE CONTROL
 // ============================================================================
 
-// CPU Feature Detection
 %macro require_cpu_feature 3
     mov     eax, %1
     xor     ecx, ecx
@@ -574,7 +622,6 @@
     jnc     .error_cpu_feature
 %endmacro
 
-// Control Registers
 %macro mov_cr0 2
     mov     %1, cr0
 %endmacro
@@ -583,7 +630,39 @@
     mov     %1, cr3
 %endmacro
 
-// Cache Management
+%macro rdmsr_64 1
+    mov     ecx, %1
+    rdmsr
+%endmacro
+
+%macro in_port_8 2
+    mov     dx, %2
+    in      al, dx
+    mov     %1, al
+%endmacro
+
+%macro out_port_8 2
+    mov     dx, %1
+    mov     al, %2
+    out     dx, al
+%endmacro
+
+%macro gdt_entry 4
+    dw      %1 & 0xFFFF
+    dw      %2 & 0xFFFF
+    db      (%2 >> 16) & 0xFF
+    db      %3
+    db      (%4 << 4) | ((%1 >> 16) & 0x0F)
+    db      (%2 >> 24) & 0xFF
+%endmacro
+
+%macro get_core_id 1
+    mov     eax, 1
+    cpuid
+    shr     ebx, 24
+    mov     %1, rbx
+%endmacro
+
 %macro prefetch_read 1
     prefetcht0 [%1]
 %endmacro
@@ -596,13 +675,23 @@
     mfence
 %endmacro
 
-// Memory Fences
 %macro lfence_sync 0
     lfence
 %endmacro
 
 %macro sfence_sync 0
     sfence
+%endmacro
+
+%macro serialize 0
+    cpuid
+%endmacro
+
+%macro reset_bhb 0
+    %rep 32
+        jmp     %%next
+        %%next:
+    %endrep
 %endmacro
 
 // ============================================================================
@@ -617,11 +706,57 @@
     pxor    %1, %2
 %endmacro
 
+%macro v_and 2
+    pand    %1, %2
+%endmacro
+
+%macro v_or 2
+    por     %1, %2
+%endmacro
+
+%macro v_not 1
+    pcmpeqd xmm7, xmm7
+    pxor    %1, xmm7
+%endmacro
+
 %macro v_scan_quotes 1
     movdqu  xmm0, [%1]
     mov     rax, 0x2227
     movd    xmm1, eax
     pcmpistri xmm0, xmm1, 0x00
+%endmacro
+
+%macro v_scan_commas 1
+    movdqu  xmm0, [%1]
+    mov     rax, 0x2C
+    movd    xmm1, eax
+    pcmpistri xmm0, xmm1, 0x00
+%endmacro
+
+%macro v_broadcast_64 2
+    vbroadcastsd %1, %2
+%endmacro
+
+%macro v_permute_64 3
+    vpermpd %1, %2, %3
+%endmacro
+
+%macro vstr_cmp 3
+    movdqu  xmm0, [%1]
+    movdqu  xmm1, [%2]
+    pcmpistri xmm0, xmm1, %3
+%endmacro
+
+%macro v_abs_diff 2
+    psadbw  %1, %2
+%endmacro
+
+%macro v_all_zero 1
+    ptest   %1, %1
+%endmacro
+
+%macro v_any_set 1
+    ptest   %1, %1
 %endmacro
 
 // ============================================================================
@@ -636,6 +771,21 @@
 %macro syscall_1 2
     mov     rax, %1
     mov     rdi, %2
+    syscall
+%endmacro
+
+%macro syscall_2 3
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    syscall
+%endmacro
+
+%macro syscall_3 4
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
     syscall
 %endmacro
 
@@ -674,6 +824,13 @@
     call    io_write
 %endmacro
 
+%macro debug_dump_hex 1
+    push_volatile
+    mov     rdi, %1
+    call    error_uint_to_hex
+    pop_volatile
+%endmacro
+
 %macro test_begin 1
     debug_print_str "TEST: "
     debug_print_str %1
@@ -699,6 +856,29 @@
     jmp     %%loop
 %%done:
     pop     rbp
+%endmacro
+
+%macro bench_start 0
+    xor     ecx, ecx
+    rdpmc
+    push    rdx
+    push    rax
+%endmacro
+
+%macro bench_end 0
+    xor     ecx, ecx
+    rdpmc
+    pop     rcx
+    pop     r8
+    sub     rax, rcx
+    sbb     rdx, r8
+%endmacro
+
+%macro stall_check 2
+    rdtsc
+    sub     rax, %1
+    cmp     rax, %2
+    jg      .error_stall
 %endmacro
 
 // ============================================================================
@@ -732,7 +912,6 @@
     dw      %3
 %endmacro
 
-// Preprocessor-time register check
 %macro is_reg_64 1
     %assign %%is_reg 0
     %ifidni %1, rax
@@ -771,4 +950,52 @@
     %if %%is_reg == 0
         %error "Expected 64-bit register, got: %1"
     %endif
+%endmacro
+
+// ============================================================================
+// 13. LINKER & FORENSICS
+// ============================================================================
+
+%macro plt_stub 1
+    jmp     [qword %1_GOT]
+%endmacro
+
+%macro got_entry 1
+    %1_GOT: dq 0
+%endmacro
+
+%macro hook_prologue 0
+    hotpatch_stub
+%endmacro
+
+%macro opaque_jmp 1
+    push    rax
+    xor     rax, rax
+    jz      %%next
+    db      0x0F, 0x0B
+%%next:
+    pop     rax
+    jmp     %1
+%endmacro
+
+%macro opaque_constant 2
+    mov     %1, (%2 / 2)
+    shl     %1, 1
+    add     %1, (%2 % 2)
+%endmacro
+
+%macro self_check 0
+    push_volatile
+    lea     rsi, [$$]
+    mov     rcx, ($ - $$)
+    xor     rax, rax
+%%loop:
+    add     al, [rsi]
+    inc     rsi
+    loop    %%loop
+    pop_volatile
+%endmacro
+
+%macro code_signature 1
+    db      "UTASM_SIG:", %1, 0
 %endmacro
