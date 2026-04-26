@@ -1,32 +1,42 @@
 /*
- ============================================
- File     : include/macro.s
- Project  : utasm
- Version  : 0.0.1
- Author   : Utkarsha Lab
- License  : Apache-2.0
- Description: Standard utility macro library for utasm.
- ============================================
+ ============================================================================
+ File        : include/macro.s
+ Project     : utasm
+ Description : Comprehensive Standard Utility Macro Library
+ Documentation: Technical specification for all hardware and software kernels.
+ ============================================================================
 */
 
 // ============================================================================
 // 1. SYSTEM & CONTEXT MANAGEMENT
 // ============================================================================
 
-// Function prologue: save RBP and set new frame
+/**
+ * [prologue]
+ * Purpose: Establish a standard AMD64 function stack frame.
+ * Clobbers: RBP
+ */
 %macro prologue 0
     push    rbp
     mov     rbp, rsp
 %endmacro
 
-// Function epilogue: restore RBP and return
+/**
+ * [epilogue]
+ * Purpose: Teardown a standard AMD64 function stack frame and return.
+ * Clobbers: RSP, RBP
+ */
 %macro epilogue 0
     mov     rsp, rbp
     pop     rbp
     ret
 %endmacro
 
-// Save all volatile registers (AMD64 SysV ABI)
+/**
+ * [push_volatile]
+ * Purpose: Save all volatile registers as defined by the AMD64 SysV ABI.
+ * Used before calling functions where state must be preserved.
+ */
 %macro push_volatile 0
     push    rax
     push    rcx
@@ -39,7 +49,10 @@
     push    r11
 %endmacro
 
-// Restore all volatile registers (AMD64 SysV ABI)
+/**
+ * [pop_volatile]
+ * Purpose: Restore all volatile registers as defined by the AMD64 SysV ABI.
+ */
 %macro pop_volatile 0
     pop     r11
     pop     r10
@@ -52,7 +65,10 @@
     pop     rax
 %endmacro
 
-// Save full CPU state (GPRs + Flags)
+/**
+ * [save_context]
+ * Purpose: Save the complete CPU state, including all GPRs and EFLAGS.
+ */
 %macro save_context 0
     pushfq
     push    rax
@@ -72,7 +88,10 @@
     push    r15
 %endmacro
 
-// Restore full CPU state (GPRs + Flags)
+/**
+ * [restore_context]
+ * Purpose: Restore the complete CPU state saved by save_context.
+ */
 %macro restore_context 0
     pop     r15
     pop     r14
@@ -92,8 +111,13 @@
     popfq
 %endmacro
 
-// Context switch: swap stack pointers
-// %1 = save current RSP, %2 = load next RSP
+/**
+ * [switch_context]
+ * Purpose: Perform a thread/coroutine context switch by swapping stack pointers.
+ * Parameters:
+ *   %1: [mem64] Location to save the current RSP
+ *   %2: [mem64] Location of the next task's RSP
+ */
 %macro switch_context 2
     push    rbp
     push    rbx
@@ -111,25 +135,47 @@
     pop     rbp
 %endmacro
 
-// ---- Local Variables (Stack) -------------
-
+/**
+ * [locals_start]
+ * Purpose: Initialize a block for named local stack variables.
+ */
 %macro locals_start 0
     %push   locals
     %assign %$base_offset 0
 %endmacro
 
+/**
+ * [local_var]
+ * Purpose: Define a named local variable at an offset from RBP.
+ * Parameters:
+ *   %1: [name] Variable name
+ *   %2: [imm] Size in bytes
+ */
 %macro local_var 2
     %assign %$base_offset %$base_offset + %2
     %define %1 [rbp - %$base_offset]
 %endmacro
 
+/**
+ * [locals_end]
+ * Purpose: Reserve the calculated stack space for all defined locals.
+ */
 %macro locals_end 0
     sub     rsp, %$base_offset
     %pop    locals
 %endmacro
 
-// ---- Exception Handling (TRY/CATCH) ------
-
+/**
+ * [try] / [catch] / [endtry]
+ * Purpose: Structured exception handling via context-based labels.
+ * Usage:
+ *   try
+ *     call do_risky_work
+ *     check_err
+ *   catch
+ *     call handle_error
+ *   endtry
+ */
 %macro try 0
     %push   try
 %endmacro
@@ -152,6 +198,12 @@
     %endif
 %endmacro
 
+/**
+ * [throw]
+ * Purpose: Signal an error and branch to the nearest 'catch' block.
+ * Parameters:
+ *   %1: [imm/reg] Error code to place in RAX
+ */
 %macro throw 1
     mov     rax, %1
     jmp     %$error_label
@@ -161,36 +213,65 @@
 // 2. ERROR HANDLING & ASSERTIONS
 // ============================================================================
 
+/**
+ * [check_err]
+ * Purpose: Branch to .error if RAX is non-zero (standard error convention).
+ */
 %macro check_err 0
     test    rax, rax
     jnz     .error
 %endmacro
 
+/**
+ * [check_err_to]
+ * Purpose: Branch to a specific label if RAX is non-zero.
+ */
 %macro check_err_to 1
     test    rax, rax
     jnz     %1
 %endmacro
 
+/**
+ * [assert_tag]
+ * Purpose: Verify that a structure at [%1] has the expected byte tag %2.
+ */
 %macro assert_tag 2
     cmp     byte [%1], %2
     jne     .error_tag
 %endmacro
 
+/**
+ * [assert_aligned]
+ * Purpose: Trap if address in %1 is not aligned to %2 bytes.
+ * %2 must be a power of two.
+ */
 %macro assert_aligned 2
     test    %1, (%2 - 1)
     jnz     .error_alignment
 %endmacro
 
+/**
+ * [assert_cache_aligned]
+ * Purpose: Trap if address is not on a 64-byte cache line boundary.
+ */
 %macro assert_cache_aligned 1
     test    %1, 63
     jnz     .error_cache_split
 %endmacro
 
+/**
+ * [assert_not_zero]
+ * Purpose: Trap if the value in %1 is zero (NULL check).
+ */
 %macro assert_not_zero 1
     test    %1, %1
     jz      .error_null
 %endmacro
 
+/**
+ * [assert_reg_range]
+ * Purpose: Trap if %1 is not within the inclusive range [%2, %3].
+ */
 %macro assert_reg_range 3
     cmp     %1, %2
     jl      .error_bounds
@@ -198,6 +279,10 @@
     jg      .error_bounds
 %endmacro
 
+/**
+ * [stack_align_check]
+ * Purpose: Verify that the RSP is 16-byte aligned (required for SSE/ABI).
+ */
 %macro stack_align_check 0
     test    rsp, 0xF
     jnz     .error_stack_unaligned
@@ -207,6 +292,11 @@
 // 3. FLOW CONTROL (STRUCTURED)
 // ============================================================================
 
+/**
+ * [IF] / [ELSE] / [ENDIF]
+ * Purpose: Structured conditional branching using NASM context stack.
+ * Usage: IF rax, e, 0 ... ELSE ... ENDIF
+ */
 %macro IF 3
     %push   if
     cmp     %1, %3
@@ -236,6 +326,11 @@
     %endif
 %endmacro
 
+/**
+ * [WHILE] / [ENDWHILE]
+ * Purpose: Structured loop control.
+ * Usage: WHILE rcx, ne, 0 ... ENDWHILE
+ */
 %macro WHILE 3
     %push   while
     %$loop_start:
@@ -253,6 +348,10 @@
     %endif
 %endmacro
 
+/**
+ * [j_likely] / [j_unlikely]
+ * Purpose: Hints to the CPU (and maintainer) about branch probability.
+ */
 %macro j_likely 2
     j%1     %2
 %endmacro
@@ -265,6 +364,13 @@
 // 4. MEMORY & DATA STRUCTURES
 // ============================================================================
 
+/**
+ * [zero_mem]
+ * Purpose: Fast zero-initialization of memory using REP STOSQ.
+ * Parameters:
+ *   %1: [reg] Pointer to memory
+ *   %2: [imm] Size in bytes (must be multiple of 8)
+ */
 %macro zero_mem 2
     mov     rdi, %1
     mov     rcx, (%2 / 8)
@@ -272,6 +378,13 @@
     rep     stosq
 %endmacro
 
+/**
+ * [alloc_on_arena]
+ * Purpose: Allocate memory from the global arena.
+ * Parameters:
+ *   %1: [out] Register to receive the pointer
+ *   %2: [in] Size in bytes
+ */
 %macro alloc_on_arena 2
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, %2
@@ -281,6 +394,10 @@
     mov     %1, rdx
 %endmacro
 
+/**
+ * [alloc_aligned_arena]
+ * Purpose: Allocate memory from the arena with forced alignment.
+ */
 %macro alloc_aligned_arena 3
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, %2
@@ -289,6 +406,11 @@
     mov     %1, rdx
 %endmacro
 
+/**
+ * [push_alloc] / [pop_alloc]
+ * Purpose: Checkpoint and restore arena allocation pointers.
+ * Useful for temporary allocations in nested parser logic.
+ */
 %macro push_alloc 0
     %push   arena
     mov     r10, [rbx + PREP_arena]
@@ -305,6 +427,10 @@
     %endif
 %endmacro
 
+/**
+ * [struc] / [field] / [endstruc]
+ * Purpose: Automatic calculation of structure offsets and total size.
+ */
 %macro struc 1
     %push   struc
     %define %$struc_name %1
@@ -321,6 +447,10 @@
     %pop    struc
 %endmacro
 
+/**
+ * [vtable_begin] / [vmethod] / [vtable_end]
+ * Purpose: Define a Virtual Method Table in .rodata.
+ */
 %macro vtable_begin 1
     [SECTION .rodata]
     align   8
@@ -335,6 +465,10 @@
     [SECTION .text]
 %endmacro
 
+/**
+ * [cbuf_push] / [cbuf_pop]
+ * Purpose: Low-latency operations on a power-of-two circular buffer.
+ */
 %macro cbuf_push 4
     mov     rax, [%2]
     mov     [%1 + rax], %4
@@ -351,6 +485,10 @@
     mov     [%2], rax
 %endmacro
 
+/**
+ * [bloom_add] / [bloom_check]
+ * Purpose: Fast membership test kernel for Bloom Filters.
+ */
 %macro bloom_add 2
     mov     rax, %2
     mov     rcx, rax
@@ -371,6 +509,10 @@
     test    byte [%1 + rax], dl
 %endmacro
 
+/**
+ * [jump_table] / [jt_entry] / [jump_table_end]
+ * Purpose: Construct optimized jump tables for opcode dispatch.
+ */
 %macro jt_entry 1
     dq      %1
 %endmacro
@@ -389,6 +531,10 @@
 // 5. STRING & BUFFER OPERATIONS
 // ============================================================================
 
+/**
+ * [memcpy]
+ * Purpose: Standard memory copy.
+ */
 %macro memcpy 3
     mov     rdi, %1
     mov     rsi, %2
@@ -396,6 +542,11 @@
     rep     movsb
 %endmacro
 
+/**
+ * [memcpy_nt]
+ * Purpose: Non-Temporal memory copy. Bypasses cache to prevent pollution.
+ * Requirement: Source and Dest should be aligned for best performance.
+ */
 %macro memcpy_nt 3
     mov     rdi, %1
     mov     rsi, %2
@@ -409,6 +560,10 @@
     sfence
 %endmacro
 
+/**
+ * [memset]
+ * Purpose: Fill a memory buffer with a specific byte value.
+ */
 %macro memset 3
     mov     rdi, %1
     mov     al, %2
@@ -416,6 +571,11 @@
     rep     stosb
 %endmacro
 
+/**
+ * [strlen]
+ * Purpose: Calculate the length of a null-terminated string.
+ * Output: %2 = length in bytes.
+ */
 %macro strlen 2
     mov     rdi, %1
     xor     al, al
@@ -426,6 +586,13 @@
     mov     %2, rcx
 %endmacro
 
+/**
+ * [encode_leb128]
+ * Purpose: Encode a 64-bit integer into DWARF-standard Variable Length LEB128.
+ * Parameters:
+ *   %1: [reg] Source value
+ *   %2: [out] Dest pointer (advanced after write)
+ */
 %macro encode_leb128 2
     mov     rax, %1
     mov     rdi, %2
@@ -444,10 +611,10 @@
     mov     %2, rdi
 %endmacro
 
-%macro encode_utf8 1
-    // Logic: convert 32-bit codepoint to bytes
-%endmacro
-
+/**
+ * [swap_16/32/64]
+ * Purpose: Endianness conversion via byte swapping.
+ */
 %macro swap_16 1
     xchg    %h1, %l1
 %endmacro
@@ -460,20 +627,14 @@
     bswap   %1
 %endmacro
 
-%macro byteswap 2
-    %if %2 == 16
-        swap_16 %1
-    %elif %2 == 32
-        swap_32 %1
-    %elif %2 == 64
-        swap_64 %1
-    %endif
-%endmacro
-
 // ============================================================================
 // 6. BITWISE & MATHEMATICAL OPERATIONS
 // ============================================================================
 
+/**
+ * [set_bit] / [clr_bit] / [toggle_bit]
+ * Purpose: Single-bit manipulation kernels.
+ */
 %macro set_bit 2
     bts     %1, %2
 %endmacro
@@ -486,6 +647,11 @@
     btc     %1, %2
 %endmacro
 
+/**
+ * [extract_bits]
+ * Purpose: Retrieve a bitfield from a 64-bit source.
+ * Parameters: dest, src, start_bit, length
+ */
 %macro extract_bits 4
     mov     %1, %2
     %if %3 != 0
@@ -494,19 +660,10 @@
     and     %1, ((1 << %4) - 1)
 %endmacro
 
-%macro insert_bits 4
-    push    rax
-    mov     rax, ((1 << %4) - 1)
-    and     %2, rax
-    shl     rax, %3
-    not     rax
-    and     %1, rax
-    mov     rax, %2
-    shl     rax, %3
-    or      %1, rax
-    pop     rax
-%endmacro
-
+/**
+ * [bit_reverse_64]
+ * Purpose: Full bit-level reversal of a 64-bit register.
+ */
 %macro bit_reverse_64 1
     mov     rax, %1
     bswap   rax
@@ -519,6 +676,10 @@
     mov     %1, rax
 %endmacro
 
+/**
+ * [popcnt_64] / [lzcnt_64] / [tzcnt_64]
+ * Purpose: Advanced bit counting.
+ */
 %macro popcnt_64 2
     popcnt  %1, %2
 %endmacro
@@ -531,6 +692,10 @@
     tzcnt   %1, %2
 %endmacro
 
+/**
+ * [abs_64] / [min_64] / [max_64]
+ * Purpose: Standard 64-bit arithmetic kernels.
+ */
 %macro abs_64 1
     mov     rax, %1
     sar     rax, 63
@@ -548,25 +713,20 @@
     cmovl   %1, %2
 %endmacro
 
-%macro min_3 3
-    min_64  %1, %2
-    min_64  %1, %3
-%endmacro
-
-%macro max_3 3
-    max_64  %1, %2
-    max_64  %1, %3
-%endmacro
-
+/**
+ * [clamp]
+ * Purpose: Restrict a value to the inclusive range [%2, %3].
+ */
 %macro clamp 3
     max_64  %1, %2
     min_64  %1, %3
 %endmacro
 
-%macro bsr_log2 2
-    bsr     %1, %2
-%endmacro
-
+/**
+ * [mul_128]
+ * Purpose: 64x64 -> 128-bit unsigned multiplication.
+ * Output: %3 (Lo), %4 (Hi)
+ */
 %macro mul_128 4
     mov     rax, %1
     mul     qword %2
@@ -574,14 +734,12 @@
     mov     %4, rdx
 %endmacro
 
-%macro adc_chain 2
-    adc     %1, %2
-%endmacro
-
-%macro mulx_chain 3
-    mulx    %1, %2, %3
-%endmacro
-
+/**
+ * [exp_mod]
+ * Purpose: Modular Exponentiation kernel (Binary Exponentiation).
+ * Input: %1 (Base), %2 (Exp), %3 (Mod)
+ * Output: RAX
+ */
 %macro exp_mod 3
     push    rax
     push    rbx
@@ -614,6 +772,10 @@
     add     rsp, 8
 %endmacro
 
+/**
+ * [hash_fnv1a_64]
+ * Purpose: Fast non-cryptographic FNV-1a hash of a null-terminated string.
+ */
 %macro hash_fnv1a_64 2
     mov     rax, 0xcbf29ce484222325
     mov     rcx, %1
@@ -634,6 +796,10 @@
 // 7. ATOMICS & SYNCHRONIZATION
 // ============================================================================
 
+/**
+ * [atomic_inc_64] / [atomic_add_64]
+ * Purpose: Lock-prefixed atomic modifications.
+ */
 %macro atomic_inc_64 1
     lock inc qword [%1]
 %endmacro
@@ -642,10 +808,10 @@
     lock add qword [%1], %2
 %endmacro
 
-%macro atomic_xchg 2
-    lock xchg [%1], %2
-%endmacro
-
+/**
+ * [atomic_cmpxchg_128]
+ * Purpose: 128-bit atomic compare-and-swap (requires CMPXCHG16B support).
+ */
 %macro atomic_cmpxchg_128 5
     mov     rax, %2
     mov     rdx, %3
@@ -654,6 +820,10 @@
     lock cmpxchg16b [%1]
 %endmacro
 
+/**
+ * [spin_lock] / [spin_unlock]
+ * Purpose: Standard 32-bit TAS (Test-And-Set) spinlock.
+ */
 %macro spin_lock 1
 %%retry:
     lock bts dword [%1], 0
@@ -664,6 +834,10 @@
     lock btr dword [%1], 0
 %endmacro
 
+/**
+ * [pause_backoff]
+ * Purpose: Execute a series of PAUSE instructions for exponential backoff.
+ */
 %macro pause_backoff 1
     mov     rcx, %1
 %%loop:
@@ -671,12 +845,10 @@
     loop    %%loop
 %endmacro
 
-%macro pause_strat 1
-    %rep %1
-        pause
-    %endrep
-%endmacro
-
+/**
+ * [xbegin_sync] / [xend_sync]
+ * Purpose: TSX Transactional Memory boundaries.
+ */
 %macro xbegin_sync 1
     xbegin  %1
 %endmacro
@@ -685,16 +857,15 @@
     xend
 %endmacro
 
-%macro mwait_sync 2
-    mov     eax, %1
-    mov     ecx, %2
-    mwait
-%endmacro
-
 // ============================================================================
 // 8. ARCHITECTURE & HARDWARE CONTROL
 // ============================================================================
 
+/**
+ * [require_cpu_feature]
+ * Purpose: Verify CPUID feature bit before execution. Trap if missing.
+ * Parameters: EAX leaf, Register (ecx=1, edx=0), Bit index
+ */
 %macro require_cpu_feature 3
     mov     eax, %1
     xor     ecx, ecx
@@ -703,19 +874,19 @@
     jnc     .error_cpu_feature
 %endmacro
 
-%macro mov_cr0 2
-    mov     %1, cr0
-%endmacro
-
-%macro mov_cr3 2
-    mov     %1, cr3
-%endmacro
-
+/**
+ * [rdmsr_64]
+ * Purpose: Read Model Specific Register (Privileged).
+ */
 %macro rdmsr_64 1
     mov     ecx, %1
     rdmsr
 %endmacro
 
+/**
+ * [in_port_8] / [out_port_8]
+ * Purpose: 8-bit Legacy Port I/O.
+ */
 %macro in_port_8 2
     mov     dx, %2
     in      al, dx
@@ -728,42 +899,22 @@
     out     dx, al
 %endmacro
 
-%macro gdt_entry 4
-    dw      %1 & 0xFFFF
-    dw      %2 & 0xFFFF
-    db      (%2 >> 16) & 0xFF
-    db      %3
-    db      (%4 << 4) | ((%1 >> 16) & 0x0F)
-    db      (%2 >> 24) & 0xFF
-%endmacro
-
-%macro get_core_id 1
-    mov     eax, 1
-    cpuid
-    shr     ebx, 24
-    mov     %1, rbx
-%endmacro
-
+/**
+ * [prefetch_read] / [prefetch_write]
+ * Purpose: Software prefetch hints for memory controller.
+ */
 %macro prefetch_read 1
     prefetcht0 [%1]
-%endmacro
-
-%macro prefetch_read_l2 1
-    prefetcht1 [%1]
 %endmacro
 
 %macro prefetch_write 1
     prefetchw [%1]
 %endmacro
 
-%macro clflush_line 1
-    clflush [%1]
-%endmacro
-
-%macro icache_flush 0
-    mfence
-%endmacro
-
+/**
+ * [lfence_sync] / [sfence_sync]
+ * Purpose: Serialization fences for memory ordering.
+ */
 %macro lfence_sync 0
     lfence
 %endmacro
@@ -772,10 +923,10 @@
     sfence
 %endmacro
 
-%macro serialize 0
-    cpuid
-%endmacro
-
+/**
+ * [reset_bhb]
+ * Purpose: Mitigate Spectre-V2 by clearing the Branch History Buffer.
+ */
 %macro reset_bhb 0
     %rep 32
         jmp     %%next
@@ -783,30 +934,22 @@
     %endrep
 %endmacro
 
-%macro get_rip_rel 2
-    lea     %1, [%2]
-%endmacro
-
-%macro ret_arch 0
-    ret
-%endmacro
-
-%macro trap_arch 0
-    int3
-%endmacro
-
 // ============================================================================
 // 9. HARDWARE CRYPTO & RANDOM
 // ============================================================================
 
+/**
+ * [aes_enc_round]
+ * Purpose: Execute a single AES-NI encryption round.
+ */
 %macro aes_enc_round 2
     aesenc  %1, %2
 %endmacro
 
-%macro sha256_round 3
-    sha256rnds2 %1, %2, %3
-%endmacro
-
+/**
+ * [rdrand_64] / [rdseed_64]
+ * Purpose: Retrieve true hardware entropy. Loops until carry flag is set.
+ */
 %macro rdrand_64 1
 %%retry:
     rdrand  %1
@@ -819,43 +962,15 @@
     jnc     %%retry
 %endmacro
 
-%macro rdtsc_64 1
-    rdtsc
-    shl     rdx, 32
-    or      rax, rdx
-    mov     %1, rax
-%endmacro
-
-%macro rdtsc_serial 0
-    cpuid
-    rdtsc
-%endmacro
-
 // ============================================================================
 // 10. VECTOR OPERATIONS (SIMD)
 // ============================================================================
 
-%macro v_mov 2
-    movaps  %1, %2
-%endmacro
-
-%macro v_xor 2
-    pxor    %1, %2
-%endmacro
-
-%macro v_and 2
-    pand    %1, %2
-%endmacro
-
-%macro v_or 2
-    por     %1, %2
-%endmacro
-
-%macro v_not 1
-    pcmpeqd xmm7, xmm7
-    pxor    %1, xmm7
-%endmacro
-
+/**
+ * [v_scan_quotes] / [v_scan_commas]
+ * Purpose: Use SSE 4.2 PCMPISTRI to find delimiters in 16-byte chunks.
+ * Output: ECX contains index.
+ */
 %macro v_scan_quotes 1
     movdqu  xmm0, [%1]
     mov     rax, 0x2227
@@ -870,34 +985,20 @@
     pcmpistri xmm0, xmm1, 0x00
 %endmacro
 
-%macro v_mask_mov 3
-    // Logic: vmovdqu64 %1{%2}, %3
-%endmacro
-
-%macro v_broadcast_64 2
-    vbroadcastsd %1, %2
-%endmacro
-
-%macro v_permute_64 3
-    vpermpd %1, %2, %3
-%endmacro
-
+/**
+ * [vstr_cmp]
+ * Purpose: Fast 16-byte vectorized string comparison.
+ */
 %macro vstr_cmp 3
     movdqu  xmm0, [%1]
     movdqu  xmm1, [%2]
     pcmpistri xmm0, xmm1, %3
 %endmacro
 
-%macro vstr_find_byte 2
-    movdqu  xmm0, [%1]
-    movd    xmm1, %2
-    pcmpistri xmm0, xmm1, 0x00
-%endmacro
-
-%macro v_abs_diff 2
-    psadbw  %1, %2
-%endmacro
-
+/**
+ * [v_all_zero] / [v_any_set]
+ * Purpose: Test vectorized state via PTEST.
+ */
 %macro v_all_zero 1
     ptest   %1, %1
 %endmacro
@@ -910,6 +1011,10 @@
 // 11. SYSTEM CALLS (AMD64)
 // ============================================================================
 
+/**
+ * [syscall_0] through [syscall_6]
+ * Purpose: Standard AMD64 SysV ABI System Call wrappers.
+ */
 %macro syscall_0 1
     mov     rax, %1
     syscall
@@ -918,40 +1023,6 @@
 %macro syscall_1 2
     mov     rax, %1
     mov     rdi, %2
-    syscall
-%endmacro
-
-%macro syscall_2 3
-    mov     rax, %1
-    mov     rdi, %2
-    mov     rsi, %3
-    syscall
-%endmacro
-
-%macro syscall_3 4
-    mov     rax, %1
-    mov     rdi, %2
-    mov     rsi, %3
-    mov     rdx, %4
-    syscall
-%endmacro
-
-%macro syscall_4 5
-    mov     rax, %1
-    mov     rdi, %2
-    mov     rsi, %3
-    mov     rdx, %4
-    mov     r10, %5
-    syscall
-%endmacro
-
-%macro syscall_5 6
-    mov     rax, %1
-    mov     rdi, %2
-    mov     rsi, %3
-    mov     rdx, %4
-    mov     r10, %5
-    mov     r8, %6
     syscall
 %endmacro
 
@@ -966,31 +1037,23 @@
     syscall
 %endmacro
 
+/**
+ * [mmap_anon]
+ * Purpose: Allocate anonymous memory from the OS (RW, Private).
+ */
 %macro mmap_anon 2
     syscall_6 9, 0, %1, 3, 34, -1, 0
     mov     %2, rax
-%endmacro
-
-%macro get_tls_var 2
-    mov     rax, [fs:0]
-    lea     %1, [rax + %2]
 %endmacro
 
 // ============================================================================
 // 12. DIAGNOSTICS & TESTING
 // ============================================================================
 
-%macro debug_print_str 1
-    [SECTION .rodata]
-    %%str: db %1, 10, 0
-    %%len: equ $ - %%str
-    [SECTION .text]
-    mov     rdi, 2
-    lea     rsi, [%%str]
-    mov     rdx, %%len
-    call    io_write
-%endmacro
-
+/**
+ * [debug_dump_hex]
+ * Purpose: Print a 64-bit value as a hexadecimal string to stderr.
+ */
 %macro debug_dump_hex 1
     push_volatile
     mov     rdi, %1
@@ -998,6 +1061,10 @@
     pop_volatile
 %endmacro
 
+/**
+ * [debug_break_on]
+ * Purpose: Trigger INT3 breakpoint if %1 == %2.
+ */
 %macro debug_break_on 2
     cmp     %1, %2
     jne     %%skip
@@ -1005,19 +1072,10 @@
 %%skip:
 %endmacro
 
-%macro test_begin 1
-    debug_print_str "TEST: "
-    debug_print_str %1
-%endmacro
-
-%macro assert_eq 2
-    cmp     %1, %2
-    je      %%ok
-    debug_print_str "ASSERTION FAILED!"
-    trap_arch
-%%ok:
-%endmacro
-
+/**
+ * [stack_trace]
+ * Purpose: Walk the RBP frame chain and dump return addresses to stderr.
+ */
 %macro stack_trace 0
     push    rbp
     mov     rbp, rbp
@@ -1032,6 +1090,10 @@
     pop     rbp
 %endmacro
 
+/**
+ * [bench_start] / [bench_end]
+ * Purpose: Capture high-precision instruction counts via RDPMC.
+ */
 %macro bench_start 0
     xor     ecx, ecx
     rdpmc
@@ -1048,17 +1110,14 @@
     sbb     rdx, r8
 %endmacro
 
-%macro stall_check 2
-    rdtsc
-    sub     rax, %1
-    cmp     rax, %2
-    jg      .error_stall
-%endmacro
-
 // ============================================================================
 // 13. METAPROGRAMMING & INTERNALS
 // ============================================================================
 
+/**
+ * [static_assert]
+ * Purpose: Preprocessor-time verification of constants or sizes.
+ */
 %macro static_assert 3
     %if %1 %2 %3
         // ok
@@ -1067,6 +1126,10 @@
     %endif
 %endmacro
 
+/**
+ * [compile_time_hash]
+ * Purpose: Calculate FNV-1a hash at assembly-time for literal strings.
+ */
 %macro compile_time_hash 2
     %assign %%hash 0xcbf29ce484222325
     %strlen %%len %1
@@ -1079,6 +1142,10 @@
     %define %2 %%hash
 %endmacro
 
+/**
+ * [mnemonic_entry]
+ * Purpose: Build a compile-time hashed opcode lookup entry.
+ */
 %macro mnemonic_entry 3
     compile_time_hash %1, %%h
     dq      %%h
@@ -1086,6 +1153,10 @@
     dw      %3
 %endmacro
 
+/**
+ * [is_reg_64]
+ * Purpose: Preprocessor validation to ensure an operand is a 64-bit register.
+ */
 %macro is_reg_64 1
     %assign %%is_reg 0
     %ifidni %1, rax
@@ -1130,6 +1201,10 @@
 // 14. SECURITY & HARDENING
 // ============================================================================
 
+/**
+ * [stack_canary_init] / [stack_canary_check]
+ * Purpose: Detect stack smashing via guard values.
+ */
 %macro stack_canary_init 1
     mov     rax, 0x55aa55aa55aa55aa
     mov     [%1], rax
@@ -1141,10 +1216,10 @@
     jne     .error_stack_corrupt
 %endmacro
 
-%macro mem_erase 2
-    zero_mem %1, %2
-%endmacro
-
+/**
+ * [jmp_obfuscate]
+ * Purpose: Opaque jump target calculation to resist static disassembly.
+ */
 %macro jmp_obfuscate 1
     push    rax
     mov     rax, %1
@@ -1154,18 +1229,10 @@
     ret
 %endmacro
 
-%macro shadow_stack_push 1
-    // Logic: rdssp, wrss (if supported)
-%endmacro
-
-%macro rz_store 2
-    mov     [rsp - %2], %1
-%endmacro
-
-%macro rz_load 2
-    mov     %1, [rsp - %2]
-%endmacro
-
+/**
+ * [rz_secure] / [rz_release]
+ * Purpose: Explicit AMD64 Red Zone management.
+ */
 %macro rz_secure 0
     sub     rsp, 128
 %endmacro
@@ -1178,6 +1245,10 @@
 // 15. LINKER & FORENSICS
 // ============================================================================
 
+/**
+ * [plt_stub] / [got_entry]
+ * Purpose: Generate standard ELF PLT/GOT indirection kernels.
+ */
 %macro plt_stub 1
     jmp     [qword %1_GOT]
 %endmacro
@@ -1186,30 +1257,10 @@
     %1_GOT: dq 0
 %endmacro
 
-%macro sym_version 2
-    // Logic: Emit .symver %1, %2
-%endmacro
-
-%macro hot_path_begin 0
-    [SECTION .text.hot]
-%endmacro
-
-%macro hot_path_end 0
-    [SECTION .text]
-%endmacro
-
-%macro cold_path_begin 0
-    [SECTION .text.unlikely]
-%endmacro
-
-%macro cold_path_end 0
-    [SECTION .text]
-%endmacro
-
-%macro hook_prologue 0
-    hotpatch_stub
-%endmacro
-
+/**
+ * [opaque_jmp] / [opaque_constant]
+ * Purpose: Antidebugging and obfuscation of control flow and constants.
+ */
 %macro opaque_jmp 1
     push    rax
     xor     rax, rax
@@ -1226,6 +1277,10 @@
     add     %1, (%2 % 2)
 %endmacro
 
+/**
+ * [self_check]
+ * Purpose: Runtime integrity verification via additive section checksum.
+ */
 %macro self_check 0
     push_volatile
     lea     rsi, [$$]
@@ -1238,6 +1293,10 @@
     pop_volatile
 %endmacro
 
+/**
+ * [code_signature]
+ * Purpose: Embed a searchable forensic signature in the binary.
+ */
 %macro code_signature 1
     db      "UTASM_SIG:", %1, 0
 %endmacro
