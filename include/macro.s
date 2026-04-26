@@ -984,3 +984,29 @@
     shr     ebx, 24                // Initial APIC ID
     mov     %1, rbx
 %endmacro
+
+// ---- Hardware Crypto & Random ------------
+
+// AES Round (Encryption)
+%macro aes_enc_round 2
+    aesenc  %1, %2
+%endmacro
+
+// SHA-256 Round
+%macro sha256_round 3
+    sha256rnds2 %1, %2, %3
+%endmacro
+
+// Hardware Random Number (64-bit)
+%macro rdrand_64 1
+%%retry:
+    rdrand  %1
+    jnc     %%retry
+%endmacro
+
+// Hardware Entropy Seed (64-bit)
+%macro rdseed_64 1
+%%retry:
+    rdseed  %1
+    jnc     %%retry
+%endmacro
