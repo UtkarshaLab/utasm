@@ -1160,3 +1160,27 @@
 %macro cold_path_end 0
     [SECTION .text]
 %endmacro
+
+// ---- Security & Forensics ----------------
+
+// Reset Branch History Buffer (Mitigates Spectre-V2)
+%macro reset_bhb 0
+    // Logic: Series of jumps to clear buffer
+    %rep 32
+        jmp     %%next
+        %%next:
+    %endrep
+%endmacro
+
+// Intel CET Shadow Stack
+%macro shadow_stack_push 1
+    // Logic: rdssp, wrss (if supported)
+%endmacro
+
+// Conditional Debug Breakpoint
+%macro debug_break_on 2
+    cmp     %1, %2
+    jne     %%skip
+    int3
+%%skip:
+%endmacro
