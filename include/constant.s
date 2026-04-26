@@ -99,6 +99,7 @@
 %def MAX_MACRO_DEPTH        64          // maximum nested macro expansion depth
 %def MAX_REP_COUNT          65536       // maximum iterations per %rep block
 %def MAX_ERRORS             50          // fatal stop threshold for error count
+%def MAX_WARNINGS           100         // threshold for warning count
 
 // ============================================================================
 // BUFFER SIZES
