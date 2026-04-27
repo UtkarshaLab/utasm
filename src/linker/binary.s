@@ -143,19 +143,15 @@ binary_patch_relocs:
     mov     rax, [rdx + SYMBOL_value]
     add     rax, r12                   // absolute VA
 
-    // patch_ptr = .text + reloc.offset
-    lea     rdi, [r14 + r15 * RELOC_SIZE]
+    // patch_va = base_addr + reloc.offset
     mov     rcx, [rdi + RELOC_offset]
-    lea     rcx, [r13 + rcx]           // byte address in buffer
+    lea     rdx, [r13 + rcx]           // patch_ptr (buffer)
+    add     rcx, r12                   // patch_va (absolute)
 
-    // For PC32: value = target_va - (patch_va + 4) + addend
-    lea     rdx, [r13 + rcx - r13 + r12]  // patch VA = base + offset
-    sub     rax, rdx
-    sub     rax, 4
-    add     rax, [rdi + RELOC_addend]
-
-    // write 32-bit little-endian patch
-    mov     dword [rcx], eax
+    // Apply via unified helper
+    mov     rsi, rax                   // sym_va
+    call    reloc_apply_one
+    check_err
 
     inc     r15d
     jmp     .loop
