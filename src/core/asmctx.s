@@ -210,10 +210,11 @@ asm_ctx_emit_dword:
 
 /**
  * [asm_ctx_align]
- * Purpose: Pads current section with zeros until requested alignment is met.
+ * Purpose: Pads current section until requested alignment is met.
  * Input:
  *   RDI: Pointer to AsmCtx
- *   RSI: Alignment boundary (e.g., 4, 8, 16)
+ *   RSI: Alignment boundary
+ *   RDX: Fill byte value
  */
 global asm_ctx_align
 asm_ctx_align:
@@ -221,32 +222,41 @@ asm_ctx_align:
     push    rbx
     push    r12
     push    r13
+    push    r14
     
     mov     rbx, rdi
-    mov     r12, rsi
+    mov     r12, rsi               // r12 = alignment
+    mov     r14, rdx               // r14 = fill byte
     
-    // Get current size
-    mov     r8, [rbx + ASMCTX_sections]
-    mov     r9, [r8]               // SECTION*
+    // Get current section
+    mov     rdi, rbx
+    call    asmctx_get_current_section
+    mov     r9, rdx               // r9 = SECTION*
     mov     rax, [r9 + SECTION_size]
     
-    // Calculate padding: (align - (size % align)) % align
+    // Calculate padding
     xor     rdx, rdx
     div     r12                    // RDX = size % align
     test    rdx, rdx
-    jz      .done_align                  // Already aligned
+    jz      .done_align
     
     mov     r13, r12
-    sub     r13, rdx               // R13 = padding needed
+    sub     r13, rdx               // R13 = count
     
 .pad_loop:
     test    r13, r13
     jz      .done_align
     mov     rdi, rbx
-    xor     rsi, rsi
+    mov     rsi, r14
     call    asm_ctx_emit_byte
     dec     r13
     jmp     .pad_loop
+.done_align:
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
 
 /**
  * [asm_ctx_emit_word]

@@ -1002,11 +1002,22 @@ parser_handle_pseudo_op:
         jmp     .done
     ENDIF
 
-    // 3. Align Directive
+    // 3. Align Directives
     mov     rdi, rbx
     lea     rsi, [str_align]
     call    str_cmp
     IF rax, e, 0
+        xor     rsi, rsi           // type = 0 (byte)
+        call    parser_handle_align
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
+    mov     rdi, rbx
+    lea     rsi, [str_p2align]
+    call    str_cmp
+    IF rax, e, 0
+        mov     rsi, 1             // type = 1 (p2)
         call    parser_handle_align
         mov     rax, OK
         jmp     .done
@@ -1061,29 +1072,59 @@ parser_handle_pseudo_op:
 
 /**
  * [parser_handle_align]
+ * RSI = type (0 = byte, 1 = p2)
  */
 parser_handle_align:
     prologue
+    push    r12
+    push    r13
+    push    r14
+    mov     r12, rsi               // r12 = type
+    
     call    parser_evaluate_expression
     check_err
+    mov     r13, rdx               // r13 = alignment value
     
-    // Validate power of 2
-    mov     rax, rdx
-    mov     rcx, rax
-    dec     rcx
-    and     rcx, rax
-    IF rcx, ne, 0
-        mov     rax, EXIT_INVALID_ALIGN
-        jmp     .error
+    // If p2, convert to byte
+    IF r12, e, 1
+        mov     rcx, r13
+        mov     rax, 1
+        shl     rax, cl
+        mov     r13, rax
     ENDIF
     
+    // Check for optional fill
+    xor     r14, r14               // default fill
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        call    parser_evaluate_expression
+        check_err
+        mov     r14, rdx
+    ELSE
+        // Architecture-specific NOP selection
+        mov     rdi, [rbx + PREP_ctx]
+        mov     al, [rdi + ASMCTX_target]
+        IF al, e, TARGET_AARCH64
+            // For AArch64, NOP is a 4-byte word. Our aligner is byte-based.
+            // Simplified: use 0x00 for now or implement multi-byte padding.
+            mov     r14, 0x00
+        ELSEIF al, e, TARGET_RISCV64
+            mov     r14, 0x00
+        ELSE
+            mov     r14, 0x90       // x86_64 NOP
+        ENDIF
+    ENDIF
+
     mov     rdi, [rbx + PREP_ctx]
-    mov     rsi, rax
-    extern  asm_ctx_align
+    mov     rsi, r13
+    mov     rdx, r14
     call    asm_ctx_align
+    
+    pop     r14
+    pop     r13
+    pop     r12
     mov     rax, OK
-    epilogue
-.error:
     epilogue
 
 /**
@@ -1321,6 +1362,7 @@ str_global:    db "global", 0
 str_weak:      db "weak", 0
 str_local:     db "local", 0
 str_align:     db "align", 0
+str_p2align:   db "p2align", 0
 str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
 str_field:     db "field", 0
