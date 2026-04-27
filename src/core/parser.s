@@ -971,6 +971,15 @@ parser_handle_pseudo_op:
         jmp     .done
     ENDIF
 
+    mov     rdi, rbx
+    lea     rsi, [str_org]
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_org
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
     xor     rax, rax               // Not a pseudo-op
 
 .done:
@@ -1003,6 +1012,19 @@ parser_handle_align:
     mov     rax, OK
     epilogue
 .error:
+    epilogue
+
+/**
+ * [parser_handle_org]
+ */
+parser_handle_org:
+    prologue
+    call    parser_evaluate_expression
+    check_err
+    
+    mov     rdi, [rbx + PREP_ctx]
+    mov     r10, [rdi + ASMCTX_curr_sec]
+    mov     [r10 + SECTION_addr], rdx
     epilogue
 
 parser_emit_data_8:
