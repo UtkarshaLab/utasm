@@ -128,11 +128,11 @@ reloc_resolve_all:
     cmp     ecx, r15d
     jge     .done
 
-    lea     rsi, [r14 + rcx * RELOC_SIZE]  // rsi = RELOC*
+    lea     r11, [r14 + rcx * RELOC_SIZE]  // r11 = RELOC*
 
     // Resolve symbol
     mov     rdi, rbx
-    mov     rdx, [rsi + RELOC_sym]         // sym name ptr
+    mov     rdx, [r11 + RELOC_sym]         // sym name ptr
     extern  symbol_find
     call    symbol_find
     test    rax, rax
@@ -142,34 +142,31 @@ reloc_resolve_all:
     
     // sym_va = symbol.section.addr + symbol.value
     movzx   eax, word [r10 + SYMBOL_section] // section index
-    // lookup section addr
-    // (Simplified: Get section pointer from AsmCtx.sections + index*8)
     mov     rdi, [rbx + ASMCTX_sections]
-    mov     rax, [rdi + rax * 8]             // rax = SECTION*
-    mov     rdi, [rax + SECTION_addr]        // rdi = section VA
+    mov     r8, [rdi + rax * 8]              // r8 = SECTION*
+    mov     r9, [r8 + SECTION_addr]          // r9 = section VA
     
     mov     rax, [r10 + SYMBOL_value]
-    add     rax, rdi                         // sym_va = section_base + value
+    add     rax, r9                          // rax = sym_va
+    push    rax                              // Preserve sym_va
 
     // patch_offset = reloc.offset
-    mov     r8, [rsi + RELOC_offset]
+    mov     r8, [r11 + RELOC_offset]
 
     // patch_ptr = output_buffer + patch_offset
-    lea     r9, [r12 + r8]
-
-    // addend
-    mov     r10, [rsi + RELOC_addend]
+    mov     r9, r12
+    add     r9, r8                           // r9 = patch_ptr
 
     // patch_va = reloc.section.addr + patch_offset
-    mov     rax, [rsi + RELOC_section]     // rsi is RELOC*, get SECTION*
+    mov     rax, [r11 + RELOC_section]       // rax = SECTION*
     mov     r10, [rax + SECTION_addr]
-    add     r10, r8                        // r10 = patch_va
+    add     r10, r8                          // r10 = patch_va
 
     // Apply the relocation via unified helper
-    mov     rdi, rsi                       // RELOC*
-    mov     rsi, rax                       // sym_va
-    mov     rdx, r9                        // patch_ptr
-    mov     rcx, r10                       // patch_va
+    mov     rdi, r11                       // RELOC*
+    pop     rsi                            // rsi = sym_va (restored)
+    mov     rdx, r9                        // rdx = patch_ptr
+    mov     rcx, r10                       // rcx = patch_va
     call    reloc_apply_one
     check_err
 
