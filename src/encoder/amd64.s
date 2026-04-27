@@ -2427,7 +2427,7 @@ amd64_emit_reloc:
     mov     byte [r13 + RELOC_tag], TAG_RELOC
     mov     byte [r13 + RELOC_type], al
     mov     dword [r13 + RELOC_pc_adjust], edx
-    mov     [r13 + RELOC_symbol], rsi
+    mov     [r13 + RELOC_sym], rsi
     
     // Get current offset in buffer
     // Assuming current section is always [rbx + ASMCTX_sections] for now
