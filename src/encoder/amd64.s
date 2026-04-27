@@ -190,6 +190,12 @@ amd64_encode_instruction:
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0xA2 | call amd64_emit_byte
     ELSEIF ax, e, 1591             // RDTSC
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x31 | call amd64_emit_byte
+    ELSEIF ax, e, 1605             // RDTSCP
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xF9 | call amd64_emit_byte
+    ELSEIF ax, e, 1596             // RDMSR
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x32 | call amd64_emit_byte
+    ELSEIF ax, e, 2142             // WRMSR
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x30 | call amd64_emit_byte
     ELSEIF ax, e, 1271             // HLT
         mov     al, 0xF4 | call amd64_emit_byte
     ELSEIF ax, e, 1286             // INT
@@ -202,6 +208,14 @@ amd64_encode_instruction:
         mov     r14, 2 | call amd64_encode_system_m
     ELSEIF ax, e, 1363             // LIDT
         mov     r14, 3 | call amd64_encode_system_m
+    ELSEIF ax, e, 1364             // LLDT
+        mov     r14, 2 | call amd64_encode_system_00
+    ELSEIF ax, e, 1656             // SLDT
+        mov     r14, 0 | call amd64_encode_system_00
+    ELSEIF ax, e, 1377             // LTR
+        mov     r14, 3 | call amd64_encode_system_00
+    ELSEIF ax, e, 1673             // STR
+        mov     r14, 1 | call amd64_encode_system_00
     ELSEIF ax, e, 1277             // IN
         call    amd64_encode_in
     ELSEIF ax, e, 1445             // OUT
@@ -1246,6 +1260,20 @@ amd64_encode_system_m:
     call    amd64_emit_byte
     
     mov     al, r14b           // Digit 2 for LGDT, 3 for LIDT
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_system_00]
+ * R14 = Digit
+ */
+amd64_encode_system_00:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x00 | call amd64_emit_byte
+    mov     al, r14b
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
