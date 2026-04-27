@@ -586,7 +586,17 @@ aarch64_encode_fp_bin:
     movzx   edi, byte [r9 + OPERAND_reg]
     shl     edi, 16
     or      eax, edi
+
+    // ---- FIX: SHIFT HANDLING ----
+    movzx   edi, byte [r9 + OPERAND_scale] // Shift type (0=LSL, 1=LSR, 2=ASR)
+    shl     edi, 22
+    or      eax, edi
     
+    mov     edi, [r9 + OPERAND_imm]        // Shift amount (0-63)
+    and     edi, 0x3F
+    shl     edi, 10
+    or      eax, edi
+
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue
