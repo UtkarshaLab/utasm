@@ -272,10 +272,38 @@ aarch64_encode_dp_reg:
             or      eax, 0x80000000
         ENDIF
         
-        mov     edi, [r9 + OPERAND_imm]
-        and     edi, 0xFFF
-        shl     edi, 10
-        or      eax, edi
+        mov     rax, [r9 + OPERAND_imm]
+        
+        // Check if imm fits in 12 bits
+        IF rax, le, 0xFFF
+            // Fits directly
+            mov edi, eax
+            shl edi, 10
+            or  eax, edi
+        ELSE
+            // Check if it fits with LSL #12 (bits 12-23)
+            mov rdx, rax
+            test rdx, 0xFFF
+            jnz .error_imm_range    // must be multiple of 4096 if > 4095
+            
+            shr rdx, 12
+            IF rdx, le, 0xFFF
+                // Fits with shift
+                or  eax, (1 << 22)  // set sh bit
+                mov edi, edx
+                and edi, 0xFFF
+                shl edi, 10
+                or  eax, edi
+            ELSE
+                jmp .error_imm_range
+            ENDIF
+        ENDIF
+        jmp .done_arith
+
+.error_imm_range:
+    mov rax, EXIT_IMM_RANGE
+    jmp .ret
+.done_arith:
     ENDIF
 
     mov     rdi, rax
