@@ -861,10 +861,18 @@ amd64_encode_mov:
         IF byte [r13 + OPERAND_reg], le, 63
             // MOV CRn/DRn, reg (0x0F 0x22/0x23)
             mov cl, [r13 + OPERAND_reg] | and cl, 0x0F
-            IF cl, ge, 8 | mov al, 0x44 | call amd64_emit_byte | ENDIF
+            mov dl, [r14 + OPERAND_reg] // GPR
+            
+            // Calculate REX: 0x40 | (CR_hi << 2) | (GPR_hi)
+            mov al, 0x40
+            mov bl, cl | shr bl, 3 | shl bl, 2 | or al, bl  // REX.R for CR
+            mov bl, dl | shr bl, 3 | or al, bl              // REX.B for GPR
+            IF al, ne, 0x40 | call amd64_emit_byte | ENDIF
+            
             mov al, 0x0F | call amd64_emit_byte
             mov al, 0x22 | IF byte [r13 + OPERAND_reg], ge, 48 | inc al | ENDIF
             call amd64_emit_byte
+            
             mov al, cl | and al, 0x07
             mov rdi, r14 | call amd64_emit_modrm_sib
             jmp .done
@@ -874,10 +882,18 @@ amd64_encode_mov:
         IF byte [r14 + OPERAND_reg], le, 63
             // MOV reg, CRn/DRn (0x0F 0x20/0x21)
             mov cl, [r14 + OPERAND_reg] | and cl, 0x0F
-            IF cl, ge, 8 | mov al, 0x44 | call amd64_emit_byte | ENDIF
+            mov dl, [r13 + OPERAND_reg] // GPR
+            
+            // Calculate REX: 0x40 | (CR_hi << 2) | (GPR_hi)
+            mov al, 0x40
+            mov bl, cl | shr bl, 3 | shl bl, 2 | or al, bl  // REX.R for CR
+            mov bl, dl | shr bl, 3 | or al, bl              // REX.B for GPR
+            IF al, ne, 0x40 | call amd64_emit_byte | ENDIF
+            
             mov al, 0x0F | call amd64_emit_byte
             mov al, 0x20 | IF byte [r14 + OPERAND_reg], ge, 48 | inc al | ENDIF
             call amd64_emit_byte
+            
             mov al, cl | and al, 0x07
             mov rdi, r13 | call amd64_emit_modrm_sib
             jmp .done
