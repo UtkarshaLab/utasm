@@ -55,6 +55,7 @@ struc SYMBOL
     field size,     8       // size in bytes
     field section,  4       // section index
     field name_idx, 4       // index into .strtab
+    field elf_idx,  4       // final index in ELF .symtab
     field line,     4       // definition line
     field file,     8       // definition filename
 endstruc
