@@ -1290,6 +1290,15 @@ amd64_mnemonic_table:
     mnemonic_entry "vmwrite", 0, 5009
     mnemonic_entry "invept", 0, 5010
     mnemonic_entry "invvpid", 0, 5011
+    
+    // ---- AVX-512 Suite (Custom IDs) ----
+    mnemonic_entry "vaesenc", 0, 5100
+    mnemonic_entry "vaesdec", 0, 5101
+    mnemonic_entry "vaesenclast", 0, 5102
+    mnemonic_entry "vaesdeclast", 0, 5103
+    mnemonic_entry "vpclmulqdq", 0, 5104
+    mnemonic_entry "vmovdqa64", 0, 5105
+    mnemonic_entry "vaddpd", 0, 5106
     dq 0
 
 global amd64_register_table
