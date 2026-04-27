@@ -377,7 +377,17 @@ elf64_write_phdrs:
     call    asmctx_get_section
     mov     rax, [rdx + SECTION_size]
     mov     qword [r14 + PHDR_filesz], rax
-    mov     qword [r14 + PHDR_memsz],  rax
+    
+    // memsz = data_size + bss_size
+    mov     r8, rax                // r8 = data_size
+    
+    mov     rdi, r12
+    mov     rsi, SEC_BSS
+    call    asmctx_get_section
+    mov     rax, [rdx + SECTION_size]
+    add     r8, rax                // r8 = data_size + bss_size
+    
+    mov     qword [r14 + PHDR_memsz],  r8
     mov     qword [r14 + PHDR_align],  0x1000
     
     // Write buffer
