@@ -264,7 +264,33 @@ amd64_encode_instruction:
         mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
         mov     al, 0x1E | call amd64_emit_byte | mov al, 0xFA | call amd64_emit_byte
     ELSEIF ax, e, 1020             // AESENC
-        mov     r13, 0xDC | mov r14, 2 | call amd64_encode_sse
+        mov     r13, 0xDC | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1014             // AESDEC
+        mov     r13, 0xDE | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1023             // AESENCLAST
+        mov     r13, 0xDD | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1017             // AESDECLAST
+        mov     r13, 0xDF | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1026             // AESIMC
+        mov     r13, 0xDB | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1027             // AESKEYGENASSIST
+        mov     r13, 0xDF | mov r14, 3 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1474             // PCLMULQDQ
+        mov     r13, 0x44 | mov r14, 3 | mov r15, 0x66 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1642             // SHA1NEXTE
+        mov     r13, 0xC8 | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1640             // SHA1MSG1
+        mov     r13, 0xC9 | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1641             // SHA1MSG2
+        mov     r13, 0xCA | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1643             // SHA1RNDS4
+        mov     r13, 0xCC | mov r14, 3 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1646             // SHA256RNDS2
+        mov     r13, 0xCB | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1644             // SHA256MSG1
+        mov     r13, 0xCC | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1645             // SHA256MSG2
+        mov     r13, 0xCD | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
     ELSEIF ax, e, 1127             // ENCLS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
         mov     al, 0xCF | call amd64_emit_byte
@@ -1397,45 +1423,49 @@ amd64_encode_fpu:
  * R13 = Opcode
  * R14 = Format (0=0F, 1=66 0F, 2=0F 38, 3=0F 3A)
  */
-amd64_encode_sse:
+/**
+ * [amd64_encode_sse_crypto]
+ * R13 = Opcode
+ * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
+ * R15 = Mandatory Prefix (0=None, 0x66, 0xF2, 0xF3)
+ */
+amd64_encode_sse_crypto:
     prologue
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     
-    // REX if using R8-R15 or XMM8-XMM15
-    xor     r15, r15
-    IF byte [r10 + OPERAND_reg], ge, 8
-        or  r15, 0x44      // REX.R
-    ENDIF
-    IF byte [r11 + OPERAND_reg], ge, 8
-        or  r15, 0x41      // REX.B
+    // Mandatory Prefix
+    IF r15, ne, 0
+        mov rax, r15 | call amd64_emit_byte
     ENDIF
     
-    test    r15, r15
-    jz      .no_rex
-    mov     rax, r15
-    call    amd64_emit_byte
-.no_rex:
-    // Mandatory Prefix
-    IF r14b, e, 1
-        mov al, 0x66 | call amd64_emit_byte
-    ENDIF
+    // REX if using R8-R15 or XMM8-XMM31
+    xor     rax, rax
+    IF byte [r10 + OPERAND_reg], ge, 8 | or al, 0x44 | ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8 | or al, 0x41 | ENDIF
+    IF al, ne, 0 | call amd64_emit_byte | ENDIF
     
     // Opcode Escape
-    mov     al, 0x0F
-    call    amd64_emit_byte
+    mov     al, 0x0F | call amd64_emit_byte
     IF r14b, e, 2
         mov al, 0x38 | call amd64_emit_byte
     ELSEIF r14b, e, 3
         mov al, 0x3A | call amd64_emit_byte
     ENDIF
     
-    mov     rax, r13
-    call    amd64_emit_byte
+    mov     al, r13b | call amd64_emit_byte
     
     mov     al, [r10 + OPERAND_reg]
     mov     rdi, r11
     call    amd64_emit_modrm_sib
+    
+    // If Map 3 (0F 3A), emit immediate byte if present
+    IF r14b, e, 3
+        lea r11, [r12 + INST_op2]
+        IF byte [r11 + OPERAND_kind], e, OP_IMM
+            mov rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+        ENDIF
+    ENDIF
     jmp     .done
 
 /**
