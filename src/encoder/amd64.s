@@ -468,6 +468,23 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1380             // MFENCE
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
         mov     al, 0xF0 | call amd64_emit_byte
+
+    // ---- Step 2: Cache & Memory Fencing ----
+    ELSEIF ax, e, 1067             // CLFLUSH
+        mov     r13, 0x0FAE | mov r14, 7 | call amd64_encode_rm_m
+    ELSEIF ax, e, 1068             // CLFLUSHOPT
+        mov     al, 0x66 | call amd64_emit_byte
+        mov     r13, 0x0FAE | mov r14, 7 | call amd64_encode_rm_m
+    ELSEIF ax, e, 1073             // CLWB
+        mov     al, 0x66 | call amd64_emit_byte
+        mov     r13, 0x0FAE | mov r14, 6 | call amd64_encode_rm_m
+    ELSEIF ax, e, 5020             // CLZERO
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xFC | call amd64_emit_byte
+    ELSEIF ax, e, 1543             // PREFETCHW
+        mov     r13, 0x0F0D | mov r14, 1 | call amd64_encode_rm_m
+    ELSEIF ax, e, 1544             // PREFETCHWT1
+        mov     r13, 0x0F0D | mov r14, 2 | call amd64_encode_rm_m
+
     ELSEIF ax, e, 1054             // BT
         mov     r13, 0xA3 | mov r14, 4 | call amd64_encode_bt
     ELSEIF ax, e, 1057             // BTS

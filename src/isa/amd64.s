@@ -1300,6 +1300,7 @@ amd64_mnemonic_table:
     mnemonic_entry "stgi", 0, 5017
     mnemonic_entry "invlpga", 0, 5018
     mnemonic_entry "skinit", 0, 5019
+    mnemonic_entry "clzero", 0, 5020
     
     // ---- AVX-512 Suite (Custom IDs) ----
     mnemonic_entry "vaesenc", 0, 5100
