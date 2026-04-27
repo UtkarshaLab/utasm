@@ -116,12 +116,14 @@ endstruc
 
 struc MACRO
     field tag,      1       // always TAG_MACRO
-    field nparams,  1       // parameter count
-    field pad0,      6       // alignment padding
+    field min_params, 1     // minimum required parameters
+    field max_params, 1     // maximum allowed parameters (0xFF = variadic)
+    field pad0,      5       // alignment padding
     field name,     8       // macro name
+    field ntokens,  4       // token count in body
     field tokens,   8       // pointer to token array
-    field ntokens,  4       // number of tokens
     field pad1,     4       // alignment padding
+endstruc
 endstruc
 
 // ============================================================================

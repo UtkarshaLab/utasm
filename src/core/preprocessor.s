@@ -297,33 +297,41 @@ prep_expand_start:
 
     mov     byte [r13 + MACROEXP_tag], TAG_MACRO_EXP
     mov     [r13 + MACROEXP_macro], r12
-    movzx   rax, byte [r12 + MACRO_nparams]
-    mov     [r13 + MACROEXP_nparams], al
+    // Check arity
+    movzx   rax, byte [r12 + MACRO_min_params]
+    movzx   rdx, byte [r12 + MACRO_max_params]
     
-    // set initial body position (token index 0)
-    mov     qword [r13 + MACROEXP_body], 0
-
-    // 2. Parse parameters if any
-    test    al, al
-    jz      .link_exp
-
-    // allocate parameter array (pointers to Tokens)
-    movzx   rsi, al
-    imul    rsi, 8                 // 8 bytes per pointer
+    // Allocate space for up to MAX_PARAMS (let's say 32)
+    // For now, we'll allocate based on max_params if not variadic, 
+    // or a fixed buffer if variadic.
+    mov     r14, 32                // max potential params for variadic
+    cmp     dl, 0xFF
+    je      .alloc_params
+    movzx   r14, dl
+    
+.alloc_params:
+    mov     rsi, r14
+    imul    rsi, 8
     mov     rdi, [rbx + PREP_arena]
     call    arena_alloc
-    test    rax, rax
-    jnz     .error
+    check_err
     mov     [r13 + MACROEXP_params], rdx
     mov     r14, rdx               // r14 = param array
-
+    
     xor     r15, r15               // current param index
 .param_loop:
-    movzx   rax, byte [r12 + MACRO_nparams]
-    cmp     r15, rax
-    jge     .check_trailing
+    // Check if we reached max
+    movzx   rax, byte [r12 + MACRO_max_params]
+    IF al, ne, 0xFF
+        cmp r15b, al
+        jge .check_trailing
+    ENDIF
     
-    // lex next token (must be comma if not first)
+    // Peek to see if we have more arguments (comma or not)
+    // Actually, we should lex and if it's a newline, we stop.
+    // If it's a comma, we continue.
+    
+    // For the first param, we don't need a comma.
     test    r15, r15
     jz      .get_param
     
@@ -332,12 +340,29 @@ prep_expand_start:
     mov     rdi, [rbx + PREP_lexer]
     mov     rsi, rsp
     call    lexer_next
-    test    rax, rax
-    jnz     .error_pop_token
-    
-    cmp     byte [rsp + TOKEN_kind], TOK_COMMA
-    jne     .error_expected_comma
+    IF byte [rsp + TOKEN_kind], ne, TOK_COMMA
+        // No more params? Check if we met min
+        add     rsp, TOKEN_SIZE
+        movzx   rax, byte [r12 + MACRO_min_params]
+        cmp     r15b, al
+        jl      .error_too_few_args
+        jmp     .done_params
+    ENDIF
     add     rsp, TOKEN_SIZE
+
+.get_param:
+    // Check if this is the LAST parameter of a variadic macro
+    movzx   rax, byte [r12 + MACRO_max_params]
+    IF al, e, 0xFF
+        // If we are at min_params - 1? No, usually variadic is just the last one.
+        // Let's say if we are at index (min_params - 1), we capture everything else.
+        movzx   rcx, byte [r12 + MACRO_min_params]
+        dec     rcx
+        IF r15, e, rcx
+            call    prep_capture_greedy
+            jmp     .done_params
+        ENDIF
+    ENDIF
 
 .get_param:
     // allocate token for param
@@ -376,14 +401,18 @@ prep_expand_start:
     add     rsp, TOKEN_SIZE
     cmp     al, TOK_COMMA
     je      .error_too_many_args
-    jmp     .link_exp
+    jmp     .done_params
 
 .error_too_few_args:
 .error_too_many_args:
     mov     rax, EXIT_MACRO_ARITY_FAIL
     jmp     .error
 
-.link_exp:
+.done_params:
+    mov     rax, [rbx + PREP_ctx]
+    mov     rax, [rax + ASMCTX_mac_exp]
+    mov     [rax + MACROEXP_nparams], r15b
+    
     // 3. Link to previous
     mov     r8, [rbx + PREP_ctx]
     mov     r9, [r8 + ASMCTX_mac_exp]
@@ -905,6 +934,69 @@ prep_handle_def:
     mov     rax, EXIT_ERROR
     jmp     .error
 
+/**
+ * [prep_capture_greedy]
+ */
+prep_capture_greedy:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, 1024
+    call    arena_alloc
+    check_err
+    mov     r12, rdx
+    xor     r13, r13
+    
+.loop:
+    sub     rsp, TOKEN_SIZE
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, rsp
+    call    lexer_next
+    
+    mov     r10, rsp
+    cmp     byte [r10 + TOKEN_kind], TOK_NEWLINE
+    je      .done
+    cmp     byte [r10 + TOKEN_kind], TOK_EOF
+    je      .done
+    
+    mov     rsi, [r10 + TOKEN_value]
+    IF rsi, ne, 0
+        mov     rdi, rsi
+        call    str_len
+        mov     rcx, rax
+        mov     rdi, r12
+        add     rdi, r13
+        rep movsb
+        add     r13, rax
+        mov     byte [r12 + r13], ' '
+        inc     r13
+    ENDIF
+    add     rsp, TOKEN_SIZE
+    jmp     .loop
+
+.done:
+    add     rsp, TOKEN_SIZE
+    mov     byte [r12 + r13], 0
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    mov     byte [rdx + TOKEN_kind], TOK_STRING
+    mov     [rdx + TOKEN_value], r12
+    
+    mov     rax, [rbx + PREP_ctx]
+    mov     rax, [rax + ASMCTX_mac_exp]
+    mov     rcx, [rax + MACROEXP_params]
+    mov     [rcx + r15 * 8], rdx
+    
+    pop     r13
+    pop     r12
+    pop     rbx
+    xor     rax, rax
+    epilogue
+
 // ---- prep_handle_ifdef ------------------
 /*
  prep_handle_ifdef
@@ -1087,21 +1179,44 @@ macro_handle_def:
     test    rax, rax
     jnz     .error
 
-    // Param count can be a number or nothing (default 0)
-    xor     r14, r14               // r14 = param count
-    cmp     byte [r13 + TOKEN_kind], TOK_NUMBER
-    jne     .no_params
+    // Param count can be N, N-M, or N-*
+    xor     r14, r14               // min_params
+    mov     r15, r14               // max_params
     
-    // convert string to int
+    cmp     byte [r13 + TOKEN_kind], TOK_NUMBER
+    jne     .body_start            // No params specified
+    
+    // Parse minimum
     mov     rdi, [r13 + TOKEN_value]
-    call    str_to_int             // assume this returns result in rax
+    call    str_to_int
     mov     r14, rax
-    jmp     .body_start
-
-.no_params:
-    // if it wasn't a number, it might be the start of the body (newline)
-    // or something else. We should really check if it's a newline.
-    // For now, assume 0 params.
+    mov     r15, rax               // Default max = min
+    
+    // Peek for hyphen '-'
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     rsi, rsp
+    call    lexer_peek
+    IF byte [rsp + TOKEN_kind], e, TOK_MINUS
+        // Consume hyphen
+        mov     rdi, [rbx + PREP_lexer]
+        mov     rsi, rsp
+        call    lexer_next
+        
+        // Lex next for max
+        mov     rdi, [rbx + PREP_lexer]
+        mov     rsi, rsp
+        call    lexer_next
+        
+        IF byte [rsp + TOKEN_kind], e, TOK_NUMBER
+            mov     rdi, [rsp + TOKEN_value]
+            call    str_to_int
+            mov     r15, rax
+        ELSEIF byte [rsp + TOKEN_kind], e, TOK_ASTERISK
+            mov     r15, 0xFF      // Variadic
+        ENDIF
+    ENDIF
+    add     rsp, TOKEN_SIZE
 
 .body_start:
     // 3. Allocate MACRO struct in arena
@@ -1115,7 +1230,8 @@ macro_handle_def:
     mov     byte [r15 + MACRO_tag], TAG_MACRO
     mov     rax, [r12 + TOKEN_value]
     mov     [r15 + MACRO_name], rax
-    mov     [r15 + MACRO_nparams], r14b
+    mov     [r15 + MACRO_min_params], r14b
+    mov     [r15 + MACRO_max_params], r15b
 
     // 4. Capture tokens until %endmacro
     mov     rdi, [rbx + PREP_arena]
