@@ -429,6 +429,37 @@ amd64_encode_instruction:
         mov     r14, 7 | call amd64_encode_mem_sync
     ELSEIF ax, e, 1686             // SYSENTER
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x34 | call amd64_emit_byte
+    ELSEIF ax, e, 1682             // SYSCALL
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x05 | call amd64_emit_byte
+    ELSEIF ax, e, 1684             // SYSEXIT
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x35 | call amd64_emit_byte
+    ELSEIF ax, e, 1685             // SYSRET
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x07 | call amd64_emit_byte
+    ELSEIF ax, e, 1290             // INVD
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x08 | call amd64_emit_byte
+    ELSEIF ax, e, 1295             // IRET
+        mov     al, 0x66 | call amd64_emit_byte | mov al, 0xCF | call amd64_emit_byte
+    ELSEIF ax, e, 1296             // IRETD
+        mov     al, 0xCF | call amd64_emit_byte
+    ELSEIF ax, e, 1297             // IRETQ
+        mov     al, 0x48 | call amd64_emit_byte | mov al, 0xCF | call amd64_emit_byte
+    ELSEIF ax, e, 1292             // INVLPG
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov     al, 7 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1376             // LSS
+        mov     r13, 0x0FB2 | call amd64_encode_rm_r
+    ELSEIF ax, e, 1360             // LFS
+        mov     r13, 0x0FB4 | call amd64_encode_rm_r
+    ELSEIF ax, e, 1362             // LGS
+        mov     r13, 0x0FB5 | call amd64_encode_rm_r
+    ELSEIF ax, e, 1293             // INVPCID
+        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
+        mov     al, 0x38 | call amd64_emit_byte | mov al, 0x82 | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        lea     r11, [r12 + INST_op1]
+        mov     al, [r10 + OPERAND_reg]
+        mov     rdi, r11 | call amd64_emit_modrm_sib
     ELSEIF ax, e, 1680             // SWAPGS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
         mov     al, 0xF8 | call amd64_emit_byte
