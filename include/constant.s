@@ -114,6 +114,154 @@
 %def BUF_TOKEN              4096        // token accumulation workspace
 %def BUF_ERROR              1024        // formatted error message buffer
 %def BUF_LINE               1024        // single line processing buffer
+ 
+ // ============================================================================
+ // TYPE TAGS
+ // ============================================================================
+ // Every struct in utasm has a 1-byte type tag at offset 0.
+ 
+ %def TAG_TOKEN              0x01
+ %def TAG_SYMBOL             0x02
+ %def TAG_SECTION            0x03
+ %def TAG_RELOC              0x04
+ %def TAG_MACRO              0x05
+ %def TAG_MACRO_EXP          0x06
+ %def TAG_INCLUDE_CTX        0x07
+ %def TAG_ASM_CTX            0x08
+ %def TAG_ARENA              0x09
+ %def TAG_LEXER              0x0A
+ %def TAG_PREPROCESSOR       0x0B
+ %def TAG_OPERAND            0x0C
+ %def TAG_INSTRUCTION        0x0D
+ 
+ // ============================================================================
+ // TOKEN TYPES
+ // ============================================================================
+ 
+ %def TOK_UNKNOWN            0x00
+ %def TOK_EOF                0x01
+ %def TOK_NEWLINE            0x02
+ %def TOK_IDENT              0x03
+ %def TOK_NUMBER             0x04
+ %def TOK_STRING             0x05
+ %def TOK_CHAR               0x06
+ %def TOK_LABEL              0x07
+ %def TOK_LOCAL_LABEL        0x08
+ %def TOK_REGISTER           0x09
+ %def TOK_COMMA              0x0A
+ %def TOK_COLON              0x0B
+ %def TOK_LBRACKET           0x0C
+ %def TOK_RBRACKET           0x0D
+ %def TOK_LBRACE             0x0E
+ %def TOK_RBRACE             0x0F
+ %def TOK_LPAREN             0x10
+ %def TOK_RPAREN             0x11
+ %def TOK_PLUS               0x12
+ %def TOK_MINUS              0x13
+ %def TOK_STAR               0x14
+ %def TOK_SLASH              0x15
+ %def TOK_PERCENT            0x16
+ %def TOK_AMPERSAND          0x17
+ %def TOK_PIPE               0x18
+ %def TOK_CARET              0x19
+ %def TOK_TILDE              0x1A
+ %def TOK_LSHIFT             0x1B
+ %def TOK_RSHIFT             0x1C
+ %def TOK_HASH               0x1D
+ %def TOK_AT                 0x1E
+ %def TOK_DIRECTIVE          0x1F
+ %def TOK_COMMENT            0x20
+ 
+ // ============================================================================
+ // SYMBOL KINDS AND VISIBILITY
+ // ============================================================================
+ 
+ %def SYM_UNKNOWN            0x00
+ %def SYM_LABEL              0x01
+ %def SYM_DATA               0x02
+ %def SYM_CONSTANT           0x03
+ %def SYM_MACRO              0x04
+ %def SYM_EXTERN             0x05
+ %def SYM_SECTION            0x06
+ 
+ %def VIS_LOCAL              0x00
+ %def VIS_GLOBAL             0x01
+ 
+ // ============================================================================
+ // SECTION TYPES
+ // ============================================================================
+ 
+ %def SEC_TEXT               0x01
+ %def SEC_DATA               0x02
+ %def SEC_BSS                0x03
+ %def SEC_RODATA             0x04
+ %def SEC_CUSTOM             0x05
+ 
+ // ============================================================================
+ // OPERAND KINDS
+ // ============================================================================
+ 
+ %def OP_NONE                0x00
+ %def OP_REG                 0x01
+ %def OP_IMM                 0x02
+ %def OP_MEM                 0x03
+ %def OP_SYMBOL              0x04
+ 
+ // ============================================================================
+ // CONTEXT FLAGS
+ // ============================================================================
+ 
+ %def CTX_FLAG_DEBUG         0x01
+ %def CTX_FLAG_VERBOSE       0x02
+ %def CTX_FLAG_WERROR        0x04
+ %def CTX_FLAG_COLOR         0x08
+ %def CTX_FLAG_LISTING       0x10
+ %def CTX_FLAG_MAPFILE       0x20
+ %def CTX_FLAG_STRIP         0x40
+ 
+ // ============================================================================
+ // CPU FEATURE BITS (AMD64)
+ // ============================================================================
+ 
+ %def FEAT_AVX               (1 << 0)
+ %def FEAT_AVX2              (1 << 1)
+ %def FEAT_AVX512F           (1 << 2)
+ %def FEAT_AVX512DQ          (1 << 3)
+ %def FEAT_AVX512BW          (1 << 4)
+ %def FEAT_AVX512VL          (1 << 5)
+ %def FEAT_AMX_TILE          (1 << 6)
+ %def FEAT_AMX_INT8          (1 << 7)
+ %def FEAT_AMX_BF16          (1 << 8)
+ %def FEAT_SGX               (1 << 9)
+ %def FEAT_AES               (1 << 10)
+ %def FEAT_SHA               (1 << 11)
+ %def FEAT_KL                (1 << 12)
+ 
+ // ============================================================================
+ // INSTRUCTION FLAGS
+ // ============================================================================
+ 
+ %def F_VEX                  (1 << 0)    // uses VEX encoding
+ %def F_EVEX                 (1 << 1)    // uses EVEX encoding
+ %def F_MODRM                (1 << 2)    // requires ModRM byte
+ %def F_REX                  (1 << 3)    // requires REX prefix in 64-bit
+ %def F_MMX                  (1 << 4)    // uses MMX registers
+ %def F_XMM                  (1 << 5)    // uses XMM/SSE registers
+ %def F_FPU                  (1 << 6)    // uses x87 FPU registers
+ %def F_LOCK                 (1 << 7)    // supports LOCK prefix
+ 
+ // ============================================================================
+ // OPERAND SIZES (BITS)
+ // ============================================================================
+ 
+ %def SZ_8                   8
+ %def SZ_16                  16
+ %def SZ_32                  32
+ %def SZ_64                  64
+ %def SZ_128                 128
+ %def SZ_256                 256
+ %def SZ_512                 512
+ 
 
 // ============================================================================
 // TARGET ARCHITECTURE IDENTIFIERS
@@ -362,4 +510,31 @@
 // ARCHITECTURAL REGISTERS (AMD64)
 // ============================================================================
 %def REG_RIP                0xFE        // special identifier for RIP
+ 
+ // ============================================================================
+ // AMD64 RELOCATION TYPES (Standard ELF)
+ // ============================================================================
+ 
+ %def R_X86_64_NONE          0
+ %def R_X86_64_64            1
+ %def R_X86_64_PC32          2
+ %def R_X86_64_GOT32         3
+ %def R_X86_64_PLT32         4
+ %def R_X86_64_COPY          5
+ %def R_X86_64_GLOB_DAT      6
+ %def R_X86_64_JUMP_SLOT     7
+ %def R_X86_64_RELATIVE      8
+ %def R_X86_64_GOTPCREL      9
+ %def R_X86_64_32            10
+ %def R_X86_64_32S           11
+ %def R_X86_64_16            12
+ %def R_X86_64_PC16          13
+ %def R_X86_64_8             14
+ %def R_X86_64_PC8           15
+ 
+ // Backward compatibility aliases
+ %def RELOC_ABS64            R_X86_64_64
+ %def RELOC_REL32            R_X86_64_PC32
+ %def RELOC_REL64            1           // Legacy map
+ %def RELOC_GOT              R_X86_64_GOT32
 

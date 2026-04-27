@@ -11,62 +11,6 @@
 
 %inc "include/macro.s"
 
-// ============================================================================
-// TYPE TAGS
-// ============================================================================
-// Every struct in utasm has a 1-byte type tag at offset 0.
-// Always check the tag before accessing any other field.
-
-%def TAG_TOKEN              0x01
-%def TAG_SYMBOL             0x02
-%def TAG_SECTION            0x03
-%def TAG_RELOC              0x04
-%def TAG_MACRO              0x05
-%def TAG_MACRO_EXP          0x06
-%def TAG_INCLUDE_CTX        0x07
-%def TAG_ASM_CTX            0x08
-%def TAG_ARENA              0x09
-%def TAG_LEXER              0x0A
-%def TAG_PREPROCESSOR       0x0B
-%def TAG_OPERAND            0x0C
-%def TAG_INSTRUCTION        0x0D
-
-// ============================================================================
-// TOKEN TYPES
-// ============================================================================
-
-%def TOK_UNKNOWN            0x00
-%def TOK_EOF                0x01
-%def TOK_NEWLINE            0x02
-%def TOK_IDENT              0x03
-%def TOK_NUMBER             0x04
-%def TOK_STRING             0x05
-%def TOK_CHAR               0x06
-%def TOK_LABEL              0x07
-%def TOK_LOCAL_LABEL        0x08
-%def TOK_REGISTER           0x09
-%def TOK_COMMA              0x0A
-%def TOK_COLON              0x0B
-%def TOK_LBRACKET           0x0C
-%def TOK_RBRACKET           0x0D
-%def TOK_LBRACE             0x0E
-%def TOK_RBRACE             0x0F
-%def TOK_LPAREN             0x10
-%def TOK_RPAREN             0x11
-%def TOK_PLUS               0x12
-%def TOK_MINUS              0x13
-%def TOK_STAR               0x14
-%def TOK_SLASH              0x15
-%def TOK_PERCENT            0x16
-%def TOK_AMPERSAND          0x17
-%def TOK_PIPE               0x18
-%def TOK_CARET              0x19
-%def TOK_TILDE              0x1A
-%def TOK_LSHIFT             0x1B
-%def TOK_RSHIFT             0x1C
-%def TOK_HASH               0x1D
-%def TOK_AT                 0x1E
-%def TOK_DIRECTIVE          0x1F
 %def TOK_COMMENT            0x20
 
 // ============================================================================
@@ -101,17 +45,6 @@ endstruc
 // STRUCT: Symbol
 // ============================================================================
 
-%def SYM_UNKNOWN            0x00
-%def SYM_LABEL              0x01
-%def SYM_DATA               0x02
-%def SYM_CONSTANT           0x03
-%def SYM_MACRO              0x04
-%def SYM_EXTERN             0x05
-%def SYM_SECTION            0x06
-
-%def VIS_LOCAL              0x00
-%def VIS_GLOBAL             0x01
-
 struc SYMBOL
     field tag,      1       // always TAG_SYMBOL
     field kind,     1       // SYM_* value
@@ -128,12 +61,6 @@ endstruc
 // ============================================================================
 // STRUCT: Section
 // ============================================================================
-
-%def SEC_TEXT               0x01
-%def SEC_DATA               0x02
-%def SEC_BSS                0x03
-%def SEC_RODATA             0x04
-%def SEC_CUSTOM             0x05
 
 struc SECTION
     field tag,      1       // always TAG_SECTION
@@ -153,11 +80,6 @@ endstruc
 // ============================================================================
 // STRUCT: Relocation
 // ============================================================================
-
-%def RELOC_ABS64            0x01
-%def RELOC_REL32            0x02
-%def RELOC_REL64            0x03
-%def RELOC_GOT              0x04
 
 struc RELOC
     field tag,         1       // TAG_RELOC
@@ -247,14 +169,6 @@ struc ASMCTX
     field pad2,        24      // future reservation
 endstruc
 
-%def CTX_FLAG_DEBUG         0x01
-%def CTX_FLAG_VERBOSE       0x02
-%def CTX_FLAG_WERROR        0x04
-%def CTX_FLAG_COLOR         0x08
-%def CTX_FLAG_LISTING       0x10
-%def CTX_FLAG_MAPFILE       0x20
-%def CTX_FLAG_STRIP         0x40
-
 // ============================================================================
 // STRUCT: LexerState
 // ============================================================================
@@ -295,12 +209,6 @@ endstruc
 // ============================================================================
 // STRUCT: Operand
 // ============================================================================
-
-%def OP_NONE                0x00
-%def OP_REG                 0x01
-%def OP_IMM                 0x02
-%def OP_MEM                 0x03
-%def OP_SYMBOL              0x04
 
 struc OPERAND
     field tag,      1       // always TAG_OPERAND
