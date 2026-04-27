@@ -109,6 +109,28 @@ amd64_encode_instruction:
         mov     r14, 1 | call amd64_encode_unary
     ELSEIF ax, e, 1439             // NEG
         mov     r14, 3 | call amd64_encode_unary
+    ELSEIF ax, ge, 1418            // MOVS - MOVSW
+        IF ax, le, 1425
+            mov r13, 0xA4 | call amd64_encode_string
+        ENDIF
+    ELSEIF ax, ge, 1668            // STOS - STOSW
+        IF ax, le, 1672
+            mov r13, 0xAA | call amd64_encode_string
+        ENDIF
+    ELSEIF ax, ge, 1368            // LODS - LODSW
+        IF ax, le, 1372
+            mov r13, 0xAC | call amd64_encode_string
+        ENDIF
+    ELSEIF ax, ge, 1629            // SCAS - SCASW
+        IF ax, le, 1632
+            mov r13, 0xAE | call amd64_encode_string
+        ENDIF
+    ELSEIF ax, ge, 1078            // CMPS - CMPSW
+        IF ax, le, 1083
+            mov r13, 0xA6 | call amd64_encode_string
+        ENDIF
+    ELSEIF ax, e, 1119             // DIV
+        mov     r14, 3 | call amd64_encode_unary
     ELSEIF ax, e, 1441             // NOT
         mov     r14, 2 | call amd64_encode_unary
     ELSEIF ax, e, 1419             // MOVSB
@@ -302,7 +324,13 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1888             // XBEGIN
         mov     al, 0xC7 | call amd64_emit_byte
         mov     al, 0xF8 | call amd64_emit_byte
-        mov     r13, 0xE8 | call amd64_encode_branch // Use branch logic for rel32
+        lea     r10, [r12 + INST_op0]
+        IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+            mov al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+            xor rax, rax | call amd64_emit_dword
+        ELSE
+            mov rdi, [r10 + OPERAND_imm] | call amd64_emit_dword
+        ENDIF
     ELSEIF ax, e, 1889             // XEND
         mov     al, 0x0F | call amd64_emit_byte
         mov     al, 0x01 | call amd64_emit_byte
@@ -354,10 +382,12 @@ amd64_encode_mov:
     IF byte [r13 + OPERAND_reg], ge, 32
         IF byte [r13 + OPERAND_reg], le, 63
             // MOV CRn/DRn, reg (0x0F 0x22/0x23)
+            mov cl, [r13 + OPERAND_reg] | and cl, 0x0F
+            IF cl, ge, 8 | mov al, 0x44 | call amd64_emit_byte | ENDIF
             mov al, 0x0F | call amd64_emit_byte
             mov al, 0x22 | IF byte [r13 + OPERAND_reg], ge, 48 | inc al | ENDIF
             call amd64_emit_byte
-            mov al, [r13 + OPERAND_reg] | and al, 0x0F
+            mov al, cl | and al, 0x07
             mov rdi, r14 | call amd64_emit_modrm_sib
             jmp .done
         ENDIF
@@ -365,10 +395,12 @@ amd64_encode_mov:
     IF byte [r14 + OPERAND_reg], ge, 32
         IF byte [r14 + OPERAND_reg], le, 63
             // MOV reg, CRn/DRn (0x0F 0x20/0x21)
+            mov cl, [r14 + OPERAND_reg] | and cl, 0x0F
+            IF cl, ge, 8 | mov al, 0x44 | call amd64_emit_byte | ENDIF
             mov al, 0x0F | call amd64_emit_byte
             mov al, 0x20 | IF byte [r14 + OPERAND_reg], ge, 48 | inc al | ENDIF
             call amd64_emit_byte
-            mov al, [r14 + OPERAND_reg] | and al, 0x0F
+            mov al, cl | and al, 0x07
             mov rdi, r13 | call amd64_emit_modrm_sib
             jmp .done
         ENDIF
@@ -1335,11 +1367,6 @@ amd64_encode_sse:
     call    amd64_emit_modrm_sib
     jmp     .done
 
-    mov     al, [r10 + OPERAND_reg]
-    mov     rdi, r11
-    call    amd64_emit_modrm_sib
-    jmp     .done
-
 /**
  * [amd64_encode_vex]
  * R13 = Opcode
@@ -1418,7 +1445,7 @@ amd64_encode_vex:
     IF byte [r12 + INST_nops], lt, 3
         mov rdi, r11
     ENDIF
-    call amd64_emit_modrm_sib
+    call    amd64_emit_modrm_sib
     jmp .done
 
 /**
@@ -1443,11 +1470,14 @@ amd64_encode_evex:
     IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF  // R
     IF cl, ge, 16 | ELSE | or al, 0x10 | ENDIF // R'
     
-    mov cl, [rdx + OPERAND_reg]
-    IF cl, ge, 8 | ELSE | or al, 0x40 | ENDIF  // X
-    
-    mov cl, [rdx + OPERAND_base]
-    IF cl, ge, 8 | ELSE | or al, 0x20 | ENDIF  // B
+    // Default X and B to 1 (inverted)
+    or al, 0x60
+    IF byte [rdx + OPERAND_kind], e, OP_MEM
+        mov cl, [rdx + OPERAND_reg]
+        IF cl, ge, 8 | and al, ~0x40 | ENDIF   // X
+        mov cl, [rdx + OPERAND_base]
+        IF cl, ge, 8 | and al, ~0x20 | ENDIF   // B
+    ENDIF
     call    amd64_emit_byte
     
     // Byte 2: W vvvv 1 pp
@@ -1480,7 +1510,67 @@ amd64_encode_evex:
     // (In a real implementation, opcode would be retrieved from metadata)
     // For now, assume a placeholder
     mov     al, 0x00 | call amd64_emit_byte
-    mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    
+    mov al, [r10 + OPERAND_reg]
+    mov rdi, rdx
+    IF byte [r12 + INST_nops], lt, 3
+        mov rdi, r11
+    ENDIF
+    call    amd64_emit_modrm_sib
+    jmp .done
+
+/**
+ * [amd64_encode_string]
+ * R13 = Base Opcode (e.g. 0xA4 for MOVSB)
+ */
+amd64_encode_string:
+    prologue
+    mov     ax, [r12 + INST_id]
+    
+    // Determine size (8, 16, 32, 64)
+    // 1. Check if fixed-size mnemonic (e.g. MOVSB = 8)
+    // 2. Check operands if generic (e.g. MOVS [rdi], [rsi])
+    
+    xor     bl, bl             // 0=8, 1=16, 2=32, 3=64
+    
+    // Check suffixes (This is a bit hardcoded but fast)
+    // MOVSB=1419, STOSB=1669, LODSB=1369, SCASB=1630, CMPSB=1079
+    IF ax, e, 1419 | OR ax, e, 1669 | OR ax, e, 1369 | OR ax, e, 1630 | OR ax, e, 1079
+        mov bl, 0
+    // MOVSW=1425, STOSW=1672, LODSW=1372, SCASW=1632, CMPSW=1083
+    ELSEIF ax, e, 1425 | OR ax, e, 1672 | OR ax, e, 1372 | OR ax, e, 1632 | OR ax, e, 1083
+        mov bl, 1
+    // MOVSD=1420, STOSD=1670, LODSD=1370, SCASD=1631, CMPSD=1080
+    ELSEIF ax, e, 1420 | OR ax, e, 1670 | OR ax, e, 1370 | OR ax, e, 1631 | OR ax, e, 1080
+        mov bl, 2
+    // MOVSQ=1423, STOSQ=1671, LODSQ=1371, SCASQ=???, CMPSQ=1081
+    ELSEIF ax, e, 1423 | OR ax, e, 1671 | OR ax, e, 1371 | OR ax, e, 1081
+        mov bl, 3
+    ELSE
+        // Generic form - use operand 0 size
+        lea r10, [r12 + INST_op0]
+        mov cl, [r10 + OPERAND_size]
+        IF cl, e, 8 | mov bl, 0
+        ELSEIF cl, e, 16 | mov bl, 1
+        ELSEIF cl, e, 32 | mov bl, 2
+        ELSEIF cl, e, 64 | mov bl, 3
+        ENDIF
+    ENDIF
+    
+    // REX.W for 64-bit
+    IF bl, e, 3
+        mov al, 0x48 | call amd64_emit_byte
+    // 16-bit prefix
+    ELSEIF bl, e, 1
+        mov al, 0x66 | call amd64_emit_byte
+    ENDIF
+    
+    // Opcode
+    mov     al, r13b
+    IF bl, ne, 0
+        inc al
+    ENDIF
+    call    amd64_emit_byte
     jmp     .done
 
 /**
