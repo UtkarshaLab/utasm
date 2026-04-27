@@ -430,6 +430,27 @@ amd64_encode_instruction:
         mov     r13, 0x78 | call amd64_encode_vm_rm_r
     ELSEIF ax, e, 5009             // VMWRITE
         mov     r13, 0x79 | call amd64_encode_vm_rm_r
+    ELSEIF ax, e, 5010             // INVEPT
+        mov     r13, 0x660F3880 | call amd64_encode_rm_r
+    ELSEIF ax, e, 5011             // INVVPID
+        mov     r13, 0x660F3881 | call amd64_encode_rm_r
+    // ---- AMD-V (SVM) ----
+    ELSEIF ax, e, 5012             // VMRUN
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD8 | call amd64_emit_byte
+    ELSEIF ax, e, 5013             // VMMCALL
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD9 | call amd64_emit_byte
+    ELSEIF ax, e, 5014             // VMLOAD
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDA | call amd64_emit_byte
+    ELSEIF ax, e, 5015             // VMSAVE
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDB | call amd64_emit_byte
+    ELSEIF ax, e, 5016             // CLGI
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDD | call amd64_emit_byte
+    ELSEIF ax, e, 5017             // STGI
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDC | call amd64_emit_byte
+    ELSEIF ax, e, 5018             // INVLPGA
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDF | call amd64_emit_byte
+    ELSEIF ax, e, 5019             // SKINIT
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDE | call amd64_emit_byte
     ELSEIF ax, e, 1351             // LAR
         mov     r13, 0x02 | call amd64_encode_rm_r_0f
     ELSEIF ax, e, 1375             // LSL

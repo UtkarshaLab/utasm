@@ -1291,6 +1291,16 @@ amd64_mnemonic_table:
     mnemonic_entry "invept", 0, 5010
     mnemonic_entry "invvpid", 0, 5011
     
+    // AMD-V (SVM) Suite
+    mnemonic_entry "vmrun", 0, 5012
+    mnemonic_entry "vmmcall", 0, 5013
+    mnemonic_entry "vmload", 0, 5014
+    mnemonic_entry "vmsave", 0, 5015
+    mnemonic_entry "clgi", 0, 5016
+    mnemonic_entry "stgi", 0, 5017
+    mnemonic_entry "invlpga", 0, 5018
+    mnemonic_entry "skinit", 0, 5019
+    
     // ---- AVX-512 Suite (Custom IDs) ----
     mnemonic_entry "vaesenc", 0, 5100
     mnemonic_entry "vaesdec", 0, 5101
