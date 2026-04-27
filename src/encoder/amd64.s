@@ -585,7 +585,7 @@ amd64_encode_instruction:
             call amd64_encode_mpx
         ENDIF
 
-    // ---- Hardware Sign-Extension & Type Conversion ----
+    // ----Hardware Sign-Extension & Type Conversion ----
     ELSEIF ax, e, 1060             // CBW
         mov     al, 0x66 | call amd64_emit_byte | mov al, 0x98 | call amd64_emit_byte
     ELSEIF ax, e, 1111             // CWDE
@@ -598,6 +598,18 @@ amd64_encode_instruction:
         mov     al, 0x99 | call amd64_emit_byte
     ELSEIF ax, e, 1088             // CQO
         mov     al, 0x48 | call amd64_emit_byte | mov al, 0x99 | call amd64_emit_byte
+
+    // ----Legacy Bit Scanning & Byte Swapping ----
+    ELSEIF ax, e, 1051             // BSF
+        mov     r13, 0x0FBC | call amd64_encode_rm_r
+    ELSEIF ax, e, 1052             // BSR
+        mov     r13, 0x0FBD | call amd64_encode_rm_r
+    ELSEIF ax, e, 1053             // BSWAP
+        lea     r10, [r12 + INST_op0]
+        mov     al, [r10 + OPERAND_size]
+        mov     rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
+        mov     al, 0x0F | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg] | and al, 7 | add al, 0xC8 | call amd64_emit_byte
 
     ELSEIF ax, e, 1680             // SWAPGS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
