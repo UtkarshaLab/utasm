@@ -37,6 +37,9 @@
 utasm/
 ├── include/              # Architecture-agnostic headers and kernel constants
 │   ├── arch/             # Architecture-specific register and opcode maps
+│   │   ├── amd64.s       # x86-64 register encodings and opcode maps
+│   │   ├── aarch64.s     # AArch64 register encodings and opcode maps
+│   │   └── riscv64.s     # RISC-V 64 register encodings and opcode maps
 │   ├── constant.s        # Global constants (exit codes, flags, limits)
 │   ├── elf.s             # Full ELF64 struct offsets and constants
 │   ├── macro.s           # Prologue/epilogue and utility macros
@@ -56,6 +59,7 @@ utasm/
 │   │   ├── asmctx.s      # Assembler context and section state
 │   │   ├── arena.s       # Arena allocator
 │   │   ├── error.s       # Industrial error formatting (line/col caret)
+│   │   ├── diagnostics.s # Diagnostic reporting and warning subsystem
 │   │   └── string.s      # String utilities
 │   ├── encoder/
 │   │   ├── amd64.s       # x86-64 instruction encoder (REX, VEX, SIB)
@@ -78,6 +82,7 @@ utasm/
 │   └── host/
 │       ├── io.s          # Raw Linux syscall I/O (read, write, open, close)
 │       ├── mem.s         # Memory management (mmap, munmap)
+│       ├── qemu.s        # QEMU virtual machine interface helpers
 │       └── uring.s       # io_uring ring initialization and async submission
 │
 ├── tests/
