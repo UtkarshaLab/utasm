@@ -534,8 +534,10 @@ elf64_write_symtab:
     
     lea     r10, [r15 + r14 * SYMBOL_SIZE]
     IF byte [r10 + SYMBOL_vis], ne, VIS_LOCAL
+        mov     [r10 + SYMBOL_elf_idx], r11d
         call    .write_one_sym
         check_err
+        inc     r11
     ENDIF
     inc     r14
     jmp     .global_loop
