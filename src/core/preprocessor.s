@@ -1222,7 +1222,20 @@ macro_handle_def:
             mov     r15, 0xFF      // Variadic
         ENDIF
     ENDIF
+    ENDIF
     add     rsp, TOKEN_SIZE
+
+    // VALIDATION: Enforce max 32 parameters
+    IF r14, g, 32
+        mov     rax, EXIT_MACRO_DEF
+        jmp     .error
+    ENDIF
+    IF r15, ne, 0xFF
+        IF r15, g, 32
+            mov     rax, EXIT_MACRO_DEF
+            jmp     .error
+        ENDIF
+    ENDIF
 
 .body_start:
     // 3. Allocate MACRO struct in arena
