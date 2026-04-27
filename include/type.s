@@ -166,7 +166,8 @@ struc ASMCTX
     field inc_paths,   8       // include path array
     field ninc_paths,  4       // include path count
     field flags,       4       // CTX_FLAG_* values
-    field pad2,        24      // future reservation
+    field last_global, 8       // pointer to string of last global label
+    field pad2,        16      // future reservation
 endstruc
 
 // ============================================================================
