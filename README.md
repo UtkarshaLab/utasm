@@ -2,7 +2,7 @@
 
 > A high-performance, self-hosting, multi-architecture assembler and linker — written entirely in x86-64 assembly.
 
-`utasm` is the sovereign compiler engine of the UtkarshaLab toolchain. It targets three architectures from a single, unified codebase, produces correct ELF64 binaries, and is designed to assemble itself.
+`utasm` is the universal assembler engine of the UtkarshaLab toolchain. It targets three architectures from a single, unified codebase, produces correct ELF64 binaries, and is designed to assemble itself.
 
 ---
 
