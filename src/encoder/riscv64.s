@@ -154,6 +154,24 @@ riscv64_encode_instruction:
     ELSEIF eax, e, ID_RV_JALR
         call    riscv64_encode_jalr
 
+    // ---- String Operations (AMD64 Parity) ----
+    ELSEIF eax, ge, ID_RV_MOVSB
+        IF eax, le, ID_RV_MOVSQ
+            call riscv64_encode_string_mov
+        ENDIF
+    ELSEIF eax, ge, ID_RV_STOSB
+        IF eax, le, ID_RV_STOSQ
+            call riscv64_encode_string_sto
+        ENDIF
+
+    // ---- Type Conversion & Bit Reversal ----
+    ELSEIF eax, e, ID_RV_REV8
+        call    riscv64_encode_rev8
+    ELSEIF eax, ge, ID_RV_SEXTB
+        IF eax, le, ID_RV_SEXTH
+            call riscv64_encode_extend
+        ENDIF
+
     // ---- Privileged & CSR Instructions ----
     ELSEIF eax, ge, 3084            // CSR range (CSRC to CSRWI)
         IF eax, le, 3096
@@ -167,6 +185,18 @@ riscv64_encode_instruction:
         mov     edi, 0x30200073 | call riscv64_emit_word
     ELSEIF eax, e, 3332             // SRET
         mov     edi, 0x10200073 | call riscv64_emit_word
+
+    // ---- Memory Barriers ----
+    ELSEIF eax, e, 3123             // FENCE
+        call    riscv64_encode_fence
+    ELSEIF eax, e, 3124             // FENCE.I
+        mov     edi, 0x0000100F | call riscv64_emit_word
+
+    // ---- Atomic Memory Operations (AMO) ----
+    ELSEIF eax, ge, 3033            // AMOADD.W range
+        IF eax, le, 3083
+            call riscv64_encode_amo
+        ENDIF
 
     // ---- Floating Point (Basic RV64F/D) ----
     ELSEIF eax, ge, 3128            // FADD.S range
@@ -440,6 +470,58 @@ riscv64_encode_jalr:
     prologue
     mov     r13d, 0x00000067
     call    riscv64_encode_i_type
+    epilogue
+
+// ---- riscv64_encode_string_mov ----
+riscv64_encode_string_mov:
+    prologue
+    // LB t0, 0(a1)      (0x00058283)
+    // SB t0, 0(a2)      (0x00560023)
+    // ADDI a1, a1, 1    (0x00158593)
+    // ADDI a2, a2, 1    (0x00160613)
+    // ADDI a3, a3, -1   (0xFFF68693)
+    // BNE a3, zero, -12 (0xFE069AE3)
+    mov     edi, 0x00058283 | call riscv64_emit_word
+    mov     edi, 0x00560023 | call riscv64_emit_word
+    mov     edi, 0x00158593 | call riscv64_emit_word
+    mov     edi, 0x00160613 | call riscv64_emit_word
+    mov     edi, 0xFFF68693 | call riscv64_emit_word
+    mov     edi, 0xFE069AE3 | call riscv64_emit_word
+    epilogue
+
+// ---- riscv64_encode_rev8 ----
+riscv64_encode_rev8:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     eax, 0x6B805013        // REV8 base (Zbb)
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 15
+    or      eax, edi
+    movzx   edi, byte [r10 + OPERAND_reg]
+    shl     edi, 7
+    or      eax, edi
+    mov     rdi, rax
+    call    riscv64_emit_word
+    epilogue
+
+// ---- riscv64_encode_extend ----
+riscv64_encode_extend:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     eax, 0x60401013        // SEXT.B base
+    IF word [r12 + INST_op_id], e, ID_RV_SEXTH
+        mov eax, 0x60501013
+    ENDIF
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 15
+    or      eax, edi
+    movzx   edi, byte [r10 + OPERAND_reg]
+    shl     edi, 7
+    or      eax, edi
+    mov     rdi, rax
+    call    riscv64_emit_word
     epilogue
 
 // ---- riscv64_encode_csr ----

@@ -62,6 +62,24 @@ aarch64_encode_instruction:
     ELSEIF eax, e, ID_AARCH64_EON
         mov     r13d, 0xCA200000 | call aarch64_encode_dp_reg
 
+    // ---- String Operations (AMD64 Parity) ----
+    ELSEIF eax, ge, ID_AARCH64_MOVSB
+        IF eax, le, ID_AARCH64_MOVSQ
+            call aarch64_encode_string_mov
+        ENDIF
+    ELSEIF eax, ge, ID_AARCH64_STOSB
+        IF eax, le, ID_AARCH64_STOSQ
+            call aarch64_encode_string_sto
+        ENDIF
+
+    // ---- Type Conversion & Bit Reversal ----
+    ELSEIF eax, e, ID_AARCH64_REV
+        call    aarch64_encode_rev
+    ELSEIF eax, ge, ID_AARCH64_SXTB
+        IF eax, le, ID_AARCH64_SXTW
+            call aarch64_encode_extend
+        ENDIF
+
     // ---- System & Barrier Instructions ----
     ELSEIF eax, e, ID_AARCH64_SVC
         call    aarch64_encode_svc
@@ -569,6 +587,72 @@ aarch64_encode_fp_bin:
     shl     edi, 16
     or      eax, edi
     
+    mov     rdi, rax
+    call    aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_string_mov ----
+// Emulates REP MOVSB/Q using LDR/STR loops
+aarch64_encode_string_mov:
+    prologue
+    // LDRB w0, [x1], #1  (0x38401420)
+    // STRB w0, [x2], #1  (0x38001440)
+    // SUBS x3, x3, #1    (0xF1000463)
+    // B.NE -12           (0x54FFFFA1)
+    mov     edi, 0x38401420 | call aarch64_emit_word
+    mov     edi, 0x38001440 | call aarch64_emit_word
+    mov     edi, 0xF1000463 | call aarch64_emit_word
+    mov     edi, 0x54FFFFA1 | call aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_string_sto ----
+aarch64_encode_string_sto:
+    prologue
+    // STRB w0, [x1], #1  (0x38001420)
+    // SUBS x2, x2, #1    (0xF1000442)
+    // B.NE -8            (0x54FFFFE1)
+    mov     edi, 0x38001420 | call aarch64_emit_word
+    mov     edi, 0xF1000442 | call aarch64_emit_word
+    mov     edi, 0x54FFFFE1 | call aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_rev ----
+aarch64_encode_rev:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     eax, 0x5AC00800
+    IF byte [r10 + OPERAND_size], e, 8
+        or eax, 0x80000000 | or eax, 0x00000400
+    ENDIF
+    movzx   edi, byte [r10 + OPERAND_reg]
+    or      eax, edi
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 5
+    or      eax, edi
+    mov     rdi, rax
+    call    aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_extend ----
+aarch64_encode_extend:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     eax, 0x13001C00        // SXTB base (SBFM)
+    movzx   ecx, word [r12 + INST_op_id]
+    IF ecx, e, ID_AARCH64_SXTH | or eax, 0x00002000 | ENDIF
+    IF ecx, e, ID_AARCH64_SXTW | or eax, 0x00007C00 | ENDIF
+    
+    IF byte [r10 + OPERAND_size], e, 8
+        or eax, 0x80000000
+    ENDIF
+    
+    movzx   edi, byte [r10 + OPERAND_reg]
+    or      eax, edi
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 5
+    or      eax, edi
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue
