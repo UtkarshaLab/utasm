@@ -313,6 +313,36 @@ amd64_mnemonic_table:
     mnemonic_entry "iret", 0, 1295
     mnemonic_entry "iretd", 0, 1296
     mnemonic_entry "iretq", 0, 1297
+    mnemonic_entry "ja", 0, 3000
+    mnemonic_entry "jae", 0, 3001
+    mnemonic_entry "jb", 0, 3002
+    mnemonic_entry "jbe", 0, 3003
+    mnemonic_entry "jc", 0, 3004
+    mnemonic_entry "je", 0, 3005
+    mnemonic_entry "jg", 0, 3006
+    mnemonic_entry "jge", 0, 3007
+    mnemonic_entry "jl", 0, 3008
+    mnemonic_entry "jle", 0, 3009
+    mnemonic_entry "jna", 0, 3010
+    mnemonic_entry "jnae", 0, 3011
+    mnemonic_entry "jnb", 0, 3012
+    mnemonic_entry "jnbe", 0, 3013
+    mnemonic_entry "jnc", 0, 3014
+    mnemonic_entry "jne", 0, 3015
+    mnemonic_entry "jng", 0, 3016
+    mnemonic_entry "jnge", 0, 3017
+    mnemonic_entry "jnl", 0, 3018
+    mnemonic_entry "jnle", 0, 3019
+    mnemonic_entry "jno", 0, 3020
+    mnemonic_entry "jnp", 0, 3021
+    mnemonic_entry "jns", 0, 3022
+    mnemonic_entry "jnz", 0, 3023
+    mnemonic_entry "jo", 0, 3024
+    mnemonic_entry "jp", 0, 3025
+    mnemonic_entry "jpe", 0, 3026
+    mnemonic_entry "jpo", 0, 3027
+    mnemonic_entry "js", 0, 3028
+    mnemonic_entry "jz", 0, 3029
     mnemonic_entry "jmp", 0, 1298
     mnemonic_entry "kaddb", 0, 1299
     mnemonic_entry "kaddd", 0, 1300
