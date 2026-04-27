@@ -56,6 +56,8 @@ mnemonic_table_riscv64:
     define_mnemonic "c.addi16sp", 3039, 0
     define_mnemonic "c.addi4spn", 3040, 0
     define_mnemonic "c.addiw", 3041, 0
+    define_mnemonic "call", 3800, 0
+    define_mnemonic "tail", 3801, 0
     define_mnemonic "c.addw", 3042, 0
     define_mnemonic "c.and", 3043, 0
     define_mnemonic "c.andi", 3044, 0

@@ -113,3 +113,5 @@
 %def ID_RV_FDIV_S           3156
 %def ID_RV_FDIV_D           3157
 %def ID_RV_XORI             3776
+%def ID_RV_CALL             3800
+%def ID_RV_TAIL             3801

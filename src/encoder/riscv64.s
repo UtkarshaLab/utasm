@@ -205,6 +205,10 @@ riscv64_encode_instruction:
         ENDIF
 
     // ---- Pseudo Instructions ----
+    ELSEIF eax, e, ID_RV_CALL
+        mov     r13d, 1 | call riscv64_encode_pseudo_call
+    ELSEIF eax, e, ID_RV_TAIL
+        mov     r13d, 0 | call riscv64_encode_pseudo_call
     ELSEIF eax, e, ID_RV_LI
         call    riscv64_encode_li
 
@@ -625,4 +629,63 @@ riscv64_encode_fp:
     
     mov     rdi, rax
     call    riscv64_emit_word
+    epilogue
+
+// ---- riscv64_encode_pseudo_call ----
+riscv64_encode_pseudo_call:
+    prologue
+    lea     r11, [r12 + INST_op0]
+    
+    mov     edi, 0x00000017
+    mov     ecx, 1
+    test    r13d, r13d
+    jnz     .is_call
+    mov     ecx, 6
+.is_call:
+    shl     ecx, 7
+    or      edi, ecx
+    
+    IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+        push    rdi
+        mov     rdi, rbx
+        mov     rsi, [r12 + INST_offset]
+        mov     rdx, [r11 + OPERAND_sym]
+        mov     rcx, [r11 + OPERAND_imm]
+        mov     r8, R_RISCV_CALL_HI20
+        extern  reloc_record
+        call    reloc_record
+        pop     rdi
+    ENDIF
+    call    riscv64_emit_word
+    
+    mov     edi, 0x00000067
+    IF r13d, e, 1
+        or edi, (1 << 7) | (1 << 15)
+    ELSE
+        or edi, (0 << 7) | (6 << 15)
+    ENDIF
+    
+    IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+        push    rdi
+        mov     rdi, rbx
+        mov     rsi, [r12 + INST_offset]
+        add     rsi, 4
+        mov     rdx, [r11 + OPERAND_sym]
+        mov     rcx, [r11 + OPERAND_imm]
+        mov     r8, R_RISCV_CALL_LO12
+        call    reloc_record
+        pop     rdi
+    ENDIF
+    
+    mov     dword [rbx + ASMCTX_inst_len], 8
+    call    riscv64_emit_word
+    epilogue
+
+riscv64_emit_word:
+    prologue
+    mov     rdx, rdi
+    mov     rdi, rbx
+    mov     rsi, [r12 + INST_section]
+    extern  asmctx_emit_dword
+    call    asmctx_emit_dword
     epilogue
