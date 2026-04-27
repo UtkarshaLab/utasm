@@ -954,19 +954,128 @@ parser_emit_data_8:
     ENDIF
     epilogue
 
+parser_handle_pseudo_op:
+    prologue
+    push    rbx
+    push    rsi
+    
+    // 1. section
+    mov     rdi, rsi
+    lea     rsi, [str_section]
+    extern  str_cmp
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_section_directive
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+    
+    // 2. data (db, dw, dd, dq)
+    pop     rsi
+    push    rsi
+    mov     rax, [rsi]
+    and     rax, 0xFFFF
+    
+    IF ax, e, 'db'
+        call    parser_emit_data_8
+        mov     rax, OK
+        jmp     .done
+    ELSEIF ax, e, 'dw'
+        call    parser_emit_data_16
+        mov     rax, OK
+        jmp     .done
+    ELSEIF ax, e, 'dd'
+        call    parser_emit_data_32
+        mov     rax, OK
+        jmp     .done
+    ELSEIF ax, e, 'dq'
+        call    parser_emit_data_64
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
+    mov     rax, 0 // Not a pseudo-op
+.done:
+    pop     rsi
+    pop     rbx
+    epilogue
+
+parser_emit_data_8:
+    prologue
+.loop:
+    call    preprocessor_next_token
+    check_err
+    mov     r12, rdx
+    mov     al, [r12 + TOKEN_kind]
+    
+    IF al, e, TOK_STRING
+        mov     rsi, [r12 + TOKEN_value]
+        mov     rdi, [rbx + PREP_ctx]
+        extern  asmctx_emit_string
+        call    asmctx_emit_string
+    ELSE
+        call    preprocessor_putback_token
+        call    parser_evaluate_expression
+        check_err
+        mov     rdi, [rbx + PREP_ctx]
+        mov     rsi, rdx
+        extern  asmctx_emit_byte
+        call    asmctx_emit_byte
+    ENDIF
+    
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        jmp     .loop
+    ENDIF
+    epilogue
+
 parser_emit_data_16:
     prologue
-    // Implementation for dw...
+.loop:
+    call    parser_evaluate_expression
+    check_err
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, rdx
+    extern  asmctx_emit_word
+    call    asmctx_emit_word
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        jmp     .loop
+    ENDIF
     epilogue
 
 parser_emit_data_32:
     prologue
-    // Implementation for dd...
+.loop:
+    call    parser_evaluate_expression
+    check_err
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, rdx
+    extern  asmctx_emit_dword
+    call    asmctx_emit_dword
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        jmp     .loop
+    ENDIF
     epilogue
 
 parser_emit_data_64:
     prologue
-    // Implementation for dq...
+.loop:
+    call    parser_evaluate_expression
+    check_err
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, rdx
+    extern  asmctx_emit_qword
+    call    asmctx_emit_qword
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        jmp     .loop
+    ENDIF
     epilogue
 
 /**
@@ -1010,5 +1119,6 @@ parser_handle_section_directive:
     epilogue
 
 [SECTION .rodata]
+str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
 str_field:     db "field", 0
