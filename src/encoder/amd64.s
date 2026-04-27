@@ -131,6 +131,16 @@ amd64_encode_instruction:
         mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFF | call amd64_emit_byte
     ELSEIF ax, e, 1199             // FINIT
         mov     al, 0xDB | call amd64_emit_byte | mov al, 0xE3 | call amd64_emit_byte
+    ELSEIF ax, e, 1395             // MOVAPS
+        mov     r13, 0x28 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1431             // MOVUPS
+        mov     r13, 0x10 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1459             // PADDD
+        mov     r13, 0xFE | mov r14, 1 | call amd64_encode_sse // 0x66 prefix
+    ELSEIF ax, e, 1530             // PMULLD
+        mov     r13, 0x40 | mov r14, 2 | call amd64_encode_sse // 0x0F 0x38
+    ELSEIF ax, e, 2160             // XORPS
+        mov     r13, 0x57 | mov r14, 0 | call amd64_encode_sse
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -912,6 +922,57 @@ amd64_encode_fpu:
     // ModRM extension
     mov     al, r14b           // Digit
     mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+    mov     al, r14b           // Digit
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_sse]
+ * R13 = Opcode
+ * R14 = Format (0=0F, 1=66 0F, 2=0F 38, 3=0F 3A)
+ */
+amd64_encode_sse:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    // REX if using R8-R15 or XMM8-XMM15
+    xor     r15, r15
+    IF byte [r10 + OPERAND_reg], ge, 8
+        or  r15, 0x44      // REX.R
+    ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8
+        or  r15, 0x41      // REX.B
+    ENDIF
+    
+    test    r15, r15
+    jz      .no_rex
+    mov     rax, r15
+    call    amd64_emit_byte
+.no_rex:
+    // Mandatory Prefix
+    IF r14b, e, 1
+        mov al, 0x66 | call amd64_emit_byte
+    ENDIF
+    
+    // Opcode Escape
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    IF r14b, e, 2
+        mov al, 0x38 | call amd64_emit_byte
+    ELSEIF r14b, e, 3
+        mov al, 0x3A | call amd64_emit_byte
+    ENDIF
+    
+    mov     rax, r13
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
     call    amd64_emit_modrm_sib
     jmp     .done
 
