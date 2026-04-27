@@ -315,6 +315,19 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1069             // CLI / STI / CLD / STD
         mov     al, 0xFA | IF ax, e, 1666 | mov al, 0xFB | ELSEIF ax, e, 1065 | mov al, 0xFC | ELSEIF ax, e, 1665 | mov al, 0xFD | ENDIF
         call    amd64_emit_byte
+    ELSEIF ax, e, 1205             // FLD1
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xE8 | call amd64_emit_byte
+    ELSEIF ax, e, 1206             // FLDZ
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xEE | call amd64_emit_byte
+    ELSEIF ax, e, 1542             // PREFETCH
+        mov     al, 0x0F | call amd64_emit_byte
+        mov     al, 0x18 | call amd64_emit_byte
+        mov     al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib // PREFETCHT0
+    ELSEIF ax, e, 1073             // CLWB
+        mov     al, 0x66 | call amd64_emit_byte
+        mov     al, 0x0F | call amd64_emit_byte
+        mov     al, 0xAE | call amd64_emit_byte
+        mov     al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
     ELSE
         mov     rax, EXIT_ENCODE_FAIL
     ENDIF
@@ -337,6 +350,30 @@ amd64_encode_mov:
     lea     r13, [r12 + INST_op0]  // r13 = Dest
     lea     r14, [r12 + INST_op1]  // r14 = Src
     
+    // Case 0: PRIVILEGED MOV (CRn/DRn)
+    IF byte [r13 + OPERAND_reg], ge, 32
+        IF byte [r13 + OPERAND_reg], le, 63
+            // MOV CRn/DRn, reg (0x0F 0x22/0x23)
+            mov al, 0x0F | call amd64_emit_byte
+            mov al, 0x22 | IF byte [r13 + OPERAND_reg], ge, 48 | inc al | ENDIF
+            call amd64_emit_byte
+            mov al, [r13 + OPERAND_reg] | and al, 0x0F
+            mov rdi, r14 | call amd64_emit_modrm_sib
+            jmp .done
+        ENDIF
+    ENDIF
+    IF byte [r14 + OPERAND_reg], ge, 32
+        IF byte [r14 + OPERAND_reg], le, 63
+            // MOV reg, CRn/DRn (0x0F 0x20/0x21)
+            mov al, 0x0F | call amd64_emit_byte
+            mov al, 0x20 | IF byte [r14 + OPERAND_reg], ge, 48 | inc al | ENDIF
+            call amd64_emit_byte
+            mov al, [r14 + OPERAND_reg] | and al, 0x0F
+            mov rdi, r13 | call amd64_emit_modrm_sib
+            jmp .done
+        ENDIF
+    ENDIF
+
     // Case 1: MOV REG, REG
     IF byte [r13 + OPERAND_kind], e, OP_REG
         IF byte [r14 + OPERAND_kind], e, OP_REG
