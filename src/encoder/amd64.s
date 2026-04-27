@@ -904,38 +904,67 @@ amd64_encode_mov:
             jmp     .done
         ENDIF
         
-        // Case 2: MOV REG, IMM
-        IF byte [r14 + OPERAND_kind], e, OP_IMM
+        // Case 2: MOV REG, IMM / SYMBOL
+        mov     al, [r14 + OPERAND_kind]
+        IF al, e, OP_IMM | jmp .do_imm | ENDIF
+        IF al, e, OP_SYMBOL | jmp .do_imm | ENDIF
+        jmp .not_imm
+        
+    .do_imm:
             mov     dl, [r13 + OPERAND_size]
             mov     rax, [r14 + OPERAND_imm]
             
             // OPTIMIZATION: 64-bit MOV to REG with 32-bit non-negative IMM
             // can use 32-bit MOV (zero-extension)
             IF dl, e, 64
-                IF rax, ge, 0
-                    IF rax, le, 0xFFFFFFFF
-                        mov dl, 32
+                IF byte [r14 + OPERAND_kind], e, OP_IMM
+                    IF rax, ge, 0
+                        IF rax, le, 0xFFFFFFFF
+                            mov dl, 32
+                        ENDIF
                     ENDIF
                 ENDIF
             ENDIF
 
-            // 64-bit MOV REG, IMM64 (Opcode 0xB8 + reg)
+            // 64-bit MOV REG, IMM64 / SYMBOL
             IF dl, e, 64
                 mov al, 64 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
                 mov al, 0xB8 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
-                mov rdi, [r14 + OPERAND_imm] | call amd64_emit_qword
+                
+                IF byte [r14 + OPERAND_kind], e, OP_SYMBOL
+                    mov rdi, rbx
+                    mov rsi, [rbx + ASMCTX_text_size] // Current offset
+                    mov rdx, [r14 + OPERAND_sym]
+                    mov rcx, [r14 + OPERAND_imm]      // Addend from math engine!
+                    mov r8, R_X86_64_64
+                    call reloc_record
+                    xor rdi, rdi | call amd64_emit_qword
+                ELSE
+                    mov rdi, [r14 + OPERAND_imm] | call amd64_emit_qword
+                ENDIF
                 jmp .done
             ENDIF
             
-            // 32-bit MOV REG, IMM32
+            // 32-bit MOV REG, IMM32 / SYMBOL
             IF dl, e, 32
                 mov al, 32 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
                 mov al, 0xB8 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
-                mov rdi, [r14 + OPERAND_imm] | call amd64_emit_dword
+                
+                IF byte [r14 + OPERAND_kind], e, OP_SYMBOL
+                    mov rdi, rbx
+                    mov rsi, [rbx + ASMCTX_text_size]
+                    mov rdx, [r14 + OPERAND_sym]
+                    mov rcx, [r14 + OPERAND_imm]
+                    mov r8, R_X86_64_32
+                    call reloc_record
+                    xor rdi, rdi | call amd64_emit_dword
+                ELSE
+                    mov rdi, [r14 + OPERAND_imm] | call amd64_emit_dword
+                ENDIF
                 jmp .done
             ENDIF
             
-            // 16-bit MOV REG, IMM16
+            // 16-bit MOV REG, IMM16 / SYMBOL
             IF dl, e, 16
                 mov al, 16 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
                 mov al, 0xB8 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
@@ -950,7 +979,7 @@ amd64_encode_mov:
                 mov rax, [r14 + OPERAND_imm] | call amd64_emit_byte
                 jmp .done
             ENDIF
-        ENDIF
+    .not_imm:
 
         // Case 3: MOV REG, MEM
         IF byte [r14 + OPERAND_kind], e, OP_MEM
