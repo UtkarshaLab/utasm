@@ -160,12 +160,12 @@ endstruc
 %def RELOC_GOT              0x04
 
 struc RELOC
-    field tag,      1       // always TAG_RELOC
-    field type,     1       // RELOC_* value
-    field pad0,     6       // alignment padding
-    field offset,   8       // offset in section
-    field symbol,   8       // pointer to Symbol
-    field addend,   8       // signed addend
+    field tag,         1       // TAG_RELOC
+    field type,        1       // RELOC_* value
+    field pad0,         2       // alignment
+    field offset,      4       // offset in binary section
+    field symbol,      8       // pointer to symbol name string
+    field section,     8       // pointer to target section
 endstruc
 
 // ============================================================================
@@ -233,6 +233,8 @@ struc ASMCTX
     field pad0,         4       // alignment padding
     field sections,    8       // pointer to section array
     field seccount,    4       // section count
+    field relocs,      8       // pointer to relocation array
+    field nrelocs,     4       // relocation count
     field pad1,         4       // alignment padding
     field inc_ctx,     8       // current IncludeCtx
     field mac_exp,     8       // current MacroExpansion
@@ -305,7 +307,8 @@ struc OPERAND
     field kind,     1       // OP_* value
     field size,     1       // operand size
     field reg,      1       // register ID
-    field pad0,      4       // alignment padding
+    field segment,  1       // segment override (0x64, 0x65)
+    field pad0,     3       // alignment padding
     field imm,      8       // immediate or displacement
     field base,     1       // base register
     field index,    1       // index register

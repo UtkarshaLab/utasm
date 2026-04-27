@@ -358,3 +358,8 @@
 %def UTASM_HEAP_SIZE        0x10000000  // maximum heap reservation (256 MiB)
 %def UTASM_STACK_SIZE       0x100000    // default stack allocation (1 MiB)
 
+// ============================================================================
+// ARCHITECTURAL REGISTERS (AMD64)
+// ============================================================================
+%def REG_RIP                0xFE        // special identifier for RIP
+

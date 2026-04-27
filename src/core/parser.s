@@ -220,9 +220,26 @@ parser_parse_mem_operand:
         mov     rsi, [rdx + TOKEN_value]
         call    str_to_int
         mov     [r12 + OPERAND_imm], rax
-    ELSEIF al, e, TOK_IDENT
+    IF al, e, TOK_IDENT
         call    preprocessor_next_token
         mov     rsi, [rdx + TOKEN_value]
+        
+        // Potential Segment Override check
+        call    preprocessor_peek_token
+        IF byte [rdx + TOKEN_kind], e, TOK_COLON
+            call    preprocessor_next_token  // consume colon
+            // Check if RSI is "fs" or "gs"
+            IF rsi, e, "fs"
+                mov byte [r12 + OPERAND_segment], 0x64
+            ELSEIF rsi, e, "gs"
+                mov byte [r12 + OPERAND_segment], 0x65
+            ENDIF
+            
+            // Now parse the actual base
+            call    preprocessor_next_token
+            mov     rsi, [rdx + TOKEN_value]
+        ENDIF
+        
         mov     rdi, r10                // Use active register table
         call    parser_is_register
         IF rax, e, ERR
@@ -230,7 +247,7 @@ parser_parse_mem_operand:
             jmp     .error
         ENDIF
         mov     [r12 + OPERAND_base], al
-    ENDIF
+    ELSEIF al, e, TOK_NUMBER
     
 .offset_chain:
     call    preprocessor_peek_token
