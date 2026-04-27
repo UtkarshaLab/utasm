@@ -74,8 +74,18 @@ _start:
     jnz     .exit_oom
 
     // Link arena to context
-    mov     [global_ctx + ASMCTX_arena], global_arena
+    mov     rax, global_arena
+    mov     [global_ctx + ASMCTX_arena], rax
     mov     byte [global_ctx + ASMCTX_tag], TAG_ASM_CTX
+
+    // 3.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
+    mov     rdi, global_arena
+    mov     rsi, (65536 * 8)
+    call    arena_alloc
+    test    rax, rax
+    jnz     .exit_oom
+    mov     [global_ctx + ASMCTX_symhash], rdx
+    // arena_alloc already zeroes if it's fresh, but we could explicitly zero_mem if needed.
 
     // 4. Parse Command Line Arguments
     // After 'push rbp', [rbp+8] = argc, [rbp+16] = argv[0]

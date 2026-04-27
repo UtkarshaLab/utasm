@@ -108,21 +108,34 @@ symbol_add:
     mov     rcx, 6                 // SYMBOL_SIZE / 8
     rep movsq
 
-    // 3. Index in Hash Table (Linear Probing)
+    // 3. Index in Hash Table (Quadratic Probing)
     mov     rsi, [r13 + SYMBOL_name]
     call    symbol_hash
     mov     r10, rax
-    and     r10, (MAX_SYMBOL - 1)  // Table size MUST be power of 2
+    and     r10, (MAX_SYMBOL - 1)  // base hash
     
     mov     r11, [rbx + ASMCTX_symhash]
-    mov     rcx, MAX_SYMBOL
+    mov     rcx, 0                 // i = 0
 .probe:
-    lea     rdx, [r11 + r10 * 8]
+    cmp     rcx, MAX_SYMBOL
+    jge     .error_limit
+    
+    // pos = (hash + (i*i + i)/2) % MAX_SYMBOL
+    mov     rax, rcx
+    imul    rax, rcx
+    add     rax, rcx
+    shr     rax, 1
+    add     rax, r10
+    and     rax, (MAX_SYMBOL - 1)
+    
+    lea     rdx, [r11 + rax * 8]
     cmp     qword [rdx], 0
     je      .found_slot
-    inc     r10
-    and     r10, (MAX_SYMBOL - 1)
-    loop    .probe
+    
+    inc     rcx
+    jmp     .probe
+
+.error_limit:
     mov     rax, EXIT_SYMBOL_RANGE
     jmp     .done
 
@@ -154,9 +167,20 @@ symbol_find:
     and     r10, (MAX_SYMBOL - 1)
     
     mov     r11, [rbx + ASMCTX_symhash]
-    mov     rcx, MAX_SYMBOL        // Safety counter
+    mov     rcx, 0                 // i = 0 (iteration counter)
 .probe:
-    mov     rdx, [r11 + r10 * 8]
+    cmp     rcx, MAX_SYMBOL
+    jge     .not_found
+    
+    // pos = (hash + (i*i + i)/2) % MAX_SYMBOL
+    mov     rax, rcx
+    imul    rax, rcx               // i*i
+    add     rax, rcx               // i*i + i
+    shr     rax, 1                 // (i*i + i)/2
+    add     rax, r10               // hash + ...
+    and     rax, (MAX_SYMBOL - 1)  // modulo size
+    
+    mov     rdx, [r11 + rax * 8]
     test    rdx, rdx
     jz      .not_found
     
@@ -168,9 +192,8 @@ symbol_find:
     test    rax, rax
     jz      .found
     
-    inc     r10
-    and     r10, (MAX_SYMBOL - 1)
-    loop    .probe                 // decrement RCX and jump if non-zero
+    inc     rcx
+    jmp     .probe
     jmp     .not_found
 
 .found:
