@@ -18,17 +18,17 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
     - [x] R59: AMD64 REX and Operand Size Hardening.
     - [x] R60: AArch64 Alias Handlers (MOV/CMP/TST).
 
-## 🟡 Active (Phase 7: Optimization & Advanced Symbolics)
-- [ ] R61: Hash-Based Symbol Table (O(1) lookups).
-- [ ] R62: AArch64 PC-Relative Relocations (ADR/ADRP).
-- [ ] R63: RISC-V Relaxation Support (AUIPC+JALR).
-- [ ] R64: Industrial Error Transparency (Line/Col reporting).
-- [ ] R65: DWARF v5 Symbol Table Integration.
-- [ ] R66: Macro Parameter Range Checking (1-32).
-- [ ] R67: ELF String Table De-duplication.
-- [ ] R68: AMD64 VEX.L (256-bit) Instruction Mapping.
-- [ ] R69: AArch64 SVE (Scalable Vector) Foundation.
-- [ ] R70: Self-Hosting Readiness Audit.
+## ✅ Phase 7: Optimization & Advanced Symbolics - [COMPLETE]
+- [x] R61: Hash-Based Symbol Table Hardening (Quadratic Probing)
+- [x] R62: AArch64 PC-Relative Relocations (ADR/ADRP)
+- [x] R63: RISC-V Relaxation Support (AUIPC+JALR)
+- [x] R64: Industrial Error Transparency (Line/Col Caret reporting)
+- [x] R65: DWARF v5 Symbol Table Integration (.debug_info/.debug_abbrev)
+- [x] R66: Macro Parameter Range Checking (1-32 limit)
+- [x] R67: ELF String Table De-duplication
+- [x] R68: AMD64 VEX.L (256-bit) Instruction Mapping
+- [x] R69: AArch64 SVE (Scalable Vector) Foundation (Z0-Z31, P0-P15)
+- [x] R70: Self-Hosting Readiness Audit (IMUL, BT, SETcc coverage)
 
 ## 🔴 Future (Phase 8+: Performance & Deployment)
 - [ ] **Self-Hosting**: Assemble `utasm` using `utasm`.
