@@ -24,6 +24,8 @@
 %def ID_AARCH64_ADCLB       2001
 %def ID_AARCH64_ADCLT       2002
 %def ID_AARCH64_ADD         2003
+%def ID_AARCH64_ADR         2020
+%def ID_AARCH64_ADRP        2650
 %def ID_AARCH64_AND         2027
 %def ID_AARCH64_ANDS        2029
 %def ID_AARCH64_ASR         2031

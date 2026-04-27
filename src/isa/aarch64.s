@@ -35,6 +35,7 @@ mnemonic_table_aarch64:
     define_mnemonic "addva", 2018, 0
     define_mnemonic "addvl", 2019, 0
     define_mnemonic "adr", 2020, 0
+    define_mnemonic "adrp", 2650, 0
     define_mnemonic "aesd", 2021, 0
     define_mnemonic "aesdimc", 2022, 0
     define_mnemonic "aese", 2023, 0

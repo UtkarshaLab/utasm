@@ -42,11 +42,14 @@ aarch64_encode_instruction:
 
     movzx   eax, word [r12 + INST_op_id]
 
-    // ---- Arithmetic & Logical (Register) ----
     IF eax, e, ID_AARCH64_ADD
         mov     r13d, 0x8B000000 | call aarch64_encode_dp_reg
     ELSEIF eax, e, ID_AARCH64_SUB
         mov     r13d, 0xCB000000 | call aarch64_encode_dp_reg
+    ELSEIF eax, e, ID_AARCH64_ADR
+        mov     r13d, 0x10000000 | call aarch64_encode_adr
+    ELSEIF eax, e, ID_AARCH64_ADRP
+        mov     r13d, 0x90000000 | call aarch64_encode_adr
     ELSEIF eax, e, ID_AARCH64_AND
         mov     r13d, 0x8A000000 | call aarch64_encode_dp_reg
     ELSEIF eax, e, ID_AARCH64_ORR
@@ -161,11 +164,55 @@ aarch64_encode_instruction:
     ENDIF
 
     xor     rax, rax
-
 .done:
     pop     r13
     pop     r12
     pop     rbx
+    epilogue
+
+// ---- aarch64_encode_adr ----
+// ADR/ADRP Rd, label
+aarch64_encode_adr:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    mov     eax, r13d
+    movzx   edi, byte [r10 + OPERAND_reg]
+    or      eax, edi
+    
+    // Scramble 21-bit immediate:
+    // immlo: bits [1:0]   -> [30:29] of instruction
+    // immhi: bits [20:2]  -> [23:5]  of instruction
+    mov     edi, [r11 + OPERAND_imm]
+    mov     ecx, edi
+    and     ecx, 0x03              // immlo
+    shl     ecx, 29
+    or      eax, ecx
+    
+    mov     ecx, edi
+    shr     ecx, 2
+    and     ecx, 0x7FFFF           // immhi (19 bits)
+    shl     ecx, 5
+    or      eax, ecx
+    
+    IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        mov     rdi, rbx
+        mov     rsi, [r12 + INST_offset]
+        mov     rdx, [r11 + OPERAND_sym]
+        mov     rcx, [r11 + OPERAND_imm]
+        mov     r8, R_AARCH64_ADR_PREL_LO21
+        IF r13d, e, 0x90000000
+            mov r8, R_AARCH64_ADR_PREL_PG_HI21
+        ENDIF
+        extern  reloc_record
+        call    reloc_record
+        pop     rax
+    ENDIF
+    
+    mov     edi, eax
+    call    aarch64_emit_word
     epilogue
 
 // ============================================================================
