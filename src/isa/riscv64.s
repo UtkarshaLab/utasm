@@ -1,6 +1,6 @@
 /*
  ============================================================================
- File        : src/arch/riscv64/table.s
+ File        : src/arch/riscv64.s
  Project     : utasm
  Version     : 0.1.0
  Description : RISCV64 Mnemonic and Register Lookup Tables.
@@ -792,4 +792,42 @@ mnemonic_table_riscv64:
     define_mnemonic "xor", 3775, 0
     define_mnemonic "xori", 3776, 0
     define_mnemonic "zve", 3777, 0
+    dq 0 ; Sentinel
+
+global riscv64_register_table
+riscv64_register_table:
+    // ---- Raw Architectural Names (x0-x31) ----
+    %assign i 0
+    %rep 32
+        compile_time_hash "x%[i]", H_X%[i]
+        dq H_X%[i], (8 << 8) | i
+        %assign i i+1
+    %endrep
+
+    // ---- ABI Names ----
+    compile_time_hash "zero", H_ZERO
+    dq H_ZERO, (8 << 8) | 0
+    compile_time_hash "ra", H_RA
+    dq H_RA, (8 << 8) | 1
+    compile_time_hash "sp", H_SP
+    dq H_SP, (8 << 8) | 2
+    compile_time_hash "gp", H_GP
+    dq H_GP, (8 << 8) | 3
+    compile_time_hash "tp", H_TP
+    dq H_TP, (8 << 8) | 4
+    compile_time_hash "t0", H_T0
+    dq H_T0, (8 << 8) | 5
+    compile_time_hash "t1", H_T1
+    dq H_T1, (8 << 8) | 6
+    compile_time_hash "t2", H_T2
+    dq H_T2, (8 << 8) | 7
+    compile_time_hash "s0", H_S0
+    dq H_S0, (8 << 8) | 8
+    compile_time_hash "s1", H_S1
+    dq H_S1, (8 << 8) | 9
+    compile_time_hash "a0", H_A0
+    dq H_A0, (8 << 8) | 10
+    compile_time_hash "a1", H_A1
+    dq H_A1, (8 << 8) | 11
+
     dq 0 ; Sentinel

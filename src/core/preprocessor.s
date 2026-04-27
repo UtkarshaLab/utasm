@@ -133,12 +133,49 @@ prep_internal_next:
     mov     r12, rsi               // r12 = Token dest
 
 .next:
+    // 1. Check if we are expanding a macro
+    mov     rax, [rbx + PREP_ctx]
+    mov     rax, [rax + ASMCTX_mac_exp]
+    test    rax, rax
+    jz      .from_lexer
+
+    // Get token from expansion body
+    call    prep_expand_next
+    test    rax, rax
+    jz      .done                  // expansion produced a token
+    // if expansion finished, try again (checks for parent or falls to lexer)
+    jmp     .next
+
+.from_lexer:
     mov     rdi, [rbx + PREP_lexer]
     mov     rsi, r12
     call    lexer_next
     test    rax, rax
     jnz     .done                  // lexer error
 
+    // check if it's a macro call
+    cmp     byte [r12 + TOKEN_kind], TOK_IDENT
+    jne     .not_macro_call
+    
+    // look up in symtab
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [r12 + TOKEN_value]
+    call    symbol_find
+    test    rax, rax
+    jnz     .not_macro_call        // not found or error
+    
+    cmp     byte [rdx + SYMBOL_kind], SYM_MACRO
+    jne     .not_macro_call
+    
+    // Found a macro call!
+    mov     rdi, rbx
+    mov     rsi, [rdx + SYMBOL_value] // rsi = pointer to MACRO struct
+    call    prep_expand_start
+    test    rax, rax
+    jnz     .done                  // error starting expansion
+    jmp     .next                  // get first token of expansion
+
+.not_macro_call:
     // handle EOF
     cmp     byte [r12 + TOKEN_kind], TOK_EOF
     je      .handle_eof
@@ -191,6 +228,227 @@ prep_internal_next:
 .done:
     pop     r12
     pop     rbx
+    ret
+
+// ---- prep_expand_start ------------------
+/*
+ prep_expand_start
+ Starts expanding a macro.
+ Input    : rdi = pointer to PrepState
+            rsi = pointer to MACRO struct
+ Output   : rax = EXIT_OK or error code
+*/
+prep_expand_start:
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    mov     rbx, rdi               // rbx = PrepState
+    mov     r12, rsi               // r12 = MACRO struct
+
+    // 1. Allocate MACROEXP struct
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, MACROEXP_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     r13, rdx               // r13 = MACROEXP struct
+
+    mov     byte [r13 + MACROEXP_tag], TAG_MACRO_EXP
+    mov     [r13 + MACROEXP_macro], r12
+    movzx   rax, byte [r12 + MACRO_nparams]
+    mov     [r13 + MACROEXP_nparams], al
+    
+    // set initial body position (token index 0)
+    mov     qword [r13 + MACROEXP_body], 0
+
+    // 2. Parse parameters if any
+    test    al, al
+    jz      .link_exp
+
+    // allocate parameter array (pointers to Tokens)
+    movzx   rsi, al
+    imul    rsi, 8                 // 8 bytes per pointer
+    mov     rdi, [rbx + PREP_arena]
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     [r13 + MACROEXP_params], rdx
+    mov     r14, rdx               // r14 = param array
+
+    xor     r15, r15               // current param index
+.param_loop:
+    movzx   rax, byte [r12 + MACRO_nparams]
+    cmp     r15, rax
+    jge     .link_exp
+
+    // lex next token (must be comma if not first)
+    test    r15, r15
+    jz      .get_param
+    
+    // consume comma
+    sub     rsp, TOKEN_SIZE
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, rsp
+    call    lexer_next
+    test    rax, rax
+    jnz     .error_pop_token
+    
+    cmp     byte [rsp + TOKEN_kind], TOK_COMMA
+    jne     .error_expected_comma
+    add     rsp, TOKEN_SIZE
+
+.get_param:
+    // allocate token for param
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     [r14 + r15 * 8], rdx
+    
+    // lex into it
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, rdx
+    call    lexer_next
+    test    rax, rax
+    jnz     .error
+    
+    inc     r15
+    jmp     .param_loop
+
+.link_exp:
+    // 3. Link to previous
+    mov     r8, [rbx + PREP_ctx]
+    mov     r9, [r8 + ASMCTX_mac_exp]
+    mov     [r13 + MACROEXP_parent], r9
+    mov     [r8 + ASMCTX_mac_exp], r13
+    
+    xor     rax, rax
+    jmp     .done
+
+.error_pop_token:
+    add     rsp, TOKEN_SIZE
+    jmp     .error
+
+.error_expected_comma:
+    add     rsp, TOKEN_SIZE
+    mov     rax, EXIT_INVALID_OPERAND
+    jmp     .done
+
+.error:
+    mov     rax, EXIT_MACRO_EXP
+
+.done:
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+// ---- prep_expand_next -------------------
+/*
+ prep_expand_next
+ Serves the next token from the current macro expansion.
+ Handles parameter substitution.
+ Input    : rdi = pointer to PrepState
+            rsi = pointer to Token (destination)
+ Output   : rax = 0 (produced token) or non-zero (finished)
+*/
+prep_expand_next:
+    push    rbx
+    push    r12
+    push    r13
+    mov     rbx, rdi               // rbx = PrepState
+    mov     r12, rsi               // r12 = Token dest
+
+    mov     r8, [rbx + PREP_ctx]
+    mov     r13, [r8 + ASMCTX_mac_exp] // r13 = current expansion
+    test    r13, r13
+    jz      .finished
+
+    // 1. Get current token index
+    mov     rax, [r13 + MACROEXP_body]
+    mov     r9, [r13 + MACROEXP_macro]
+    cmp     eax, [r9 + MACRO_ntokens]
+    jge     .expansion_end
+
+    // 2. Copy token from macro body
+    mov     r10, [r9 + MACRO_tokens]
+    imul    rax, TOKEN_SIZE
+    add     r10, rax               // r10 = source token
+
+    // copy to dest
+    mov     rdi, r12
+    mov     rsi, r10
+    mov     rcx, (TOKEN_SIZE / 8)
+    rep movsq
+
+    // increment body pos
+    inc     qword [r13 + MACROEXP_body]
+
+    // 3. Handle parameter substitution
+    // Macro parameters are TOK_DIRECTIVE with value like "1", "2"
+    cmp     byte [r12 + TOKEN_kind], TOK_DIRECTIVE
+    jne     .produced
+
+    // check if value is a number
+    mov     rdi, [r12 + TOKEN_value]
+    movzx   rax, byte [rdi]
+    sub     al, '0'
+    cmp     al, 1
+    jl      .produced              // not a param (e.g. %define)
+    cmp     al, 9
+    jg      .produced
+    
+    // it's a param ref! (1-9)
+    // check if it is within nparams
+    movzx   rcx, byte [r13 + MACROEXP_nparams]
+    cmp     al, cl
+    jg      .produced              // out of range, keep as directive? 
+    
+    // replace r12 with the parameter token
+    dec     al                     // 0-indexed
+    mov     r11, [r13 + MACROEXP_params]
+    movzx   rax, al
+    mov     rsi, [r11 + rax * 8]   // rsi = param token
+    
+    mov     rdi, r12
+    mov     rcx, (TOKEN_SIZE / 8)
+    rep movsq
+
+.produced:
+    xor     rax, rax
+    jmp     .done
+
+.expansion_end:
+    call    prep_expand_pop
+    // we finished this expansion, but there might be a parent
+    // we return non-zero to tell caller to try again (which will check mac_exp again)
+    mov     rax, 1
+    jmp     .done
+
+.finished:
+    mov     rax, 1
+
+.done:
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+// ---- prep_expand_pop --------------------
+prep_expand_pop:
+    mov     r8, [rdi + PREP_ctx]
+    mov     r9, [r8 + ASMCTX_mac_exp]
+    test    r9, r9
+    jz      .done
+    
+    mov     r10, [r9 + MACROEXP_parent]
+    mov     [r8 + ASMCTX_mac_exp], r10
+.done:
     ret
 
 // ---- prep_handle_directive --------------
@@ -330,6 +588,9 @@ prep_handle_directive:
 prep_handle_inc:
     push    rbx
     push    r12
+    push    r13
+    push    r14
+    push    r15
     mov     rbx, rdi               // rbx = PrepState
 
     // next token must be a string (filename)
@@ -437,6 +698,9 @@ prep_handle_inc:
 
 .done:
     add     rsp, TOKEN_SIZE
+    pop     r15
+    pop     r14
+    pop     r13
     pop     r12
     pop     rbx
     ret
@@ -824,8 +1088,6 @@ macro_handle_def:
     jmp     .done
 
 .error:
-
-.error:
     add     rsp, TOKEN_SIZE * 2
     pop     r14
     pop     r13
@@ -847,5 +1109,8 @@ macro_handle_def:
     mov     rax, EXIT_ERROR
 
 .done:
+    pop     r14
+    pop     r13
+    pop     r12
     pop     rbx
     ret

@@ -282,7 +282,9 @@ struc PREP
     field tag,          1       // always TAG_PREPROCESSOR
     field depth,        1       // conditional depth
     field skip_depth,   1       // skipping depth
-    field pad0,          5       // alignment padding
+    field has_peek,     1       // TRUE if peek is valid
+    field pad0,         4       // alignment padding
+    field peek,         TOKEN_SIZE // peek buffer
     field lexer,        8       // current LexerState
     field ctx,          8       // pointer to AsmCtx
     field arena,        8       // pointer to Arena

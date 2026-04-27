@@ -1,6 +1,6 @@
 /*
  ============================================================================
- File        : src/arch/aarch64/table.s
+ File        : src/arch/aarch64.s
  Project     : utasm
  Version     : 0.1.0
  Description : AArch64 Mnemonic and Register Lookup Tables.
@@ -965,4 +965,34 @@ mnemonic_table_aarch64:
     define_mnemonic "zip2", 2948, 0
     define_mnemonic "zipq1", 2949, 0
     define_mnemonic "zipq2", 2950, 0
+    dq 0 ; Sentinel
+
+global aarch64_register_table
+aarch64_register_table:
+    // ---- 64-bit GPRs (X0-X30) ----
+    %assign i 0
+    %rep 31
+        compile_time_hash "x%[i]", H_X%[i]
+        dq H_X%[i], (8 << 8) | i
+        %assign i i+1
+    %endrep
+
+    // ---- Special Registers ----
+    compile_time_hash "xzr", H_XZR
+    dq H_XZR, (8 << 8) | 31
+    compile_time_hash "sp", H_SP
+    dq H_SP, (8 << 8) | 32
+
+    // ---- 32-bit GPRs (W0-W30) ----
+    %assign i 0
+    %rep 31
+        compile_time_hash "w%[i]", H_W%[i]
+        dq H_W%[i], (4 << 8) | i
+        %assign i i+1
+    %endrep
+
+    // ---- 32-bit Special Registers ----
+    compile_time_hash "wzr", H_WZR
+    dq H_WZR, (4 << 8) | 31
+
     dq 0 ; Sentinel

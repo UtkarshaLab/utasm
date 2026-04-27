@@ -1,6 +1,6 @@
 /*
  ============================================================================
- File        : src/arch/amd64/table.s
+ File        : src/arch/amd64.s
  Project     : utasm
  Version     : 0.1.0
  Description : AMD64 Mnemonic and Register Lookup Tables.
@@ -1241,6 +1241,70 @@ amd64_register_table:
     dq H_ESP, (4 << 8) | REG_RSP
     compile_time_hash "ebp", H_EBP
     dq H_EBP, (4 << 8) | REG_RBP
+    %assign i 8
+    %rep 8
+        compile_time_hash "r%[i]d", H_R%[i]D
+        dq H_R%[i]D, (4 << 8) | %[i]
+        %assign i i+1
+    %endrep
+
+    // ---- 16-bit GPRs ----
+    compile_time_hash "ax", H_AX
+    dq H_AX, (2 << 8) | REG_RAX
+    compile_time_hash "cx", H_CX
+    dq H_CX, (2 << 8) | REG_RCX
+    compile_time_hash "dx", H_DX
+    dq H_DX, (2 << 8) | REG_RDX
+    compile_time_hash "bx", H_BX
+    dq H_BX, (2 << 8) | REG_RBX
+    compile_time_hash "si", H_SI
+    dq H_SI, (2 << 8) | REG_RSI
+    compile_time_hash "di", H_DI
+    dq H_DI, (2 << 8) | REG_RDI
+    compile_time_hash "sp", H_SP
+    dq H_SP, (2 << 8) | REG_RSP
+    compile_time_hash "bp", H_BP
+    dq H_BP, (2 << 8) | REG_RBP
+    %assign i 8
+    %rep 8
+        compile_time_hash "r%[i]w", H_R%[i]W
+        dq H_R%[i]W, (2 << 8) | %[i]
+        %assign i i+1
+    %endrep
+
+    // ---- 8-bit GPRs (Low) ----
+    compile_time_hash "al", H_AL
+    dq H_AL, (1 << 8) | REG_RAX
+    compile_time_hash "cl", H_CL
+    dq H_CL, (1 << 8) | REG_RCX
+    compile_time_hash "dl", H_DL
+    dq H_DL, (1 << 8) | REG_RDX
+    compile_time_hash "bl", H_BL
+    dq H_BL, (1 << 8) | REG_RBX
+    compile_time_hash "sil", H_SIL
+    dq H_SIL, (1 << 8) | REG_RSI
+    compile_time_hash "dil", H_DIL
+    dq H_DIL, (1 << 8) | REG_RDI
+    compile_time_hash "spl", H_SPL
+    dq H_SPL, (1 << 8) | REG_RSP
+    compile_time_hash "bpl", H_BPL
+    dq H_BPL, (1 << 8) | REG_RBP
+    %assign i 8
+    %rep 8
+        compile_time_hash "r%[i]b", H_R%[i]B
+        dq H_R%[i]B, (1 << 8) | %[i]
+        %assign i i+1
+    %endrep
+
+    // ---- 8-bit GPRs (High) ----
+    compile_time_hash "ah", H_AH
+    dq H_AH, (1 << 8) | 4  ; AH map
+    compile_time_hash "ch", H_CH
+    dq H_CH, (1 << 8) | 5  ; CH map
+    compile_time_hash "dh", H_DH
+    dq H_DH, (1 << 8) | 6  ; DH map
+    compile_time_hash "bh", H_BH
+    dq H_BH, (1 << 8) | 7  ; BH map
 
     // ---- SIMD (XMM) ----
     %assign i 0
@@ -1259,5 +1323,7 @@ amd64_register_table:
     dq H_FS, (2 << 8) | REG_FS
     compile_time_hash "gs", H_GS
     dq H_GS, (2 << 8) | REG_GS
+    compile_time_hash "ss", H_SS
+    dq H_SS, (2 << 8) | REG_SS
 
     dq 0
