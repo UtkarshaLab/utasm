@@ -795,15 +795,15 @@
  * Purpose: Fast non-cryptographic FNV-1a hash of a null-terminated string.
  */
 %macro hash_fnv1a_64 2
-    mov     rax, 0xcbf29ce484222325
-    mov     rcx, %1
+    mov     rax, 0xcbf29ce484222325 // FNV offset basis
+    mov     rcx, %1                 // source string
+    mov     r11, 0x100000001b3      // FNV prime
 %%loop:
     movzx   rdx, byte [rcx]
-    test    rdx, rdx
+    test    dl, dl
     jz      %%done
-    xor     rax, rdx
-    mov     r11, 0x10000.1.0b3
-    mul     r11
+    xor     al, dl                  // FNV-1a: XOR then MUL
+    imul    rax, r11
     inc     rcx
     jmp     %%loop
 %%done:
