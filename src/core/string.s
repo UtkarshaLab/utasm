@@ -876,3 +876,149 @@ str_is_hex_digit:
 .true:
     mov     rax, TRUE
     ret
+
+// ---- str_concat_dot ----------------------
+/*
+ str_concat_dot
+ Builds "A.B" from two strings into a caller-supplied buffer.
+ Used by the struct field resolver to build "StructName.FieldName".
+ Input    : rdi = destination buffer (must hold len(A)+len(B)+2 bytes)
+            rsi = pointer to string A (struct name)
+            rdx = pointer to string B (field name)
+ Output   : rax = EXIT_OK or EXIT_ERROR
+            rdx = destination pointer
+ Clobbers : rcx, r8, r9
+*/
+global str_concat_dot
+str_concat_dot:
+    test    rdi, rdi
+    jz      .null_ptr
+    test    rsi, rsi
+    jz      .null_ptr
+    test    rdx, rdx
+    jz      .null_ptr
+
+    push    rbx
+    push    r12
+    push    r13
+    mov     rbx, rdi               // save dst start
+    mov     r12, rsi               // save A ptr
+    mov     r13, rdx               // save B ptr
+
+    // copy A into dst
+    mov     rsi, r12
+    call    str_copy
+    test    rax, rax
+    jnz     .error
+
+    // append '.'
+    mov     rdi, rbx
+    call    str_len                // rax = len(A)
+    add     rdi, rax
+    mov     byte [rdi], '.'
+    inc     rdi
+
+    // append B
+    mov     rsi, r13
+    call    str_copy
+    test    rax, rax
+    jnz     .error
+
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.error:
+    pop     r13
+    pop     r12
+    pop     rbx
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+// ---- str_int_to_str ----------------------
+/*
+ str_int_to_str
+ Converts an unsigned 64-bit integer to a decimal ASCII string.
+ Input    : rdi = destination buffer (must hold at least 21 bytes)
+            rsi = unsigned 64-bit value to format
+ Output   : rax = EXIT_OK or EXIT_ERROR
+            rdx = pointer to destination (null-terminated)
+ Clobbers : rcx, r8, r9, r10
+*/
+global str_int_to_str
+str_int_to_str:
+    test    rdi, rdi
+    jz      .null_ptr
+
+    push    rbx
+    push    r12
+    push    r13
+    mov     rbx, rdi               // save dst
+    mov     r12, rsi               // value to convert
+    
+    // handle zero specially
+    test    r12, r12
+    jnz     .nonzero
+    mov     byte [rdi], '0'
+    mov     byte [rdi + 1], 0
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.nonzero:
+    // build digits in reverse into a 21-byte temp buffer on stack
+    sub     rsp, 24
+    mov     r13, rsp               // temp buffer
+    xor     rcx, rcx               // digit count
+
+    mov     rax, r12
+    mov     r8, 10
+
+.div_loop:
+    test    rax, rax
+    jz      .reverse
+    xor     rdx, rdx
+    div     r8
+    add     dl, '0'
+    mov     byte [r13 + rcx], dl
+    inc     rcx
+    jmp     .div_loop
+
+.reverse:
+    // copy reversed digits into dst
+    mov     r9, 0                  // dst index
+.rev_loop:
+    test    rcx, rcx
+    jz      .terminate
+    dec     rcx
+    mov     al, byte [r13 + rcx]
+    mov     byte [rbx + r9], al
+    inc     r9
+    jmp     .rev_loop
+
+.terminate:
+    mov     byte [rbx + r9], 0    // null terminate
+    add     rsp, 24
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
