@@ -1921,19 +1921,32 @@ amd64_encode_vex:
     lea     rdx, [r12 + INST_op2]
     
     // 1. Determine form (2-byte vs 3-byte)
-    // 2-byte VEX (C5) if X=1, B=1, Map=1
-    mov     bl, 0xC4           // Default to 3-byte
+    // Default to 3-byte (0xC4)
+    mov     bl, 0xC4
     
-    // Check operands for REX-style extensions (R8-R15)
-    // X and B are 1 if not used or if index/base < 8
-    // Map must be 1 (0x0F)
+    // We can only use 2-byte VEX (0xC5) if:
+    // - Map is 1 (0x0F)
+    // - W bit is 0 (size < 64)
+    // - X and B bits are 0 (no extended base/index regs R8-R15)
     IF r14b, e, 1
-        IF byte [rdx + OPERAND_reg], lt, 8    // X
-            IF byte [rdx + OPERAND_base], lt, 8 // B
-                mov bl, 0xC5
+        IF byte [r10 + OPERAND_size], ne, 64
+            // Check Source (RDX) for X/B extensions
+            IF byte [rdx + OPERAND_kind], e, OP_MEM
+                mov cl, [rdx + OPERAND_base]
+                IF cl, ge, 8 | IF cl, ne, REG_NONE | jmp .force_vex3 | ENDIF | ENDIF
+                mov cl, [rdx + OPERAND_index]
+                IF cl, ge, 8 | IF cl, ne, REG_NONE | jmp .force_vex3 | ENDIF | ENDIF
+            ELSEIF byte [rdx + OPERAND_kind], e, OP_REG
+                mov cl, [rdx + OPERAND_reg]
+                IF cl, ge, 8 | jmp .force_vex3 | ENDIF
             ENDIF
+            
+            // All checks passed, use optimized 2-byte VEX
+            mov bl, 0xC5
         ENDIF
     ENDIF
+
+.force_vex3:
     
     IF bl, e, 0xC5
         mov al, 0xC5 | call amd64_emit_byte

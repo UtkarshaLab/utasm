@@ -542,3 +542,19 @@
  %def RELOC_REL64            1           // Legacy map
  %def RELOC_GOT              R_X86_64_GOT32
 
+// ============================================================================
+// REGISTER IDENTIFIERS
+// ============================================================================
+// Internal numeric identifiers for architectural registers.
+
+%def REG_NONE               0xFF        // sentinel for "no register"
+
+// Base GPR indices
+%def REG_RAX                0
+%def REG_RCX                1
+%def REG_RDX                2
+%def REG_RBX                3
+%def REG_RSP                4
+%def REG_RBP                5
+%def REG_RSI                6
+%def REG_RDI                7
