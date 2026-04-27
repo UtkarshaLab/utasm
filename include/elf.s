@@ -2,7 +2,6 @@
  ============================================================================
  File        : include/elf.s
  Project     : utasm
- Version     : 0.1.0
  Description : ELF64 format constants, header offsets, and section/segment
                type definitions. Used by src/linker/elf64.s to emit valid
                ELF64 object files and executables.

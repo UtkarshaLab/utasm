@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/linker/elf64.s
  Project     : utasm
- Version     : 0.1.0
  Description : ELF64 relocatable object file emitter (-f elf64).
                Writes a standards-compliant ELF64 .o file consumable by
                ld, lld, and any POSIX linker.

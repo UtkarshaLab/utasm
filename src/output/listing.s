@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/output/listing.s
  Project     : utasm
- Version     : 0.1.0
  Description : Listing File Generator. Produces human-readable .lst files.
  ============================================================================
 */

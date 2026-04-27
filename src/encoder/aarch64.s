@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/encoder/aarch64.s
  Project     : utasm
- Version     : 0.1.0
  Description : AArch64 instruction encoder. Encodes parsed INST structs
                into 32-bit fixed-width AArch64 machine code words.
                Implementation mirrors the scale and robustness of amd64.s.

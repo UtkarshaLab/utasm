@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/linker/linker.s
  Project     : utasm
- Version     : 0.1.0
  Description : Main Linker Orchestrator. Coordinates relocations, symbol 
                resolution, and final file emission.
  ============================================================================

@@ -2,7 +2,6 @@
  ============================================
  File     : include/macro.s
  Project  : utasm
- Version  : 0.1.0
  Author   : Utkarsha Lab
  License  : Apache-2.0
  Description: Standard utility macro library for utasm.

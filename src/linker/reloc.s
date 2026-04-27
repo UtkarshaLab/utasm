@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/linker/reloc.s
  Project     : utasm
- Version     : 0.1.0
  Description : Relocation engine for the utasm linker.
                Records, resolves, and applies x86_64 relocations across
                all output formats (ELF64 .o and flat binary).

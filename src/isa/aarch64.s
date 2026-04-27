@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/arch/aarch64.s
  Project     : utasm
- Version     : 0.1.0
  Description : AArch64 Mnemonic and Register Lookup Tables.
  ============================================================================
 */

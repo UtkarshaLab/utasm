@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/host/mem.s
  Project     : utasm
- Version     : 0.1.0
  Description : Host memory management interface.
                Thin syscall wrappers for mmap/munmap with a simple
                bump allocator on top, used by the arena subsystem

@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/host/uring.s
  Project     : utasm
- Version     : 0.1.0
  Description : io_uring Asynchronous I/O implementation.
                Manages ring initialization, sqe submission, and cqe reaping.
  ============================================================================

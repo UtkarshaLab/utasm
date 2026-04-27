@@ -2,7 +2,6 @@
  ============================================
  File     : src/core/preprocessor.s
  Project  : utasm
- Version  : 0.1.0
  Author   : Utkarsha Lab
  License  : Apache-2.0
  ============================================

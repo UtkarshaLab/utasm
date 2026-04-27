@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/encoder/riscv64.s
  Project     : utasm
- Version     : 0.1.0
  Description : RISC-V 64-bit instruction encoder.
                Implementation mirrors the scale and robustness of amd64.s.
                Supports RV64IM base and extensions.

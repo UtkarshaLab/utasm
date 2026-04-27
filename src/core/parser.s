@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/core/parser.s
  Project     : utasm
- Version     : 0.1.0
  Description : Multi-Architecture Instruction Parser and Dispatch System.
  ============================================================================
 */

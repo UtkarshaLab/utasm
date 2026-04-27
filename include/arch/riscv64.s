@@ -2,7 +2,6 @@
  ============================================================================
  File        : include/arch/riscv64.s
  Project     : utasm
- Version     : 0.1.0
  Description : RISC-V 64-bit Architecture Constants and Register IDs.
                Aligned with src/isa/riscv64.s IDs.
  ============================================================================

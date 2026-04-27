@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/linker/binary.s
  Project     : utasm
- Version     : 0.1.0
  Description : Flat binary emitter (-f bin).
                Writes raw machine bytes with no ELF container.
                Essential for OS bootloaders and bare-metal images.

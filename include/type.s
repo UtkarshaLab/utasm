@@ -2,7 +2,6 @@
  ============================================
  File     : include/type.s
  Project  : utasm
- Version  : 0.1.0
  Author   : Utkarsha Lab
  License  : Apache-2.0
  Description: Core data structure definitions using automatic offset calculation.

@@ -2,7 +2,6 @@
  ============================================================================
  File        : src/core/asmctx.s
  Project     : utasm
- Version     : 0.1.0
  Description : Assembly Context and Section Management.
  ============================================================================
 */
