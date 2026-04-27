@@ -4,6 +4,7 @@
  Project     : utasm
  Version     : 0.1.0
  Description : AArch64 Architecture Constants and Register IDs.
+               Aligned with src/isa/aarch64.s IDs.
  ============================================================================
 */
 
@@ -18,16 +19,46 @@
 %def REG_SP                 32
 
 // ---- Mnemonic IDs (AArch64 Specific) -----
-%def ARM_OP_MOV             100
-%def ARM_OP_ADD             101
-%def ARM_OP_SUB             102
-%def ARM_OP_RET             103
-%def ARM_OP_B               104
-%def ARM_OP_BL              105
-%def ARM_OP_CMP             106
-%def ARM_OP_EOR             107
-%def ARM_OP_LDR             108
-%def ARM_OP_STR             109
+// These must match the IDs in src/isa/aarch64.s exactly.
+%def ID_AARCH64_ABS         2000
+%def ID_AARCH64_ADCLB       2001
+%def ID_AARCH64_ADCLT       2002
+%def ID_AARCH64_ADD         2003
+%def ID_AARCH64_AND         2027
+%def ID_AARCH64_ANDS        2029
+%def ID_AARCH64_ASR         2031
+%def ID_AARCH64_B           2034
+%def ID_AARCH64_BIC         2076
+%def ID_AARCH64_BICS        2077
+%def ID_AARCH64_BL          2080
+%def ID_AARCH64_BLR         2081
+%def ID_AARCH64_BR          2083
+%def ID_AARCH64_CBNZ        2098
+%def ID_AARCH64_CBZ         2099
+%def ID_AARCH64_CMP         2108
+%def ID_AARCH64_EON         2140
+%def ID_AARCH64_EOR         2141
+%def ID_AARCH64_LDP         2241
+%def ID_AARCH64_LDR         2246
+%def ID_AARCH64_LSL         2308
+%def ID_AARCH64_LSR         2309
+%def ID_AARCH64_MOV         2324
+%def ID_AARCH64_MOVK        2325
+%def ID_AARCH64_MOVN        2326
+%def ID_AARCH64_MOVZ        2327
+%def ID_AARCH64_NOP         2347
+%def ID_AARCH64_ORN         2356
+%def ID_AARCH64_ORR         2357
+%def ID_AARCH64_RET         2451
+%def ID_AARCH64_ROR         2461
+%def ID_AARCH64_STP         2549
+%def ID_AARCH64_STR         2554
+%def ID_AARCH64_SUB         2569
+%def ID_AARCH64_SUBS        2571
+%def ID_AARCH64_SVC         2576
+%def ID_AARCH64_TBNZ        2583
+%def ID_AARCH64_TBZ         2584
+%def ID_AARCH64_TST         2602
 
 /**
  * [define_mnemonic]

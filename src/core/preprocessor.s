@@ -521,6 +521,12 @@ prep_handle_directive:
     test    rax, rax
     jz      .do_macro
 
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_struc]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_struc
+
     // ... handle other directives ...
 
     xor     rax, rax
@@ -561,6 +567,11 @@ prep_handle_directive:
 .do_macro:
     mov     rdi, rbx
     call    macro_handle_def
+    jmp     .done
+
+.do_struc:
+    mov     rdi, rbx
+    call    prep_handle_struc
     jmp     .done
 
 .error:
@@ -717,6 +728,32 @@ dir_rep:    db "rep", 0
 dir_endrep: db "endrep", 0
 dir_macro:  db "macro", 0
 dir_endm:   db "endmacro", 0
+dir_struc:  db "struc", 0
+dir_endstruc: db "endstruc", 0
+
+// ---- prep_handle_struc ------------------
+/*
+ prep_handle_struc
+ Handles the %struc directive.
+ Input    : rdi = pointer to PrepState
+ Output   : rax = EXIT_OK or error code
+*/
+prep_handle_struc:
+    push    rbx
+    mov     rbx, rdi               // rbx = PrepState
+
+    // 1. Lex the struct name
+    call    preprocessor_next_token
+    check_err
+    
+    // 2. Dispatch to parser
+    mov     rdi, rbx               // rdi = PrepState
+    mov     rsi, rdx               // rsi = Name Token
+    extern  parser_parse_struc
+    call    parser_parse_struc
+    
+    pop     rbx
+    ret
 // ---- prep_handle_def --------------------
 /*
  prep_handle_def
