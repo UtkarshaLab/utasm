@@ -136,11 +136,9 @@ parser_parse_operand:
     IF al, e, TOK_IDENT
         mov     rsi, [r13 + TOKEN_value]
         mov     rdi, r10                // R10 preserved from parser_parse_instruction
-        call    parser_is_register
+        call    parser_parse_reg_info
         IF rax, ne, ERR
             mov     byte [r12 + OPERAND_kind], OP_REG
-            mov     byte [r12 + OPERAND_reg], al
-            mov     byte [r12 + OPERAND_size], ah
         ELSE
             mov     byte [r12 + OPERAND_kind], OP_SYMBOL
             mov     rax, [r13 + TOKEN_value]
@@ -148,6 +146,38 @@ parser_parse_operand:
         ENDIF
         jmp     .success
     ENDIF
+
+    // ... (rest of function)
+
+/**
+ * [parser_parse_reg_info]
+ * Input: RSI = Name String, RDI = Table Pointer, R12 = OPERAND Pointer
+ * Output: AL = Reg ID, RAX = ERR if not found
+ */
+parser_parse_reg_info:
+    prologue
+    push    rdi
+    call    parser_is_register
+    pop     rdi
+    IF rax, e, ERR
+        epilogue
+    ENDIF
+    
+    // RAX: bit 16 = is_high, bits 8-15 = size_in_bytes, bits 0-7 = reg_id
+    mov     [r12 + OPERAND_reg], al
+    
+    mov     rcx, rax
+    shr     rcx, 8
+    and     cl, 0x7F            // Size in bytes
+    shl     cl, 3               // Convert to bits
+    mov     [r12 + OPERAND_size], cl
+    
+    shr     rax, 16
+    and     al, 1
+    mov     [r12 + OPERAND_is_high], al
+    
+    mov     rax, OK
+    epilogue
     
     IF al, e, TOK_NUMBER
         mov     byte [r12 + OPERAND_kind], OP_IMM
@@ -228,26 +258,17 @@ parser_parse_mem_operand:
         call    preprocessor_peek_token
         IF byte [rdx + TOKEN_kind], e, TOK_COLON
             call    preprocessor_next_token  // consume colon
-            // Check if RSI is "fs" or "gs"
-            IF rsi, e, "fs"
-                mov byte [r12 + OPERAND_segment], 0x64
-            ELSEIF rsi, e, "gs"
-                mov byte [r12 + OPERAND_segment], 0x65
-            ENDIF
+            IF rsi, e, "fs" | mov byte [r12 + OPERAND_segment], 0x64 | ENDIF
+            IF rsi, e, "gs" | mov byte [r12 + OPERAND_segment], 0x65 | ENDIF
             
-            // Now parse the actual base
             call    preprocessor_next_token
             mov     rsi, [rdx + TOKEN_value]
         ENDIF
         
-        mov     rdi, r10                // Use active register table
-        call    parser_is_register
-        IF rax, e, ERR
-            mov     rax, EXIT_INVALID_REG
-            jmp     .error
-        ENDIF
+        call    parser_parse_reg_info
+        IF rax, e, ERR | jmp .error | ENDIF
         mov     [r12 + OPERAND_base], al
-    ELSEIF al, e, TOK_NUMBER
+    ENDIF
     
 .offset_chain:
     call    preprocessor_peek_token
@@ -273,7 +294,7 @@ parser_parse_mem_operand:
     IF al, e, TOK_IDENT
         mov     rsi, [r13 + TOKEN_value]
         mov     rdi, r10
-        call    parser_is_register
+        call    parser_parse_reg_info
         IF rax, e, ERR
             mov     rax, EXIT_INVALID_REG
             jmp     .error

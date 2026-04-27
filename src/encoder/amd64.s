@@ -30,6 +30,28 @@ amd64_encode_instruction:
     mov     rbx, rdi               // RBX = AsmCtx
     mov     r12, rsi               // R12 = INST
     
+    // 0. VALIDATION: Check operand size consistency
+    cmp     byte [r12 + INST_nops], 2
+    jl      .no_size_check
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     al, [r10 + OPERAND_size]
+    mov     ah, [r11 + OPERAND_size]
+    IF al, ne, ah
+        // Immediate and Symbol can have different sizes (resolved during emission)
+        IF byte [r11 + OPERAND_kind], ne, OP_IMM
+            IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
+                jmp .error
+            ENDIF
+        ENDIF
+    ENDIF
+.no_size_check:
+    
+    // 0.1 VALIDATION: REX vs Legacy 8-bit (AH, CH, DH, BH)
+    // These registers (indices 4-7 in 8-bit mode without REX)
+    // cannot be used if a REX prefix is present.
+    // ...
+    
     // 1. Emit Prefix if present (REP/LOCK)
     mov     al, [r12 + INST_prefix]
     IF al, ne, 0
@@ -1409,10 +1431,25 @@ amd64_emit_prefixes:
         IF cl, ge, 8 | or r11, 0x02 | ENDIF
     ENDIF
     
-    mov     rax, r11
-    call    amd64_emit_byte
+    IF r11, ne, 0
+        // VALIDATION: REX vs High-Byte (AH/CH/DH/BH)
+        // Architectural constraint: Cannot use REX with legacy 8-bit high regs.
+        IF rsi, ne, 0
+            IF byte [rsi + OPERAND_is_high], e, 1 | jmp .error | ENDIF
+        ENDIF
+        IF rdx, ne, 0
+            IF byte [rdx + OPERAND_is_high], e, 1 | jmp .error | ENDIF
+        ENDIF
+        
+        mov     rax, r11
+        call    amd64_emit_byte
+    ENDIF
     
 .done:
+    epilogue
+
+.error:
+    mov     rax, EXIT_ENCODE_FAIL
     epilogue
 
 /**

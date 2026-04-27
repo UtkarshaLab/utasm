@@ -308,7 +308,8 @@ struc OPERAND
     field size,     1       // operand size
     field reg,      1       // register ID
     field segment,  1       // segment override (0x64, 0x65)
-    field pad0,     3       // alignment padding
+    field is_high,  1       // 1 if AH/CH/DH/BH
+    field pad0,     2       // alignment padding
     field imm,      8       // immediate or displacement
     field base,     1       // base register
     field index,    1       // index register

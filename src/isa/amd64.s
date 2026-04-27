@@ -1388,13 +1388,13 @@ amd64_register_table:
 
     // ---- 8-bit GPRs (High) ----
     compile_time_hash "ah", H_AH
-    dq H_AH, (1 << 8) | 4  ; AH map
+    dq H_AH, (1 << 16) | (1 << 8) | 4  ; is_high=1, size=1, ID=4
     compile_time_hash "ch", H_CH
-    dq H_CH, (1 << 8) | 5  ; CH map
+    dq H_CH, (1 << 16) | (1 << 8) | 5  ; is_high=1, size=1, ID=5
     compile_time_hash "dh", H_DH
-    dq H_DH, (1 << 8) | 6  ; DH map
+    dq H_DH, (1 << 16) | (1 << 8) | 6  ; is_high=1, size=1, ID=6
     compile_time_hash "bh", H_BH
-    dq H_BH, (1 << 8) | 7  ; BH map
+    dq H_BH, (1 << 16) | (1 << 8) | 7  ; is_high=1, size=1, ID=7
 
     // ---- SIMD (XMM) ----
     %assign i 0
