@@ -141,6 +141,14 @@ amd64_encode_instruction:
         mov     r13, 0x40 | mov r14, 2 | call amd64_encode_sse // 0x0F 0x38
     ELSEIF ax, e, 2160             // XORPS
         mov     r13, 0x57 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1739             // VADDPS
+        mov     r13, 0x58 | mov r14, 1 | call amd64_encode_vex
+    ELSEIF ax, e, 1933             // VMOVAPS
+        mov     r13, 0x28 | mov r14, 1 | call amd64_encode_vex
+    ELSEIF ax, e, 1355             // TILELOADD
+        mov     al, 0xC4 | call amd64_emit_byte | mov al, 0xE2 | call amd64_emit_byte
+        mov     al, 0x7B | call amd64_emit_byte | mov al, 0x4B | call amd64_emit_byte
+        // Digit 2 logic...
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -973,6 +981,53 @@ amd64_encode_sse:
     
     mov     al, [r10 + OPERAND_reg]
     mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_vex]
+ * R13 = Opcode
+ * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
+ */
+amd64_encode_vex:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    lea     r13, [r12 + INST_op2]
+    
+    // VEX 3-byte prefix (0xC4)
+    // Byte 1: R X B Map (5 bits)
+    // Byte 2: W vvvv L pp (8 bits)
+    
+    mov     al, 0xC4
+    call    amd64_emit_byte
+    
+    // Byte 1: ~R ~X ~B Map
+    mov     al, 0xE0           // Inverted R X B (all 1)
+    or      al, r14b           // Map
+    // Adjust R X B based on operands (not fully implemented for now)
+    call    amd64_emit_byte
+    
+    // Byte 2: W ~vvvv L pp
+    // W=1 (Assume 64-bit/W bit), L=0 (128-bit)
+    mov     al, 0x80           // W=1
+    mov     cl, [r11 + OPERAND_reg]
+    not     cl                 // Inverted vvvv
+    and     cl, 0x0F
+    shl     cl, 3
+    or      al, cl
+    call    amd64_emit_byte
+    
+    mov     rax, r13
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r13           // Third operand
     call    amd64_emit_modrm_sib
     jmp     .done
 
