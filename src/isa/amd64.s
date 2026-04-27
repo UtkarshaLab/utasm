@@ -820,7 +820,10 @@ amd64_mnemonic_table:
     mnemonic_entry "v4fnmaddps", 0, 1712
     mnemonic_entry "v4fnmaddss", 0, 1713
     mnemonic_entry "vaddph", 0, 1714
+    mnemonic_entry "vaddps", 0, ID_VADDPS
     mnemonic_entry "vaddsh", 0, 1715
+    mnemonic_entry "vmovups", 0, ID_VMOVUPS
+    mnemonic_entry "vxorps", 0, ID_VXORPS
     mnemonic_entry "valignd", 0, 1716
     mnemonic_entry "valignq", 0, 1717
     mnemonic_entry "vblendmpd", 0, 1718
