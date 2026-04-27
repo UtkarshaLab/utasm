@@ -93,6 +93,26 @@ amd64_encode_instruction:
         mov     r14, 7 | call amd64_encode_unary_math
     ELSEIF ax, e, 1583             // PUSH
         call    amd64_encode_push
+    ELSEIF ax, e, 1089             // CPUID
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xA2 | call amd64_emit_byte
+    ELSEIF ax, e, 1591             // RDTSC
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x31 | call amd64_emit_byte
+    ELSEIF ax, e, 1271             // HLT
+        mov     al, 0xF4 | call amd64_emit_byte
+    ELSEIF ax, e, 1286             // INT
+        call    amd64_encode_int
+    ELSEIF ax, e, 1288             // INT3
+        mov     al, 0xCC | call amd64_emit_byte
+    ELSEIF ax, e, 1715             // UD2
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x0B | call amd64_emit_byte
+    ELSEIF ax, e, 1361             // LGDT
+        mov     r14, 2 | call amd64_encode_system_m
+    ELSEIF ax, e, 1363             // LIDT
+        mov     r14, 3 | call amd64_encode_system_m
+    ELSEIF ax, e, 1277             // IN
+        call    amd64_encode_in
+    ELSEIF ax, e, 1445             // OUT
+        call    amd64_encode_out
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -769,6 +789,91 @@ amd64_emit_branch_rel8:
     xor     al, al             // rel8 placeholder
     call    amd64_emit_byte
     ret
+
+    xor     al, al             // rel8 placeholder
+    call    amd64_emit_byte
+    ret
+
+/**
+ * [amd64_encode_int]
+ */
+amd64_encode_int:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    mov     al, 0xCD
+    call    amd64_emit_byte
+    mov     rax, [r10 + OPERAND_imm]
+    call    amd64_emit_byte
+    jmp     .done
+
+/**
+ * [amd64_encode_system_m]
+ * LGDT/LIDT
+ */
+amd64_encode_system_m:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0x01
+    call    amd64_emit_byte
+    
+    mov     al, r14b           // Digit 2 for LGDT, 3 for LIDT
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_in]
+ */
+amd64_encode_in:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    // Case: in al/eax, dx
+    IF byte [r11 + OPERAND_kind], e, OP_REG
+        mov al, 0xEC
+        IF byte [r10 + OPERAND_size], e, 4
+            mov al, 0xED
+        ENDIF
+        call    amd64_emit_byte
+    ELSE
+        // Case: in al/eax, imm8
+        mov al, 0xE4
+        IF byte [r10 + OPERAND_size], e, 4
+            mov al, 0xE5
+        ENDIF
+        call    amd64_emit_byte
+        mov     rax, [r11 + OPERAND_imm]
+        call    amd64_emit_byte
+    ENDIF
+    jmp     .done
+
+/**
+ * [amd64_encode_out]
+ */
+amd64_encode_out:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    IF byte [r10 + OPERAND_kind], e, OP_REG
+        mov al, 0xEE
+        IF byte [r11 + OPERAND_size], e, 4
+            mov al, 0xEF
+        ENDIF
+        call    amd64_emit_byte
+    ELSE
+        mov al, 0xE6
+        IF byte [r11 + OPERAND_size], e, 4
+            mov al, 0xE7
+        ENDIF
+        call    amd64_emit_byte
+        mov     rax, [r10 + OPERAND_imm]
+        call    amd64_emit_byte
+    ENDIF
+    jmp     .done
 
 /**
  * [amd64_emit_modrm_sib]
