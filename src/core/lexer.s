@@ -625,11 +625,69 @@ lexer_next:
     je      .esc_quote
     cmp     rcx, '0'
     je      .esc_null
+    cmp     rcx, 'x'
+    je      .esc_hex
 
     // unknown escape — store literally
     mov     byte [r13 + r10], cl
     inc     r10
     jmp     .lex_string_loop
+
+.esc_hex:
+    // Parse 2 hex digits
+    xor     r14, r14               // r14 = resulting byte
+    
+    // First Digit
+    mov     r11, [rbx + LEXER_pos]
+    cmp     r11, [rbx + LEXER_end]
+    jge     .lex_string_unterminated
+    movzx   rcx, byte [r11]
+    inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
+    
+    call    .hex_digit_to_val
+    IF rax, e, ERR | jmp .lex_string_loop | ENDIF
+    shl     rax, 4
+    mov     r14, rax
+    
+    // Second Digit
+    mov     r11, [rbx + LEXER_pos]
+    cmp     r11, [rbx + LEXER_end]
+    jge     .lex_string_unterminated
+    movzx   rcx, byte [r11]
+    inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
+    
+    call    .hex_digit_to_val
+    IF rax, e, ERR | jmp .lex_string_loop | ENDIF
+    or      r14, rax
+    
+    mov     byte [r13 + r10], r14b
+    inc     r10
+    jmp     .lex_string_loop
+
+.hex_digit_to_val:
+    // rcx = char, rax = val
+    IF rcx, ge, '0'
+        IF rcx, le, '9'
+            lea rax, [rcx - '0']
+            ret
+        ENDIF
+    ENDIF
+    IF rcx, ge, 'a'
+        IF rcx, le, 'f'
+            lea rax, [rcx - 'a' + 10]
+            ret
+        ENDIF
+    ENDIF
+    IF rcx, ge, 'A'
+        IF rcx, le, 'F'
+            lea rax, [rcx - 'A' + 10]
+            ret
+        ENDIF
+    ENDIF
+    mov     rax, ERR
+    ret
 
 .esc_newline:
     mov     byte [r13 + r10], 10
