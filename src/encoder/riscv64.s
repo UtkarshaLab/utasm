@@ -211,6 +211,16 @@ riscv64_encode_instruction:
         mov     r13d, 0 | call riscv64_encode_pseudo_call
     ELSEIF eax, e, ID_RV_LI
         call    riscv64_encode_li
+    ELSEIF eax, e, ID_RVC_NOP
+        mov     dword [rbx + ASMCTX_inst_len], 2
+        mov     edi, 0x0001
+        call    riscv64_emit_half
+    ELSEIF eax, e, ID_RVC_MV
+        mov     dword [rbx + ASMCTX_inst_len], 2
+        call    riscv64_encode_rvc_mv
+    ELSEIF eax, e, ID_RVC_ADDI
+        mov     dword [rbx + ASMCTX_inst_len], 2
+        call    riscv64_encode_rvc_addi
 
     ELSE
         mov     rax, EXIT_ENCODE_FAIL
@@ -679,6 +689,66 @@ riscv64_encode_pseudo_call:
     
     mov     dword [rbx + ASMCTX_inst_len], 8
     call    riscv64_emit_word
+    epilogue
+
+/**
+ * [riscv64_encode_rvc_mv]
+ * c.mv rd, rs2 -> 0x8002 | (rd << 7) | (rs2 << 2)
+ */
+riscv64_encode_rvc_mv:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    mov     edi, 0x8002
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 7
+    or      edi, eax
+    movzx   eax, byte [r11 + OPERAND_reg]
+    shl     eax, 2
+    or      edi, eax
+    
+    call    riscv64_emit_half
+    epilogue
+
+/**
+ * [riscv64_encode_rvc_addi]
+ * c.addi rd, imm -> 0x0001 | (imm[5] << 12) | (rd << 7) | (imm[4:0] << 2)
+ */
+riscv64_encode_rvc_addi:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    mov     edi, 0x0001
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 7
+    or      edi, eax
+    
+    mov     rax, [r11 + OPERAND_imm]
+    mov     rcx, rax
+    and     ecx, 0x1F              // imm[4:0]
+    shl     ecx, 2
+    or      edi, ecx
+    
+    and     eax, 0x20              // imm[5]
+    shl     eax, 7                 // shift to bit 12
+    or      edi, eax
+    
+    call    riscv64_emit_half
+    epilogue
+
+/**
+ * [riscv64_emit_half]
+ * Emits a 16-bit compressed instruction.
+ */
+riscv64_emit_half:
+    prologue
+    mov     rdx, rdi
+    mov     rdi, rbx
+    mov     rsi, [r12 + INST_section]
+    extern  asmctx_emit_word
+    call    asmctx_emit_word
     epilogue
 
 riscv64_emit_word:

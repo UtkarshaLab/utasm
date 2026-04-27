@@ -115,3 +115,6 @@
 %def ID_RV_XORI             3776
 %def ID_RV_CALL             3800
 %def ID_RV_TAIL             3801
+%def ID_RVC_ADDI            3038
+%def ID_RVC_MV              3065
+%def ID_RVC_NOP             3066
