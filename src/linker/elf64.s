@@ -139,7 +139,17 @@ elf64_write_ehdr:
 
     // e_type = ET_REL (relocatable object)
     mov     word [r14 + EHDR_TYPE],    ET_REL
-    mov     word [r14 + EHDR_MACHINE], EM_X86_64
+    
+    // ---- FIX: DYNAMIC MACHINE TYPE ----
+    mov     al, [r12 + ASMCTX_target]
+    IF al, e, TARGET_AARCH64
+        mov     word [r14 + EHDR_MACHINE], EM_AARCH64
+    ELSEIF al, e, TARGET_RISCV64
+        mov     word [r14 + EHDR_MACHINE], EM_RISCV64
+    ELSE
+        mov     word [r14 + EHDR_MACHINE], EM_X86_64
+    ENDIF
+    
     mov     dword [r14 + EHDR_VERSION], EV_CURRENT
 
     // e_entry = 0 (relocatable object has no entry point)
@@ -413,7 +423,10 @@ elf64_write_rela:
     // r_info: (sym_index << 32) | reloc_type
     mov     rax, [rdi + RELOC_sym]
     shl     rax, 32
-    or      rax, R_X86_64_PC32
+    
+    // ---- FIX: ARCH-SPECIFIC RELOC TYPE ----
+    movzx   edx, dword [rdi + RELOC_type]
+    or      rax, rdx
     mov     qword [rsp + RELA_INFO], rax
 
     // r_addend
