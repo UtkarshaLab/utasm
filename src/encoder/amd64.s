@@ -252,10 +252,18 @@ amd64_encode_instruction:
         mov     r13, 0x58 | mov r14, 1 | call amd64_encode_vex
     ELSEIF ax, e, 1933             // VMOVAPS
         mov     r13, 0x28 | mov r14, 1 | call amd64_encode_vex
-    ELSEIF ax, e, 1355             // TILELOADD
-        mov     al, 0xC4 | call amd64_emit_byte | mov al, 0xE2 | call amd64_emit_byte
-        mov     al, 0x7B | call amd64_emit_byte | mov al, 0x4B | call amd64_emit_byte
-        // Digit 2 logic...
+    ELSEIF ax, e, 1355             // LDTILECFG
+        mov     r13, 0x49 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+    ELSEIF ax, e, 1674             // STTILECFG
+        mov     r13, 0x49 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+    ELSEIF ax, e, 1693             // TILELOADD
+        mov     r13, 0x4B | mov r14, 2 | mov r15, 0x66 | call amd64_encode_vex
+    ELSEIF ax, e, 1696             // TILESTORED
+        mov     r13, 0x4B | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_vex
+    ELSEIF ax, e, 1697             // TILEZERO
+        mov     r13, 0x49 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+    ELSEIF ax, e, 1687             // TDPBSSD
+        mov     r13, 0x5E | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
     ELSEIF ax, e, 1590             // RDRAND
         mov     r14, 6 | call amd64_encode_sec_r
     ELSEIF ax, e, 1593             // RDSEED
@@ -263,6 +271,18 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1165             // ENDBR64
         mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
         mov     al, 0x1E | call amd64_emit_byte | mov al, 0xFA | call amd64_emit_byte
+    ELSEIF ax, e, 1148             // ENCLU
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD7 | call amd64_emit_byte
+    ELSEIF ax, e, 1158             // ENCLV
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xC0 | call amd64_emit_byte
+    ELSEIF ax, e, 1021             // AESENC128KL
+        mov     r13, 0xDC | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1022             // AESENC256KL
+        mov     r13, 0xDD | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1015             // AESDEC128KL
+        mov     r13, 0xDE | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1016             // AESDEC256KL
+        mov     r13, 0xDF | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
     ELSEIF ax, e, 1020             // AESENC
         mov     r13, 0xDC | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
     ELSEIF ax, e, 1014             // AESDEC
