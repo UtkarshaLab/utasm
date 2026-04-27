@@ -290,6 +290,26 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1380             // MFENCE
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
         mov     al, 0xF0 | call amd64_emit_byte
+    ELSEIF ax, e, 1054             // BT
+        mov     r13, 0xA3 | mov r14, 4 | call amd64_encode_bt
+    ELSEIF ax, e, 1057             // BTS
+        mov     r13, 0xAB | mov r14, 5 | call amd64_encode_bt
+    ELSEIF ax, e, 1056             // BTR
+        mov     r13, 0xB3 | mov r14, 6 | call amd64_encode_bt
+    ELSEIF ax, e, 1055             // BTC
+        mov     r13, 0xBB | mov r14, 7 | call amd64_encode_bt
+    ELSEIF ax, e, 1063             // CLAC
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xCA | call amd64_emit_byte
+    ELSEIF ax, e, 1663             // STAC
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xCB | call amd64_emit_byte
+    ELSEIF ax, e, 2154             // XGETBV
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD0 | call amd64_emit_byte
+    ELSEIF ax, e, 2168             // XSETBV
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD1 | call amd64_emit_byte
+    ELSEIF ax, e, 2164             // XSAVE
+        mov     r14, 4 | call amd64_encode_mem_sync
+    ELSEIF ax, e, 2162             // XRSTOR
+        mov     r14, 5 | call amd64_encode_mem_sync
     ELSEIF ax, e, 1067             // CLFLUSH
         mov     r14, 7 | call amd64_encode_mem_sync
     ELSEIF ax, e, 1686             // SYSENTER
@@ -1702,6 +1722,35 @@ amd64_encode_vm_m:
     mov     al, r14b           // Digit 6 or 7
     mov     rdi, r10           // Must be memory
     call    amd64_emit_modrm_sib
+    jmp     .done
+
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_bt]
+ * R13 = Base Opcode for REG form (e.g. 0xA3)
+ * R14 = Digit for IMM form (e.g. 4)
+ */
+amd64_encode_bt:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    // Case 1: BT r/m, reg
+    IF byte [r11 + OPERAND_kind], e, OP_REG
+        mov     al, [r10 + OPERAND_size] | mov rsi, r11 | mov rdx, r10 | call amd64_emit_prefixes
+        mov     al, 0x0F | call amd64_emit_byte
+        mov     al, r13b | call amd64_emit_byte
+        mov     al, [r11 + OPERAND_reg] | mov rdi, r10 | call amd64_emit_modrm_sib
+    // Case 2: BT r/m, imm8
+    ELSE
+        mov     al, [r10 + OPERAND_size] | xor rsi, rsi | mov rdx, r10 | call amd64_emit_prefixes
+        mov     al, 0x0F | call amd64_emit_byte
+        mov     al, 0xBA | call amd64_emit_byte
+        mov     al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+    ENDIF
     jmp     .done
 
 /**
