@@ -1010,4 +1010,20 @@ aarch64_register_table:
         %assign i i+1
     %endrep
 
+    // ---- SVE Scalable Vector Registers (Z0-Z31) ----
+    %assign i 0
+    %rep 32
+        compile_time_hash "z%[i]", H_Z%[i]
+        dq H_Z%[i], (64 << 8) | i
+        %assign i i+1
+    %endrep
+
+    // ---- SVE Predicate Registers (P0-P15) ----
+    %assign i 0
+    %rep 16
+        compile_time_hash "p%[i]", H_P%[i]
+        dq H_P%[i], (8 << 8) | i
+        %assign i i+1
+    %endrep
+
     dq 0 ; Sentinel
