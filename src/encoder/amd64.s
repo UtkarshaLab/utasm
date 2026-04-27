@@ -149,6 +149,18 @@ amd64_encode_instruction:
         mov     al, 0xC4 | call amd64_emit_byte | mov al, 0xE2 | call amd64_emit_byte
         mov     al, 0x7B | call amd64_emit_byte | mov al, 0x4B | call amd64_emit_byte
         // Digit 2 logic...
+    ELSEIF ax, e, 1590             // RDRAND
+        mov     r14, 6 | call amd64_encode_sec_r
+    ELSEIF ax, e, 1593             // RDSEED
+        mov     r14, 7 | call amd64_encode_sec_r
+    ELSEIF ax, e, 1165             // ENDBR64
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
+        mov     al, 0x1E | call amd64_emit_byte | mov al, 0xFA | call amd64_emit_byte
+    ELSEIF ax, e, 1020             // AESENC
+        mov     r13, 0xDC | mov r14, 2 | call amd64_encode_sse
+    ELSEIF ax, e, 1127             // ENCLS
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        mov     al, 0xCF | call amd64_emit_byte
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -1029,6 +1041,39 @@ amd64_encode_vex:
     mov     al, [r10 + OPERAND_reg]
     mov     rdi, r13           // Third operand
     call    amd64_emit_modrm_sib
+    jmp     .done
+
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r13           // Third operand
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_sec_r]
+ * RDRAND/RDSEED
+ */
+amd64_encode_sec_r:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    
+    // REX if reg >= 8
+    IF byte [r10 + OPERAND_reg], ge, 8
+        mov al, 0x48
+        call    amd64_emit_byte
+    ENDIF
+    
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0xC7
+    call    amd64_emit_byte
+    
+    mov     al, r14b           // Digit 6 or 7
+    mov     cl, [r10 + OPERAND_reg]
+    and     cl, 0x07
+    shl     al, 3
+    or      al, 0xC0           // Mod 11
+    or      al, cl
+    call    amd64_emit_byte
     jmp     .done
 
 /**
