@@ -113,6 +113,24 @@ amd64_encode_instruction:
         call    amd64_encode_in
     ELSEIF ax, e, 1445             // OUT
         call    amd64_encode_out
+    ELSEIF ax, e, 1205             // FLD
+        mov     r13, 0xD9 | mov r14, 0 | call amd64_encode_fpu
+    ELSEIF ax, e, 1235             // FST
+        mov     r13, 0xD9 | mov r14, 2 | call amd64_encode_fpu
+    ELSEIF ax, e, 1172             // FADD
+        mov     r13, 0xD8 | mov r14, 0 | call amd64_encode_fpu
+    ELSEIF ax, e, 1240             // FSUB
+        mov     r13, 0xD8 | mov r14, 4 | call amd64_encode_fpu
+    ELSEIF ax, e, 1215             // FMUL
+        mov     r13, 0xD8 | mov r14, 1 | call amd64_encode_fpu
+    ELSEIF ax, e, 1186             // FDIV
+        mov     r13, 0xD8 | mov r14, 6 | call amd64_encode_fpu
+    ELSEIF ax, e, 1232             // FSIN
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFE | call amd64_emit_byte
+    ELSEIF ax, e, 1184             // FCOS
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFF | call amd64_emit_byte
+    ELSEIF ax, e, 1199             // FINIT
+        mov     al, 0xDB | call amd64_emit_byte | mov al, 0xE3 | call amd64_emit_byte
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -873,6 +891,28 @@ amd64_encode_out:
         mov     rax, [r10 + OPERAND_imm]
         call    amd64_emit_byte
     ENDIF
+    jmp     .done
+
+    mov     rax, [r10 + OPERAND_imm]
+    call    amd64_emit_byte
+    jmp     .done
+
+/**
+ * [amd64_encode_fpu]
+ * FLD/FST/FADD/etc.
+ */
+amd64_encode_fpu:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    
+    // x87 doesn't use REX
+    mov     rax, r13           // Base Opcode (e.g. 0xD8)
+    call    amd64_emit_byte
+    
+    // ModRM extension
+    mov     al, r14b           // Digit
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
     jmp     .done
 
 /**
