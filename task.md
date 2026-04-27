@@ -30,8 +30,19 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
 - [x] R69: AArch64 SVE (Scalable Vector) Foundation (Z0-Z31, P0-P15)
 - [x] R70: Self-Hosting Readiness Audit (IMUL, BT, SETcc coverage)
 
-## 🔴 Future (Phase 8+: Performance & Deployment)
-- [ ] **Self-Hosting**: Assemble `utasm` using `utasm`.
+## 🟡 Active (Phase 8: Performance & Self-Hosting Ascent)
+- [ ] R71: Hot-Path Profile Audit (Lexer/Hasher Optimization).
+- [ ] R72: Section Alignment Hardening (4KiB/16KiB boundaries).
+- [ ] R73: Expression Evaluator Recursion Hardening.
+- [ ] R74: Multi-Section Relocation Engine Hardening.
+- [ ] R75: Standalone Executable Entry Point Materialization.
+- [ ] R76: Preprocessor Expression Support (%if eval).
+- [ ] R77: BSS Allocation Engine Finalization.
+- [ ] R78: Tri-Arch Smoke Test (Hello World).
+- [ ] R79: Self-Hosting Pre-Flight Check (Source Parsing).
+- [ ] R80: The Bootstrapping Attempt (utasm assembles utasm).
+
+## 🔴 Future (Phase 9+: Production & 1.0.0 Release)
 - [ ] **Test Suites**: Implement comprehensive test suites for each architecture.
 - [ ] **IO Optimization**: Materialize `io_uring` for faster file writes.
 
