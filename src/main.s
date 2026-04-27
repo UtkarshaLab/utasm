@@ -147,22 +147,34 @@ _start:
     mov     rdi, r15                         // PrepState
     call    parser_parse_instruction
     test    rax, rax
-    jnz     .loop_check                      // If error, check if EOF or real error
+    jnz     .error_in_parser
     
-    // Parser returns INST* in rdx
-    mov     rsi, rdx                         // rsi = INST*
-    mov     rdi, global_ctx
+    // Check for EOF (RAX=0, RDX=0)
+    test    rdx, rdx
+    jz      .emission
     
+    mov     r14, rdx                         // r14 = INST*
     movzx   eax, byte [global_ctx + ASMCTX_target]
     
-    // ---- FIX: ALIGNMENT GUARD ----
+    // ---- 1. Alignment Guard (Non-x86) ----
     IF eax, ne, TARGET_AMD64
         mov     rdi, global_ctx
         mov     rsi, 4
         call    asm_ctx_align
     ENDIF
 
-    // Dispatch to arch-specific encoder
+    // ---- 2. Offset Stamping (CRITICAL FOR RELOCS) ----
+    mov     rdi, [global_ctx + ASMCTX_curr_sec]
+    test    rdi, rdi
+    IF z | mov rdi, [global_ctx + ASMCTX_sections] | mov rdi, [rdi] | ENDIF
+    mov     rax, [rdi + SECTION_size]
+    mov     [r14 + INST_offset], rax
+    
+    // ---- 3. Encoding Dispatch ----
+    mov     rdi, global_ctx
+    mov     rsi, r14
+    movzx   eax, byte [global_ctx + ASMCTX_target]
+    
     IF eax, e, TARGET_AMD64
         call    amd64_encode_instruction
     ELSEIF eax, e, TARGET_AARCH64
@@ -173,6 +185,12 @@ _start:
     check_err
     
     jmp     .assembly_loop
+
+.error_in_parser:
+    // Handle real errors here
+    mov     rdi, rax
+    call    error_report
+    jmp     .exit_error
 
 .loop_check:
     cmp     rax, EXIT_OK
@@ -224,7 +242,10 @@ _start:
     mov     rdi, EXIT_FILE_NOT_FOUND
     syscall
 
-// Helper: print_str (null-terminated)
+.exit_error:
+    mov     rax, AMD64_SYS_EXIT
+    mov     rdi, EXIT_ERROR
+    syscall
 // rdi = fd, rsi = str
 print_str:
     push    rbx
