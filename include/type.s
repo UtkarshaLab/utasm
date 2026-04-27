@@ -77,7 +77,7 @@ struc TOKEN
     field tag,      1       // always TAG_TOKEN
     field kind,     1       // TOK_* value
     field flags,    1       // reserved
-    field pad,      5       // alignment
+    field pad0,     5       // alignment
     field value,    8       // pointer or integer
     field line,     4       // source line
     field col,      2       // source column
@@ -91,7 +91,7 @@ endstruc
 
 struc ARENA
     field tag,      1       // always TAG_ARENA
-    field pad,      7       // alignment padding
+    field pad0,     7       // alignment padding
     field base,     8       // start of arena memory
     field ptr,      8       // next free byte
     field end,      8       // end of arena memory
@@ -116,7 +116,7 @@ struc SYMBOL
     field tag,      1       // always TAG_SYMBOL
     field kind,     1       // SYM_* value
     field vis,      1       // VIS_* value
-    field pad,      5       // alignment padding
+    field pad0,     5       // alignment padding
     field name,     8       // pointer to name string
     field value,    8       // address or constant value
     field size,     8       // size in bytes
@@ -139,7 +139,7 @@ struc SECTION
     field tag,      1       // always TAG_SECTION
     field type,     1       // SEC_* value
     field flags,    2       // SHF_* flags
-    field pad,      4       // alignment padding
+    field pad0,      4       // alignment padding
     field name,     8       // pointer to section name
     field data,     8       // pointer to content buffer
     field size,     8       // current size
@@ -147,7 +147,7 @@ struc SECTION
     field addr,     8       // virtual address
     field align,    8       // required alignment
     field index,    4       // ELF section index
-    field pad2,     4       // alignment padding
+    field pad1,     4       // alignment padding
 endstruc
 
 // ============================================================================
@@ -162,7 +162,7 @@ endstruc
 struc RELOC
     field tag,      1       // always TAG_RELOC
     field type,     1       // RELOC_* value
-    field pad,      6       // alignment padding
+    field pad0,     6       // alignment padding
     field offset,   8       // offset in section
     field symbol,   8       // pointer to Symbol
     field addend,   8       // signed addend
@@ -175,13 +175,13 @@ endstruc
 struc INCLUDECTX
     field tag,      1       // always TAG_INCLUDE_CTX
     field depth,    1       // nesting depth
-    field pad,      6       // alignment padding
+    field pad0,      6       // alignment padding
     field file,     8       // filename pointer
     field parent,   8       // parent IncludeCtx
     field buf,      8       // file buffer
     field pos,      8       // read position
     field line,     4       // current line
-    field pad2,     4       // alignment padding
+    field pad1,     4       // alignment padding
     field lexer,    8       // saved LexerState
 endstruc
 
@@ -192,11 +192,11 @@ endstruc
 struc MACRO
     field tag,      1       // always TAG_MACRO
     field nparams,  1       // parameter count
-    field pad,      6       // alignment padding
+    field pad0,      6       // alignment padding
     field name,     8       // macro name
     field tokens,   8       // pointer to token array
     field ntokens,  4       // number of tokens
-    field pad2,     4       // alignment padding
+    field pad1,     4       // alignment padding
 endstruc
 
 // ============================================================================
@@ -207,13 +207,13 @@ struc MACROEXP
     field tag,      1       // always TAG_MACRO_EXP
     field depth,    1       // nesting depth
     field nparams,  1       // parameter count
-    field pad,      5       // alignment padding
+    field pad0,      5       // alignment padding
     field macro,    8       // pointer to Macro symbol
     field parent,   8       // parent MacroExpansion
     field params,   8       // parameter string array
     field body,     8       // current body position
     field line,     4       // invocation line
-    field pad2,     4       // alignment padding
+    field pad1,     4       // alignment padding
 endstruc
 
 // ============================================================================
@@ -230,10 +230,10 @@ struc ASMCTX
     field arena,       8       // pointer to Arena
     field symtab,      8       // pointer to symbol table
     field symcount,    4       // symbol count
-    field pad,         4       // alignment padding
+    field pad0,         4       // alignment padding
     field sections,    8       // pointer to section array
     field seccount,    4       // section count
-    field pad2,        4       // alignment padding
+    field pad1,         4       // alignment padding
     field inc_ctx,     8       // current IncludeCtx
     field mac_exp,     8       // current MacroExpansion
     field input,       8       // input filename
@@ -242,7 +242,7 @@ struc ASMCTX
     field inc_paths,   8       // include path array
     field ninc_paths,  4       // include path count
     field flags,       4       // CTX_FLAG_* values
-    field pad3,        24      // future reservation
+    field pad2,        24      // future reservation
 endstruc
 
 %def CTX_FLAG_DEBUG         0x01
@@ -259,17 +259,17 @@ endstruc
 
 struc LEXER
     field tag,      1       // always TAG_LEXER
-    field pad,      7       // alignment padding
+    field pad0,      7       // alignment padding
     field buf,      8       // buffer start
     field pos,      8       // current position
     field end,      8       // buffer end
     field file,     8       // filename pointer
     field line,     4       // current line
     field col,      2       // current column
-    field pad2,     2       // alignment padding
+    field pad1,     2       // alignment padding
     field peek,     TOKEN_SIZE // inline token storage
     field has_peek, 1       // peek valid flag
-    field pad3,     7       // alignment padding
+    field pad2,     7       // alignment padding
     field ctx,      8       // pointer to AsmCtx
     field arena,    8       // pointer to Arena
 endstruc
@@ -282,7 +282,7 @@ struc PREP
     field tag,          1       // always TAG_PREPROCESSOR
     field depth,        1       // conditional depth
     field skip_depth,   1       // skipping depth
-    field pad,          5       // alignment padding
+    field pad0,          5       // alignment padding
     field lexer,        8       // current LexerState
     field ctx,          8       // pointer to AsmCtx
     field arena,        8       // pointer to Arena
@@ -303,14 +303,14 @@ struc OPERAND
     field kind,     1       // OP_* value
     field size,     1       // operand size
     field reg,      1       // register ID
-    field pad,      4       // alignment padding
+    field pad0,      4       // alignment padding
     field imm,      8       // immediate or displacement
     field base,     1       // base register
     field index,    1       // index register
     field scale,    1       // scale factor
-    field pad2,     5       // alignment padding
+    field pad1,     5       // alignment padding
     field sym,      8       // pointer to Symbol
-    field pad3,     16      // future reservation
+    field pad2,     16      // future reservation
 endstruc
 
 // ============================================================================
@@ -321,9 +321,9 @@ struc INST
     field tag,       1       // always TAG_INSTRUCTION
     field op_id,     2       // mnemonic ID
     field nops,      1       // operand count
-    field pad,       4       // alignment padding
+    field pad0,       4       // alignment padding
     field op0,       OPERAND_SIZE
     field op1,       OPERAND_SIZE
     field op2,       OPERAND_SIZE
-    field pad2,      8       // alignment padding
+    field pad1,      8       // alignment padding
 endstruc
