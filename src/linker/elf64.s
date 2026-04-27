@@ -398,42 +398,79 @@ elf64_write_data_section:
 elf64_prepare_strtab:
     prologue
     push    rbx
+    push    r12
+    push    r13
     push    r14
     push    r15
     
+    mov     r12, rdi               // AsmCtx
     mov     rbx, [r12 + ASMCTX_symtab]
-    mov     r14d, [r12 + ASMCTX_symcount]
     
     // Start at index 1 (0 is null byte)
     mov     r15, 1
-    xor     ecx, ecx
+    xor     r14, r14               // i = 0
     
-.loop:
-    cmp     ecx, r14d
+.outer_loop:
+    cmp     r14d, [r12 + ASMCTX_symcount]
     jge     .done
     
-    lea     rdi, [rbx + rcx * SYMBOL_SIZE]
-    mov     rsi, [rdi + SYMBOL_name]
+    lea     r13, [rbx + r14 * SYMBOL_SIZE]
+    mov     rsi, [r13 + SYMBOL_name]
     test    rsi, rsi
-    jz      .next
+    jz      .next_outer
     
+    // Check if this string appeared before index r14
+    xor     rcx, rcx               // j = 0
+.inner_loop:
+    cmp     ecx, r14d
+    jge     .is_unique
+    
+    lea     rdi, [rbx + rcx * SYMBOL_SIZE]
+    mov     rax, [rdi + SYMBOL_name]
+    test    rax, rax
+    jz      .next_inner
+    
+    // Compare names
+    push    rsi
+    push    rcx
+    mov     rdi, rax
+    extern  str_cmp
+    call    str_cmp
+    pop     rcx
+    pop     rsi
+    
+    test    rax, rax
+    jnz     .next_inner
+    
+    // Found duplicate! Reuse index
+    mov     eax, [rbx + rcx * SYMBOL_SIZE + SYMBOL_name_idx]
+    mov     [r13 + SYMBOL_name_idx], eax
+    jmp     .next_outer
+
+.next_inner:
+    inc     ecx
+    jmp     .inner_loop
+
+.is_unique:
     // Store current offset
-    mov     [rdi + SYMBOL_name_idx], r15d
+    mov     [r13 + SYMBOL_name_idx], r15d
     
-    // Advance offset by string length + 1 (null)
+    // Advance offset
     mov     rdi, rsi
     extern  str_len
     call    str_len
     add     r15, rax
     inc     r15
     
-.next:
-    inc     ecx
-    jmp     .loop
+.next_outer:
+    inc     r14
+    jmp     .outer_loop
     
 .done:
     pop     r15
     pop     r14
+    pop     r13
+    pop     r12
     pop     rbx
     xor     rax, rax
     epilogue
