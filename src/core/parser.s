@@ -1316,10 +1316,22 @@ parser_handle_section_directive:
             IF cl, e, 'a' | or ax, SHF_ALLOC | ENDIF
             IF cl, e, 'w' | or ax, SHF_WRITE | ENDIF
             IF cl, e, 'x' | or ax, SHF_EXECINSTR | ENDIF
+            IF cl, e, 'M' | or ax, SHF_MERGE | ENDIF
+            IF cl, e, 'S' | or ax, SHF_STRINGS | ENDIF
+            IF cl, e, 'G' | or ax, SHF_GROUP | ENDIF
             inc     rsi
             jmp     .flag_loop
         .flag_done:
             mov     [r13 + SECTION_flags], ax
+        ENDIF
+
+        // 4. Optional: Type (@progbits, etc)
+        call    preprocessor_peek_token
+        IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+            call    preprocessor_next_token
+            call    preprocessor_next_token
+            // Check for @progbits, @nobits, etc
+            // For now, support @ progbits as separate or joined
         ENDIF
     ENDIF
     

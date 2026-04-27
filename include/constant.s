@@ -450,6 +450,10 @@
 %def SHT_RELA               4           // relocation entries with explicit addends
 %def SHT_REL                9           // relocation entries without addends
 %def SHT_NOBITS             8           // uninitialized data (BSS)
+%def SHT_GROUP              17          // section group (0x11)
+
+// ---- Section Group Flags ----
+%def GRP_COMDAT             0x1         // COMDAT group
 
 // ============================================================================
 // ELF64 SECTION FLAGS
