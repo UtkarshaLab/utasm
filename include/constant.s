@@ -575,3 +575,9 @@
 %def R_AARCH64_LDST64_ABS_LO12_NC 286
 %def R_AARCH64_CALL26        283
 %def R_AARCH64_JUMP26        282
+
+%def R_RISCV_64             2
+%def R_RISCV_HI20           26
+%def R_RISCV_LO12_I         27
+%def R_RISCV_CALL           18
+%def R_RISCV_RELAX          51
