@@ -147,6 +147,12 @@ amd64_encode_instruction:
         mov     r14, 7 | call amd64_encode_unary
     ELSEIF ax, e, 1276             // IMUL
         call    amd64_encode_imul
+    ELSEIF ax, ge, 4000            // CMOVcc & SETcc
+        IF ax, le, 4015
+            call amd64_encode_cmovcc
+        ELSEIF ax, le, 4031
+            call amd64_encode_setcc
+        ENDIF
     ELSEIF ax, ge, 1418            // MOVS - MOVSW
         IF ax, le, 1425
             mov r13, 0xA4 | call amd64_encode_string
@@ -2464,6 +2470,47 @@ amd64_encode_imul:
     mov     al, [r10 + OPERAND_reg]
     mov     rdi, r11
     call    amd64_emit_modrm_sib
+    epilogue
+
+/**
+ * [amd64_encode_cmovcc]
+ */
+amd64_encode_cmovcc:
+    prologue
+    mov     ax, [r12 + INST_op_id]
+    sub     ax, 4000
+    mov     r13b, 0x40
+    add     r13b, al
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     al, [r10 + OPERAND_size]
+    IF al, e, 16
+        mov al, 0x66 | call amd64_emit_byte
+    ENDIF
+    mov     al, [r10 + OPERAND_size]
+    mov     rsi, r11 | mov rdx, 0 | call amd64_emit_prefixes
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, r13b | call amd64_emit_byte
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    epilogue
+
+/**
+ * [amd64_encode_setcc]
+ */
+amd64_encode_setcc:
+    prologue
+    mov     ax, [r12 + INST_op_id]
+    sub     ax, 4016
+    mov     r13b, 0x90
+    add     r13b, al
+    lea     r10, [r12 + INST_op0]
+    // Force size 8 for REX calculation
+    mov     al, 8 | mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, r13b | call amd64_emit_byte
+    mov     al, 0 | mov rdi, r10 | call amd64_emit_modrm_sib
     epilogue
 
 /**
