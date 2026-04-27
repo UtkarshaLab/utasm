@@ -1276,6 +1276,20 @@ amd64_mnemonic_table:
     mnemonic_entry "xsetbv", 0, 2168
     mnemonic_entry "xsusldtrk", 0, 2169
     mnemonic_entry "xtest", 0, 2170
+    
+    // ---- VMX / SVM Suite (Custom IDs) ----
+    mnemonic_entry "vmcall", 0, 5000
+    mnemonic_entry "vmlaunch", 0, 5001
+    mnemonic_entry "vmresume", 0, 5002
+    mnemonic_entry "vmxoff", 0, 5003
+    mnemonic_entry "vmxon", 0, 5004
+    mnemonic_entry "vmptrld", 0, 5005
+    mnemonic_entry "vmptrst", 0, 5006
+    mnemonic_entry "vmclear", 0, 5007
+    mnemonic_entry "vmread", 0, 5008
+    mnemonic_entry "vmwrite", 0, 5009
+    mnemonic_entry "invept", 0, 5010
+    mnemonic_entry "invvpid", 0, 5011
     dq 0
 
 global amd64_register_table
