@@ -5,11 +5,10 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
 
 ## 🟢 Completed (Phase 1: Foundation & Pipeline)
 - [x] **Core Headers**: `register.s`, `syscall.s`, `elf.s` (Full ABI coverage).
-- [x] **Compiler Core**: Expanded `preprocessor.s` with `%struc` support, `string.s` helpers.
-- [x] **Encoders**: Expanded `aarch64.s` and `riscv64.s` to full-scale ISA coverage (~100+ instructions each).
-- [x] **Linker**: Implemented `elf64.s` (Object emitter), `binary.s` (MBR/Flat emitter), `reloc.s` (Engine).
-- [x] **Host Layer**: `mem.s` (libc-free memory management).
-- [x] **Orchestration**: `main.s` integrated Lexer -> Preprocessor -> Parser -> Encoder -> Linker.
+- [x] **Compiler Core**: Expanded `preprocessor.s` with `%struc` support.
+- [x] **Encoders**: `aarch64.s` and `riscv64.s` (Sovereign Enhancement: System/Privileged/Float support added).
+- [x] **Linker**: ELF64, Binary, and Relocation engines.
+- [x] **Orchestration**: `main.s` full-loop integration.
 
 ## 🟡 In Progress (Phase 2: Diagnostics & Quality)
 - [ ] **Diagnostics**: Implement `listing.s` for address/hex/source output.

@@ -62,6 +62,30 @@ aarch64_encode_instruction:
     ELSEIF eax, e, ID_AARCH64_EON
         mov     r13d, 0xCA200000 | call aarch64_encode_dp_reg
 
+    // ---- System & Barrier Instructions ----
+    ELSEIF eax, e, ID_AARCH64_SVC
+        call    aarch64_encode_svc
+    ELSEIF eax, ge, 2328            // MRS/MSR range
+        IF eax, le, 2330
+            call aarch64_encode_system_reg
+        ENDIF
+    ELSEIF eax, e, 2133             // DSB
+        mov     edi, 0xD503309F | call aarch64_emit_word
+    ELSEIF eax, e, 2131             // DMB
+        mov     edi, 0xD50330BF | call aarch64_emit_word
+    ELSEIF eax, e, 2228             // ISB
+        mov     edi, 0xD5033FDF | call aarch64_emit_word
+    ELSEIF eax, e, 2617             // WFI
+        mov     edi, 0xD503205F | call aarch64_emit_word
+    ELSEIF eax, e, 2176             // HLT
+        call    aarch64_encode_hlt
+
+    // ---- Floating Point (Basic) ----
+    ELSEIF eax, ge, 2154            // FADD, FSUB, FMUL, FDIV
+        IF eax, le, 2165
+            call aarch64_encode_fp_bin
+        ENDIF
+
     // ---- Arithmetic & Logical (Immediate) ----
     // (Handled within dp_reg if op2 is immediate, but often distinct opcodes)
     // For AArch64, ADD/SUB immediate uses a different format.
@@ -471,17 +495,80 @@ aarch64_encode_tst:
     call    aarch64_encode_dp_reg
     epilogue
 
-// ---- aarch64_encode_svc ----
-aarch64_encode_svc:
+// ---- aarch64_encode_system_reg ----
+// MRS Xt, S<op0>_<op1>_<Cn>_<Cm>_<op2>
+// MSR S<op0>_<op1>_<Cn>_<Cm>_<op2>, Xt
+aarch64_encode_system_reg:
     prologue
     lea     r10, [r12 + INST_op0]
-    mov     eax, 0xD4000001
+    lea     r11, [r12 + INST_op1]
+    
+    mov     eax, 0xD5200000        // MRS base
+    IF word [r12 + INST_op_id], e, 2330 // MSR
+        mov eax, 0xD5000000
+    ENDIF
+    
+    movzx   edi, byte [r10 + OPERAND_reg]
+    or      eax, edi
+    
+    // System register encoding is usually simplified in assemblers
+    // to a 15-bit immediate or a recognized name.
+    // Here we assume r11 contains the packed sysreg ID.
+    mov     edi, [r11 + OPERAND_imm]
+    and     edi, 0x7FFF
+    shl     edi, 5
+    or      eax, edi
+    
+    mov     rdi, rax
+    call    aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_hlt ----
+aarch64_encode_hlt:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    mov     eax, 0xD4400000
     IF byte [r12 + INST_nops], ne, 0
         mov     edi, [r10 + OPERAND_imm]
         and     edi, 0xFFFF
         shl     edi, 5
         or      eax, edi
     ENDIF
+    mov     rdi, rax
+    call    aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_fp_bin ----
+aarch64_encode_fp_bin:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    lea     r9,  [r12 + INST_op2]
+    
+    mov     eax, 0x1E200800        // FADD base
+    movzx   ecx, word [r12 + INST_op_id]
+    IF ecx, e, 2165                // FSUB
+        or eax, 0x00100000
+    ELSEIF ecx, e, 2161            // FMUL
+        or eax, 0x00008000
+    ELSEIF ecx, e, 2156            // FDIV
+        or eax, 0x00018000
+    ENDIF
+    
+    // Type bits: 00=single, 01=double
+    IF byte [r10 + OPERAND_size], e, 8
+        or eax, 0x00400000
+    ENDIF
+    
+    movzx   edi, byte [r10 + OPERAND_reg]
+    or      eax, edi
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 5
+    or      eax, edi
+    movzx   edi, byte [r9 + OPERAND_reg]
+    shl     edi, 16
+    or      eax, edi
+    
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue

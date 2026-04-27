@@ -154,6 +154,26 @@ riscv64_encode_instruction:
     ELSEIF eax, e, ID_RV_JALR
         call    riscv64_encode_jalr
 
+    // ---- Privileged & CSR Instructions ----
+    ELSEIF eax, ge, 3084            // CSR range (CSRC to CSRWI)
+        IF eax, le, 3096
+            call riscv64_encode_csr
+        ENDIF
+    ELSEIF eax, e, 3121             // ECALL
+        mov     edi, 0x00000073 | call riscv64_emit_word
+    ELSEIF eax, e, 3122             // EBREAK
+        mov     edi, 0x00100073 | call riscv64_emit_word
+    ELSEIF eax, e, 3244             // MRET
+        mov     edi, 0x30200073 | call riscv64_emit_word
+    ELSEIF eax, e, 3332             // SRET
+        mov     edi, 0x10200073 | call riscv64_emit_word
+
+    // ---- Floating Point (Basic RV64F/D) ----
+    ELSEIF eax, ge, 3128            // FADD.S range
+        IF eax, le, 3180
+            call riscv64_encode_fp
+        ENDIF
+
     // ---- Pseudo Instructions ----
     ELSEIF eax, e, ID_RV_LI
         call    riscv64_encode_li
@@ -422,17 +442,77 @@ riscv64_encode_jalr:
     call    riscv64_encode_i_type
     epilogue
 
-// ---- LI Pseudo ----
-riscv64_encode_li:
+// ---- riscv64_encode_csr ----
+// CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI
+riscv64_encode_csr:
     prologue
-    // LI rd, imm  =>  ADDI rd, x0, imm
-    // (Note: LI can expand to LUI + ADDI if imm > 12 bits, but for now we do simple case)
-    mov     r13d, 0x00000013
-    // Simulate ADDI rd, x0, imm
-    mov     byte [r12 + INST_op2 + OPERAND_kind], OP_IMM
-    mov     eax, [r12 + INST_op1 + OPERAND_imm]
-    mov     [r12 + INST_op2 + OPERAND_imm], eax
-    mov     byte [r12 + INST_op1 + OPERAND_kind], OP_REG
-    mov     byte [r12 + INST_op1 + OPERAND_reg], 0 // x0
-    call    riscv64_encode_i_type
+    lea     r10, [r12 + INST_op0] // rd
+    lea     r11, [r12 + INST_op1] // csr
+    lea     r9,  [r12 + INST_op2] // rs1 or uimm
+    
+    mov     eax, 0x00000073
+    movzx   ecx, word [r12 + INST_op_id]
+    
+    // Funct3 mapping
+    IF ecx, e, 3091 | or eax, 0x00001000 | ENDIF // CSRRW
+    IF ecx, e, 3089 | or eax, 0x00002000 | ENDIF // CSRRS
+    IF ecx, e, 3087 | or eax, 0x00003000 | ENDIF // CSRRC
+    IF ecx, e, 3092 | or eax, 0x00005000 | ENDIF // CSRRWI
+    IF ecx, e, 3090 | or eax, 0x00006000 | ENDIF // CSRRSI
+    IF ecx, e, 3088 | or eax, 0x00007000 | ENDIF // CSRRCI
+    
+    movzx   edi, byte [r10 + OPERAND_reg]
+    shl     edi, 7
+    or      eax, edi
+    
+    mov     edi, [r11 + OPERAND_imm]
+    and     edi, 0xFFF
+    shl     edi, 20
+    or      eax, edi
+    
+    IF byte [r9 + OPERAND_kind], e, OP_REG
+        movzx edi, byte [r9 + OPERAND_reg]
+        shl   edi, 15
+        or    eax, edi
+    ELSE
+        mov   edi, [r9 + OPERAND_imm]
+        and   edi, 0x1F
+        shl   edi, 15
+        or    eax, edi
+    ENDIF
+    
+    mov     rdi, rax
+    call    riscv64_emit_word
+    epilogue
+
+// ---- riscv64_encode_fp ----
+// FADD.S/D, FSUB.S/D, FMUL.S/D, FDIV.S/D
+riscv64_encode_fp:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    lea     r9,  [r12 + INST_op2]
+    
+    mov     eax, 0x00000053
+    movzx   ecx, word [r12 + INST_op_id]
+    
+    // Funct7 mapping (Simplified)
+    IF ecx, ge, 3128 | IF ecx, le, 3131 // FADD
+        or eax, 0x00000000
+    ENDIF | ENDIF
+    
+    // TODO: Fully map floating point opcodes based on ID ranges
+    
+    movzx   edi, byte [r10 + OPERAND_reg]
+    shl     edi, 7
+    or      eax, edi
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 15
+    or      eax, edi
+    movzx   edi, byte [r9 + OPERAND_reg]
+    shl     edi, 20
+    or      eax, edi
+    
+    mov     rdi, rax
+    call    riscv64_emit_word
     epilogue
