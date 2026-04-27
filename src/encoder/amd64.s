@@ -1908,45 +1908,86 @@ amd64_encode_sse_crypto:
     ENDIF
     jmp     .done
 
-/**
- * [amd64_encode_vex]
- * R13 = Opcode
- * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
- * R15 = pp bits (0=none, 1=66, 2=F3, 3=F2)
- */
 amd64_encode_vex:
     prologue
+    push    rbx
+    push    r13
+    push    r14
+    push    r15
+    
+    // Inputs: R13=Opcode, R14=Map, R15=pp
+    // Operands: R10=Dest (Reg), R11=Src1 (Reg), RDX=Src2 (Reg/Mem)
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     lea     rdx, [r12 + INST_op2]
     
-    // 1. Determine form (2-byte vs 3-byte)
-    // Default to 3-byte (0xC4)
-    mov     bl, 0xC4
+    // 1. Calculate R, X, B bits (inverted)
+    mov     r8b, 0xE0              // Initial R, X, B = 1 (inverted)
     
-    // We can only use 2-byte VEX (0xC5) if:
-    // - Map is 1 (0x0F)
-    // - W bit is 0 (size < 64)
-    // - X and B bits are 0 (no extended base/index regs R8-R15)
-    IF r14b, e, 1
-        IF byte [r10 + OPERAND_size], ne, 64
-            // Check Source (RDX) for X/B extensions
-            IF byte [rdx + OPERAND_kind], e, OP_MEM
-                mov cl, [rdx + OPERAND_base]
-                IF cl, ge, 8 | IF cl, ne, REG_NONE | jmp .force_vex3 | ENDIF | ENDIF
-                mov cl, [rdx + OPERAND_index]
-                IF cl, ge, 8 | IF cl, ne, REG_NONE | jmp .force_vex3 | ENDIF | ENDIF
-            ELSEIF byte [rdx + OPERAND_kind], e, OP_REG
-                mov cl, [rdx + OPERAND_reg]
-                IF cl, ge, 8 | jmp .force_vex3 | ENDIF
-            ENDIF
-            
-            // All checks passed, use optimized 2-byte VEX
-            mov bl, 0xC5
-        ENDIF
+    // R bit (from Dest reg)
+    mov     al, [r10 + OPERAND_reg]
+    IF al, ge, 8 | and r8b, ~0x80 | ENDIF
+    
+    // X, B bits (from Src2)
+    IF byte [rdx + OPERAND_kind], e, OP_MEM
+        mov al, [rdx + OPERAND_base]
+        IF al, ge, 8 | and r8b, ~0x20 | ENDIF
+        mov al, [rdx + OPERAND_index]
+        IF al, ge, 8 | and r8b, ~0x40 | ENDIF
+    ELSEIF byte [rdx + OPERAND_kind], e, OP_REG
+        mov al, [rdx + OPERAND_reg]
+        IF al, ge, 8 | and r8b, ~0x20 | ENDIF
     ENDIF
 
-.force_vex3:
+    // 2. Resolve vvvv (Src1, inverted)
+    movzx   eax, byte [r11 + OPERAND_reg]
+    xor     al, 0x0F               // Invert 4 bits
+    and     al, 0x0F
+    shl     al, 3                  // Position in VEX byte
+    mov     cl, al                 // CL = vvvv << 3
+
+    // 3. L bit (from register size)
+    mov     al, [r10 + OPERAND_size]
+    xor     ch, ch                 // L = 0 (128-bit)
+    IF al, e, 32
+        mov ch, 1                  // L = 1 (256-bit)
+    ENDIF
+    shl     ch, 2                  // Position in VEX byte
+
+    // 4. Emit Prefix
+    // If Map=1, W=0, X=1, B=1 (no extensions), use 2-byte VEX (0xC5)
+    // For now, simplify and use 3-byte VEX (0xC4) for reliability
+    mov     al, 0xC4 | call amd64_emit_byte
+    
+    // VEX Byte 1: R X B m-mmmm
+    mov     al, r8b                // R, X, B
+    or      al, r14b               // Map (m-mmmm)
+    call    amd64_emit_byte
+    
+    // VEX Byte 2: W vvvv L pp
+    // W bit: 0 for now (32-bit ops)
+    mov     al, cl                 // vvvv
+    or      al, ch                 // L
+    or      al, r15b               // pp
+    // Check if W is needed (e.g. 64-bit SIMD ops)
+    IF byte [r10 + OPERAND_size], e, 64
+        or al, 0x80                // W=1
+    ENDIF
+    call    amd64_emit_byte
+
+    // 5. Opcode and ModRM
+    mov     al, r13b | call amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    and     al, 7                  // Only low 3 bits for ModRM
+    mov     rdi, rdx
+    call    amd64_emit_modrm_sib
+    
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     rbx
+    jmp     .done
     
     IF bl, e, 0xC5
         mov al, 0xC5 | call amd64_emit_byte
