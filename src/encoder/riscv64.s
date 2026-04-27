@@ -241,11 +241,10 @@ riscv64_encode_instruction:
 
 riscv64_emit_word:
     prologue
-    mov     rdx, rdi               // instruction word
-    mov     rdi, rbx               // AsmCtx
-    mov     rsi, [r12 + INST_section]
-    extern  asmctx_emit_dword
-    call    asmctx_emit_dword
+    mov     rsi, rdi               // instruction word -> RSI
+    mov     rdi, rbx               // AsmCtx -> RDI
+    extern  asm_ctx_emit_dword
+    call    asm_ctx_emit_dword
     epilogue
 
 // ---- R-Type ----
@@ -601,41 +600,40 @@ riscv64_encode_fp:
     lea     r11, [r12 + INST_op1]
     lea     r9,  [r12 + INST_op2]
     
-    mov     eax, 0x00000053
+    mov     eax, 0x00007053        // OP-FP base with rm=111 (Dynamic)
     movzx   ecx, word [r12 + INST_op_id]
     
-    // Funct7 & Funct3 mapping
-    IF ecx, ge, ID_RV_FADD_S | IF ecx, le, ID_RV_FADD_D // FADD
+    // Funct7 mapping
+    IF ecx, ge, ID_RV_FADD_S | IF ecx, le, ID_RV_FADD_D
         or eax, 0x00000000
-    ENDIF | ENDIF
-    IF ecx, ge, ID_RV_FSUB_S | IF ecx, le, ID_RV_FSUB_D // FSUB
+    ELSEIF ecx, ge, ID_RV_FSUB_S | IF ecx, le, ID_RV_FSUB_D
         or eax, 0x08000000
-    ENDIF | ENDIF
-    IF ecx, ge, ID_RV_FMUL_S | IF ecx, le, ID_RV_FMUL_D // FMUL
+    ELSEIF ecx, ge, ID_RV_FMUL_S | IF ecx, le, ID_RV_FMUL_D
         or eax, 0x10000000
-    ENDIF | ENDIF
-    IF ecx, ge, ID_RV_FDIV_S | IF ecx, le, ID_RV_FDIV_D // FDIV
+    ELSEIF ecx, ge, ID_RV_FDIV_S | IF ecx, le, ID_RV_FDIV_D
         or eax, 0x18000000
-    ENDIF | ENDIF
+    ENDIF
     
     // Precision: bit 25 (0=Single, 1=Double)
-    // We assume ID even=single, odd=double in the ISA table
     test    ecx, 1
-    jnz     .double
-    jmp     .reg
-.double:
-    or      eax, 0x01000000
+    IF nz
+        or      eax, 0x01000000
+    ENDIF
     
-.reg:
+    // Reg IDs: Rd=7, Rs1=15, Rs2=20
     movzx   edi, byte [r10 + OPERAND_reg]
     shl     edi, 7
     or      eax, edi
     movzx   edi, byte [r11 + OPERAND_reg]
     shl     edi, 15
     or      eax, edi
-    movzx   edi, byte [r9 + OPERAND_reg]
-    shl     edi, 20
-    or      eax, edi
+    
+    // Rs2 (only for binary ops)
+    IF byte [r9 + OPERAND_kind], e, OP_REG
+        movzx   edi, byte [r9 + OPERAND_reg]
+        shl     edi, 20
+        or      eax, edi
+    ENDIF
     
     mov     rdi, rax
     call    riscv64_emit_word
