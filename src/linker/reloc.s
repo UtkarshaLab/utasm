@@ -220,9 +220,11 @@ reloc_apply_one:
     cmp     r11d, R_AARCH64_CALL26
     je      .aarch64_jmp26
 
-    // Default: PC32 (x86_64)
-    sub     rax, r9
-    sub     rax, 4
+    // Default: PC-relative (x86_64 PC32, etc)
+    sub     rax, r9                // Target - Patch_VA
+    movsx   r10, dword [rbx + RELOC_pc_adjust]
+    sub     rax, r10               // Adjust for PC (e.g. 4 for x86_64)
+    mov     r10, [rbx + RELOC_addend]
     add     rax, r10
     mov     [r8], eax
     jmp     .done_patch

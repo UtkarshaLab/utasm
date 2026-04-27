@@ -87,6 +87,7 @@ struc RELOC
     field type,        1       // RELOC_* value
     field pad0,         2       // alignment
     field offset,      4       // offset in binary section
+    field pc_adjust,   4       // adjustment for PC-relative relocs
     field symbol,      8       // pointer to symbol name string
     field section,     8       // pointer to target section
 endstruc

@@ -2355,11 +2355,13 @@ amd64_encode_rm_r:
  * Input:
  *   AL: Relocation Type (RELOC_REL32, etc)
  *   RSI: Pointer to Symbol String
+ *   EDX: PC Adjustment (bytes from reloc site to end of instruction)
  */
 amd64_emit_reloc:
     prologue
     push    rax
     push    rsi
+    push    rdx
     
     // Allocate RELOC struct
     mov     rdi, [rbx + ASMCTX_arena]
@@ -2368,11 +2370,13 @@ amd64_emit_reloc:
     check_err
     mov     r13, rdx
     
-    pop     rsi
-    pop     rax
+    pop     rdx                    // rdx = pc_adjust
+    pop     rsi                    // rsi = symbol
+    pop     rax                    // al = type
     
     mov     byte [r13 + RELOC_tag], TAG_RELOC
     mov     byte [r13 + RELOC_type], al
+    mov     dword [r13 + RELOC_pc_adjust], edx
     mov     [r13 + RELOC_symbol], rsi
     
     // Get current offset in buffer
@@ -2683,7 +2687,7 @@ amd64_encode_jmp:
     lea     r10, [r12 + INST_op0]
     IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
         mov     al, 0xE9 | call amd64_emit_byte
-        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | mov edx, 4 | call amd64_emit_reloc
         xor     rax, rax | call amd64_emit_dword
     ELSE
         mov     r13, 0xFF | mov r14, 4 | call amd64_encode_unary
@@ -2698,7 +2702,7 @@ amd64_encode_call:
     lea     r10, [r12 + INST_op0]
     IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
         mov     al, 0xE8 | call amd64_emit_byte
-        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | mov edx, 4 | call amd64_emit_reloc
         xor     rax, rax | call amd64_emit_dword
     ELSE
         mov     r13, 0xFF | mov r14, 2 | call amd64_encode_unary
@@ -2723,7 +2727,7 @@ amd64_encode_jcc:
     add     al, r15b
     call    amd64_emit_byte
     lea     r10, [r12 + INST_op0]
-    mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+    mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | mov edx, 4 | call amd64_emit_reloc
     xor     rax, rax | call amd64_emit_dword
     epilogue
 
