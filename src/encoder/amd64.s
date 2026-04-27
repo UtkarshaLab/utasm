@@ -460,6 +460,83 @@ amd64_encode_instruction:
         lea     r11, [r12 + INST_op1]
         mov     al, [r10 + OPERAND_reg]
         mov     rdi, r11 | call amd64_emit_modrm_sib
+        
+    // ---- Phase 3: Advanced Bit Manipulation (BMI1/BMI2/TBM) ----
+    ELSEIF ax, e, 1029             // ANDN
+        mov     r13, 0xF2 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+    ELSEIF ax, e, 1035             // BEXTR
+        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+    ELSEIF ax, e, 1040             // BLSI
+        mov     r13, 0xF3 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex_unary
+    ELSEIF ax, e, 1041             // BLSMSK
+        mov     r13, 0xF3 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex_unary
+    ELSEIF ax, e, 1042             // BLSR
+        mov     r13, 0xF3 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex_unary
+    ELSEIF ax, e, 1058             // BZHI
+        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+    ELSEIF ax, e, 1437             // MULX
+        mov     r13, 0xF6 | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+    ELSEIF ax, e, 1488             // PDEP
+        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+    ELSEIF ax, e, 1489             // PEXT
+        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_vex
+    ELSEIF ax, e, 1614             // RORX
+        mov     r13, 0xF0 | mov r14, 3 | mov r15, 0xF2 | call amd64_encode_vex
+    ELSEIF ax, e, 1626             // SARX
+        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_vex
+    ELSEIF ax, e, 1649             // SHLX
+        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0x66 | call amd64_encode_vex
+    ELSEIF ax, e, 1652             // SHRX
+        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+    ELSEIF ax, e, 1699             // TZCNT
+        mov     al, 0xF3 | call amd64_emit_byte
+        mov     r13, 0x0FBC | call amd64_encode_rm_r
+        
+    // ---- Phase 4: Hardware Sync (WaitPKG / UINTR) ----
+    ELSEIF ax, e, 1698             // TPAUSE
+        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1704             // UMONITOR
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1705             // UMWAIT
+        mov     al, 0xF2 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1633             // SENDUIPI
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xC7 | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1703             // UIRET
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEC | call amd64_emit_byte
+    ELSEIF ax, e, 1692             // TESTUI
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xED | call amd64_emit_byte
+    ELSEIF ax, e, 1072             // CLUI
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEE | call amd64_emit_byte
+    ELSEIF ax, e, 1675             // STUI
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEF | call amd64_emit_byte
+
+    // ---- Phase 5: CET (Control-Flow Enforcement Technology) ----
+    ELSEIF ax, e, 1602             // RDSSPD
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1E | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1603             // RDSSPQ
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x48 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1E | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1279             // INCSSPD
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 5 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1280             // INCSSPQ
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x48 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 5 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1627             // SAVEPREVSSP
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEA | call amd64_emit_byte
+    ELSEIF ax, e, 1622             // RSTORSSP
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0] | mov al, 5 | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1636             // SETSSBSY
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xE8 | call amd64_emit_byte
+    ELSEIF ax, e, 1070             // CLRSSBSY
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xE9 | call amd64_emit_byte
+
     ELSEIF ax, e, 1680             // SWAPGS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
         mov     al, 0xF8 | call amd64_emit_byte
