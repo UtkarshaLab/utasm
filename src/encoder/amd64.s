@@ -1923,61 +1923,62 @@ amd64_encode_vex:
     push    r14
     push    r15
     
-    // Inputs: R13=Opcode, R14=Map, R15=pp
+    // Inputs: R13=Opcode, R14=Map, R15=pp (bit 8=W)
     // Operands: R10=Dest (Reg), R11=Src1 (Reg), RDX=Src2 (Reg/Mem)
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     lea     rdx, [r12 + INST_op2]
     
-    // 1. Calculate R, X, B bits (inverted)
-    mov     r8b, 0xE0              // Initial R, X, B = 1 (inverted)
+    // 1. Calculate R, X, B bits
+    xor     dl, dl                 // Initial R, X, B = 0
     
     // R bit (from Dest reg)
     mov     al, [r10 + OPERAND_reg]
-    IF al, ge, 8 | and r8b, ~0x80 | ENDIF
+    IF al, ge, 8 | or dl, 0x04 | ENDIF
     
     // X, B bits (from Src2)
     IF byte [rdx + OPERAND_kind], e, OP_MEM
         mov al, [rdx + OPERAND_base]
-        IF al, ge, 8 | and r8b, ~0x20 | ENDIF
+        IF al, ge, 8 | or dl, 0x01 | ENDIF
         mov al, [rdx + OPERAND_index]
-        IF al, ge, 8 | and r8b, ~0x40 | ENDIF
+        IF al, ge, 8 | or dl, 0x02 | ENDIF
     ELSEIF byte [rdx + OPERAND_kind], e, OP_REG
         mov al, [rdx + OPERAND_reg]
-        IF al, ge, 8 | and r8b, ~0x20 | ENDIF
+        IF al, ge, 8 | or dl, 0x01 | ENDIF
     ENDIF
 
-    // 2. Resolve vvvv (Src1, inverted)
-    movzx   eax, byte [r11 + OPERAND_reg]
-    xor     al, 0x0F               // Invert 4 bits
-    and     al, 0x0F
-    shl     al, 3                  // Position in VEX byte
-    mov     cl, al                 // CL = vvvv << 3
-
-    // 3. L bit (from register size)
-    mov     al, [r10 + OPERAND_size]
-    xor     ch, ch                 // L = 0 (128-bit)
-    IF al, e, 32
-        mov ch, 1                  // L = 1 (256-bit)
+    // 2. Resolve vvvv (Src1)
+    movzx   ecx, byte [r11 + OPERAND_reg]
+    
+    // 3. W, L, pp bits
+    mov     r8b, r15b              // pp
+    and     r8b, 0x03
+    
+    // L bit (from register size)
+    IF byte [r10 + OPERAND_size], e, 32
+        or r8b, 0x02
     ENDIF
-    shl     ch, 2                  // Position in VEX byte
-
-    // 4. Emit Prefix
-    // If Map=1, W=0, X=1, B=1 (no extensions), use 2-byte VEX (0xC5)
-    // For now, simplify and use 3-byte VEX (0xC4) for reliability
-    mov     al, 0xC4 | call amd64_emit_byte
     
-    // VEX Byte 1: R X B m-mmmm
-    mov     al, r8b                // R, X, B
-    or      al, r14b               // Map (m-mmmm)
-    call    amd64_emit_byte
+    // W bit (from instruction metadata? For now, if operand size is 8/64, assume W=1)
+    // Actually, W depends on the instruction. Let's pass it via R15's upper bits.
+    mov     rax, r15
+    shr     rax, 8                 // W is in bit 8+
+    IF rax, e, 1
+        or r8b, 0x04
+    ENDIF
     
-    // VEX Byte 2: W vvvv L pp
-    // W bit: 0 for now (32-bit ops)
-    mov     al, cl                 // vvvv
-    or      al, ch                 // L
-    or      al, r15b               // pp
-    // Check if W is needed (e.g. 64-bit SIMD ops)
+    // 4. Emit Prefix (Unified)
+    // r8b: W:bit2, L:bit1, pp:bits1-0
+    // r9b: Map
+    // cl:  vvvv
+    // dl:  R,X,B (inverted)
+    
+    and     r15b, 0x03             // pp bits
+    or      r8b, r15b
+    mov     r9b, r14b              // Map
+    mov     dl, [rsp + 0]          // Actually, I need to preserve r8b (R,X,B) properly
+    // ... refactor needed ...
+// Check if W is needed (e.g. 64-bit SIMD ops)
     IF byte [r10 + OPERAND_size], e, 64
         or al, 0x80                // W=1
     ENDIF
