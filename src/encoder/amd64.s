@@ -391,6 +391,22 @@ amd64_encode_mov:
             call    amd64_emit_modrm_sib
             jmp     .done
         ENDIF
+        
+        // Case 5: MOV MEM, IMM
+        IF byte [r14 + OPERAND_kind], e, OP_IMM
+            mov     al, 0x48 // REX.W
+            call    amd64_emit_byte
+            mov     al, 0xC7
+            call    amd64_emit_byte
+            
+            xor     al, al   // Extension Digit 0
+            mov     rdi, r13
+            call    amd64_emit_modrm_sib
+            
+            mov     rdi, [r14 + OPERAND_imm]
+            call    amd64_emit_dword
+            jmp     .done
+        ENDIF
     ENDIF
     
 .error:
@@ -583,17 +599,39 @@ amd64_encode_syscall:
 amd64_encode_push:
     prologue
     lea     r10, [r12 + INST_op0]
+    
+    // Case 1: Register (0x50 + reg)
     IF byte [r10 + OPERAND_kind], e, OP_REG
-        // REX.B if reg >= 8
         mov     cl, [r10 + OPERAND_reg]
         IF cl, ge, 8
-            mov  al, 0x41
-            call amd64_emit_byte
+            mov  al, 0x41 | call amd64_emit_byte
         ENDIF
-        mov     al, 0x50
-        and     cl, 0x07
-        add     al, cl
+        mov     al, 0x50 | and cl, 0x07 | add al, cl
         call    amd64_emit_byte
+        jmp     .done
+    ENDIF
+    
+    // Case 2: Memory (FF /6)
+    IF byte [r10 + OPERAND_kind], e, OP_MEM
+        mov     al, 0xFF | call amd64_emit_byte
+        mov     al, 6    // Extension Digit
+        mov     rdi, r10
+        call    amd64_emit_modrm_sib
+        jmp     .done
+    ENDIF
+    
+    // Case 3: Immediate (6A / 68)
+    IF byte [r10 + OPERAND_kind], e, OP_IMM
+        mov     rax, [r10 + OPERAND_imm]
+        IF rax, ge, -128
+            IF rax, le, 127
+                mov al, 0x6A | call amd64_emit_byte
+                mov rax, [r10 + OPERAND_imm] | call amd64_emit_byte
+                jmp .done
+            ENDIF
+        ENDIF
+        mov     al, 0x68 | call amd64_emit_byte
+        mov     rax, [r10 + OPERAND_imm] | call amd64_emit_dword
         jmp     .done
     ENDIF
 .error:
@@ -607,16 +645,24 @@ amd64_encode_push:
 amd64_encode_pop:
     prologue
     lea     r10, [r12 + INST_op0]
+    
+    // Case 1: Register (0x58 + reg)
     IF byte [r10 + OPERAND_kind], e, OP_REG
         mov     cl, [r10 + OPERAND_reg]
         IF cl, ge, 8
-            mov  al, 0x41
-            call amd64_emit_byte
+            mov  al, 0x41 | call amd64_emit_byte
         ENDIF
-        mov     al, 0x58
-        and     cl, 0x07
-        add     al, cl
+        mov     al, 0x58 | and cl, 0x07 | add al, cl
         call    amd64_emit_byte
+        jmp     .done
+    ENDIF
+    
+    // Case 2: Memory (8F /0)
+    IF byte [r10 + OPERAND_kind], e, OP_MEM
+        mov     al, 0x8F | call amd64_emit_byte
+        mov     al, 0    // Extension Digit
+        mov     rdi, r10
+        call    amd64_emit_modrm_sib
         jmp     .done
     ENDIF
     jmp     .error
