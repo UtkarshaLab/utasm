@@ -52,6 +52,31 @@ parser_parse_instruction:
         epilogue
     ENDIF
 
+    IF al, e, TOK_LABEL
+        // Global Label: rsi = name
+        mov     rsi, [r12 + TOKEN_value]
+        mov     rdi, [rbx + PREP_ctx]
+        mov     [rdi + ASMCTX_last_global], rsi
+        call    parser_define_label
+        check_err
+        jmp     .get_mnemonic
+    ENDIF
+
+    IF al, e, TOK_LOCAL_LABEL
+        // Local Label: concat last_global + local_name
+        mov     rdi, [rbx + PREP_ctx]
+        mov     r14, [rdi + ASMCTX_last_global]
+        test    r14, r14
+        jz      .error_no_global
+        
+        mov     rsi, [r12 + TOKEN_value] // local name (e.g. ".loop")
+        call    parser_concat_local_name
+        mov     rsi, rdx                // namespaced name
+        call    parser_define_label
+        check_err
+        jmp     .get_mnemonic
+    ENDIF
+
     IF al, ne, TOK_IDENT
         mov     rax, EXIT_UNEXPECTED_TOKEN
         jmp     .error
@@ -593,12 +618,79 @@ parser_parse_struc:
     xor     rax, rax
     jmp     .done
 
+.error_no_global:
+    mov     rax, EXIT_UNDEF_SYMBOL
+    jmp     .error
+
 .error:
 .done:
     pop     r15
     pop     r14
     pop     r13
     pop     r12
+    epilogue
+
+/**
+ * [parser_define_label]
+ * Input: RSI = name string
+ */
+parser_define_label:
+    prologue
+    push    rbx
+    push    rsi
+    mov     rbx, [rbx + PREP_ctx]
+    
+    // Create Symbol struct
+    sub     rsp, SYMBOL_SIZE
+    mov     rdi, rsp
+    mov     byte [rdi + SYMBOL_tag], TAG_SYMBOL
+    mov     byte [rdi + SYMBOL_kind], SYM_LABEL
+    mov     [rdi + SYMBOL_name], rsi
+    
+    // Note: Value and section are resolved during back-end pass or here if we track current section
+    // In this MVP, we assume global_ctx is being updated by main.s
+    
+    mov     rdi, rbx
+    mov     rsi, rsp
+    extern  symbol_add
+    call    symbol_add
+    
+    add     rsp, SYMBOL_SIZE
+    pop     rsi
+    pop     rbx
+    epilogue
+
+/**
+ * [parser_concat_local_name]
+ * Input: R14 = global name, RSI = local name
+ * Output: RDX = concatenated name in arena
+ */
+parser_concat_local_name:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     r12, r14               // global
+    mov     r13, rsi               // local
+    
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, MAX_TOKEN
+    call    arena_alloc
+    check_err
+    mov     r10, rdx               // R10 = temp buffer
+    
+    mov     rdi, r10
+    mov     rsi, r12
+    mov     rdx, r13
+    extern  str_concat
+    call    str_concat
+    
+    mov     rdx, r10
+    xor     rax, rax
+    pop     r13
+    pop     r12
+    pop     rbx
     epilogue
 
 /**
