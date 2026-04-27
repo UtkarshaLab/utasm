@@ -30,6 +30,9 @@ amd64_encode_instruction:
     mov     rbx, rdi               // RBX = AsmCtx
     mov     r12, rsi               // R12 = INST
     
+    // Reset length counter
+    mov     dword [rbx + ASMCTX_inst_len], 0
+    
     // 0. VALIDATION: Check operand size consistency
     cmp     byte [r12 + INST_nops], 2
     jl      .no_size_check
@@ -739,25 +742,13 @@ amd64_encode_jcc:
     prologue
     mov     ax, [r12 + INST_id]
     
-    xor     r14, r14
-    IF ax, e, 3005             // JE
-        mov r14, 0x84
-    ELSEIF ax, e, 3029         // JZ
-        mov r14, 0x84
-    ELSEIF ax, e, 3015         // JNE
-        mov r14, 0x85
-    ELSEIF ax, e, 3023         // JNZ
-        mov r14, 0x85
-    ELSEIF ax, e, 3008         // JL
-        mov r14, 0x8C
-    ELSEIF ax, e, 3006         // JG
-        mov r14, 0x8F
-    ELSE
-        mov r14, 0x84
-    ENDIF
+    // Extract condition code from ID (3000-3031)
+    sub     ax, 3000
+    and     rax, 0x0F          // Get CC bits
+    mov     r14, rax
     
     mov     al, 0x0F | call amd64_emit_byte
-    mov     al, r14b | call amd64_emit_byte
+    mov     al, 0x80 | add al, r14b | call amd64_emit_byte
     
     lea     r10, [r12 + INST_op0]
     IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
@@ -770,10 +761,46 @@ amd64_encode_jcc:
     call    amd64_emit_dword
     jmp     .done
 
-    jmp     .error
+/**
+ * [amd64_encode_branch_short]
+ * R13 = Opcode (0xEB for JMP, etc)
+ */
+amd64_encode_branch_short:
+    prologue
+    mov     al, r13b
+    call    amd64_emit_byte
+    
+    lea     r10, [r12 + INST_op0]
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        mov     al, RELOC_REL8
+        mov     rsi, [r10 + OPERAND_sym]
+        call    amd64_emit_reloc
+    ENDIF
+    
+    xor     rax, rax
+    call    amd64_emit_byte    // 1-byte placeholder
+    jmp     .done
 
-    xor     rdi, rdi
-    call    amd64_emit_dword
+/**
+ * [amd64_encode_jcc_short]
+ */
+amd64_encode_jcc_short:
+    prologue
+    mov     ax, [r12 + INST_id]
+    sub     ax, 3000
+    and     rax, 0x0F
+    add     al, 0x70           // 0x70 = JO short, 0x74 = JE short
+    call    amd64_emit_byte
+    
+    lea     r10, [r12 + INST_op0]
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        mov     al, RELOC_REL8
+        mov     rsi, [r10 + OPERAND_sym]
+        call    amd64_emit_reloc
+    ENDIF
+    
+    xor     rax, rax
+    call    amd64_emit_byte
     jmp     .done
 
 /**
@@ -1386,7 +1413,17 @@ amd64_emit_prefixes:
         mov al, 0x66 | call amd64_emit_byte
     ENDIF
     
-    // 2. REX Calculation
+    // 2. Address-Size Override (0x67)
+    IF rdx, ne, 0
+        // If memory operand uses 32-bit registers
+        IF byte [rdx + OPERAND_kind], e, OP_MEM
+            IF byte [rdx + OPERAND_size], e, 32
+                mov al, 0x67 | call amd64_emit_byte
+            ENDIF
+        ENDIF
+    ENDIF
+
+    // 3. REX Calculation
     xor     r11, r11
     pop     rdx
     pop     rsi
@@ -1490,6 +1527,10 @@ amd64_emit_modrm_sib:
     ENDIF
     
     mov     cl, [r13 + OPERAND_index]
+    IF cl, e, 4
+        jmp amd64_encode_instruction.error
+    ENDIF
+    
     xor     rdx, rdx            // Mod field
     mov     rdi, [r13 + OPERAND_imm] // Displacement
     
@@ -1599,6 +1640,17 @@ amd64_emit_modrm_sib:
  */
 amd64_emit_byte:
     extern asm_ctx_emit_byte
+    push    rax
+    
+    // Check architectural limit (15 bytes)
+    mov     eax, [rbx + ASMCTX_inst_len]
+    IF eax, ge, 15
+        pop rax
+        jmp amd64_encode_instruction.error
+    ENDIF
+    inc     dword [rbx + ASMCTX_inst_len]
+    
+    pop     rax
     mov     rdi, rbx
     movzx   rsi, al
     call    asm_ctx_emit_byte

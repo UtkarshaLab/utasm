@@ -235,7 +235,7 @@ struc ASMCTX
     field seccount,    4       // section count
     field relocs,      8       // pointer to relocation array
     field nrelocs,     4       // relocation count
-    field pad1,         4       // alignment padding
+    field inst_len,    4       // current instruction length (0-15)
     field inc_ctx,     8       // current IncludeCtx
     field mac_exp,     8       // current MacroExpansion
     field input,       8       // input filename
