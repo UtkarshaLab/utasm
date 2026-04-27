@@ -746,6 +746,9 @@ parser_handle_pseudo_op:
     ELSEIF rbx, e, "dq"
         call    parser_emit_data_64
         mov     rax, 1
+    ELSEIF rbx, e, "SECTION"
+        call    parser_handle_section_directive
+        mov     rax, 1
     ELSE
         xor     rax, rax
     ENDIF
@@ -795,6 +798,46 @@ parser_emit_data_32:
 parser_emit_data_64:
     prologue
     // Implementation for dq...
+    epilogue
+
+/**
+ * [parser_handle_section_directive]
+ * Input: None (reads from preprocessor)
+ */
+parser_handle_section_directive:
+    prologue
+    push    rbx
+    push    r12
+    
+    // Get section name token
+    call    preprocessor_next_token
+    check_err
+    mov     r12, rdx               // r12 = token (.text, .data, etc)
+    
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [r12 + TOKEN_value]
+    extern  asmctx_find_section
+    call    asmctx_find_section
+    
+    IF rax, e, OK
+        // Switch current section
+        mov     rdi, [rbx + PREP_ctx]
+        mov     [rdi + ASMCTX_curr_sec], rdx
+    ELSE
+        // Create new section
+        mov     rdi, [rbx + PREP_ctx]
+        mov     rsi, [r12 + TOKEN_value]
+        mov     rdx, SEC_CUSTOM        // Default to custom for now
+        extern  asm_ctx_create_section
+        call    asm_ctx_create_section
+        check_err
+        
+        mov     rdi, [rbx + PREP_ctx]
+        mov     [rdi + ASMCTX_curr_sec], rdx
+    ENDIF
+    
+    pop     r12
+    pop     rbx
     epilogue
 
 [SECTION .rodata]
