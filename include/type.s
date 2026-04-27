@@ -183,7 +183,8 @@ struc ASMCTX
     field perf_start,  8       // RDTSC start cycles
     field perf_end,    8       // RDTSC end cycles
     field symhash,     8       // pointer to symbol hash table (64k entries)
-    field pad2,        8       // future reservation
+    field expr_depth,  4       // expression recursion depth sentinel
+    field pad2,        4       // alignment padding
 endstruc
 
 // ============================================================================
