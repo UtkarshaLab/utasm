@@ -84,12 +84,14 @@ endstruc
 
 struc RELOC
     field tag,         1       // TAG_RELOC
-    field type,        1       // RELOC_* value
+    field type,        1       // RELOC_* value (Arch-specific)
     field pad0,         2       // alignment
     field offset,      4       // offset in binary section
-    field pc_adjust,   4       // adjustment for PC-relative relocs
-    field symbol,      8       // pointer to symbol name string
+    field addend,      8       // signed addend for RELA
+    field sym,         8       // pointer to symbol name string
     field section,     8       // pointer to target section
+    field pc_adjust,   4       // adjustment for PC-relative relocs
+    field pad1,         4       // alignment padding
 endstruc
 
 // ============================================================================
