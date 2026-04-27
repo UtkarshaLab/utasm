@@ -447,92 +447,90 @@ parser_get_arch_tables:
 parser_parse_mem_operand:
     prologue
     mov     byte [r12 + OPERAND_kind], OP_MEM
+    mov     byte [r12 + OPERAND_scale], 1 // Default scale
     
-    call    preprocessor_peek_token
-    mov     al, [rdx + TOKEN_kind]
-    
-    IF al, e, TOK_NUMBER
-        call    preprocessor_next_token
-        mov     rsi, [rdx + TOKEN_value]
-        call    str_to_int
-        mov     [r12 + OPERAND_imm], rax
-    IF al, e, TOK_IDENT
-        call    preprocessor_next_token
-        mov     rsi, [rdx + TOKEN_value]
-        
-        // Potential Segment Override check
-        call    preprocessor_peek_token
-        IF byte [rdx + TOKEN_kind], e, TOK_COLON
-            call    preprocessor_next_token  // consume colon
-            IF rsi, e, "fs" | mov byte [r12 + OPERAND_segment], 0x64 | ENDIF
-            IF rsi, e, "gs" | mov byte [r12 + OPERAND_segment], 0x65 | ENDIF
-            
-            call    preprocessor_next_token
-            mov     rsi, [rdx + TOKEN_value]
-        ENDIF
-        
-        call    parser_parse_reg_info
-        IF rax, e, ERR | jmp .error | ENDIF
-        mov     [r12 + OPERAND_base], al
-    ENDIF
-    
-.offset_chain:
     call    preprocessor_peek_token
     mov     r13, rdx
     mov     al, [r13 + TOKEN_kind]
     
-    IF al, e, TOK_PLUS
-        call    preprocessor_next_token
-        mov     r14, 1
-    ELSEIF al, e, TOK_MINUS
-        call    preprocessor_next_token
-        check_err
-        mov     r14, -1
-    ELSE
-        jmp     .finalize
+    // 1. Check for 'rel' keyword (RIP-relative)
+    IF al, e, TOK_IDENT
+        mov     rdi, [r13 + TOKEN_value]
+        lea     rsi, [str_rel]
+        extern  str_cmp
+        call    str_cmp
+        IF rax, e, 0
+            call    preprocessor_next_token // consume 'rel'
+            mov     byte [r12 + OPERAND_flags], OP_FLAG_REL
+            // Fall through to parse the symbol/offset
+        ENDIF
     ENDIF
-    
+
+.loop:
     call    preprocessor_next_token
     check_err
     mov     r13, rdx
     mov     al, [r13 + TOKEN_kind]
-    
-    IF al, e, TOK_IDENT
-        mov     rsi, [r13 + TOKEN_value]
-        mov     rdi, r10
-        call    parser_parse_reg_info
-        IF rax, e, ERR
-            mov     rax, EXIT_INVALID_REG
-            jmp     .error
-        ENDIF
-        mov     [r12 + OPERAND_index], al
-        
-        call    preprocessor_peek_token
-        IF byte [rdx + TOKEN_kind], e, TOK_STAR
-            call    preprocessor_next_token
-            call    preprocessor_next_token
-            mov     rsi, [rdx + TOKEN_value]
-            call    str_to_int
-            mov     [r12 + OPERAND_scale], al
-        ENDIF
-    ELSEIF al, e, TOK_NUMBER
-        mov     rsi, [r13 + TOKEN_value]
-        call    str_to_int
-        IF r14, e, -1
-            sub     [r12 + OPERAND_imm], rax
-        ELSE
-            add     [r12 + OPERAND_imm], rax
-        ENDIF
+
+    IF al, e, TOK_RBRACKET
+        jmp     .finalize
     ENDIF
-    jmp     .offset_chain
+
+    IF al, e, TOK_PLUS
+        jmp     .loop
+    ENDIF
+
+    IF al, e, TOK_MINUS
+        // handle negative disp? usually handled by expression engine
+        call    preprocessor_putback_token
+        jmp     .parse_item
+    ENDIF
+
+.parse_item:
+    IF al, e, TOK_IDENT
+        // Could be a register OR a symbol
+        mov     rsi, [r13 + TOKEN_value]
+        mov     rdi, r10               // Register table
+        call    parser_parse_reg_info
+        IF rax, ne, ERR
+            // It's a register. Is it base or index?
+            cmp     byte [r12 + OPERAND_base], 0xFF
+            jne     .set_index
+            mov     [r12 + OPERAND_base], al
+            jmp     .check_scale
+        .set_index:
+            mov     [r12 + OPERAND_index], al
+        .check_scale:
+            call    preprocessor_peek_token
+            IF byte [rdx + TOKEN_kind], e, TOK_STAR
+                call    preprocessor_next_token // *
+                call    preprocessor_next_token // scale
+                mov     rsi, [rdx + TOKEN_value]
+                call    str_to_int
+                // Validate Scale: 1, 2, 4, 8
+                IF rax, e, 1 | jmp .scale_ok | ENDIF
+                IF rax, e, 2 | jmp .scale_ok | ENDIF
+                IF rax, e, 4 | jmp .scale_ok | ENDIF
+                IF rax, e, 8 | jmp .scale_ok | ENDIF
+                mov     rax, EXIT_INVALID_OPERAND
+                jmp     .error
+            .scale_ok:
+                mov     [r12 + OPERAND_scale], al
+            ENDIF
+            jmp     .loop
+        ENDIF
+        // Not a register, must be a symbol/expression
+        call    preprocessor_putback_token
+    ENDIF
+
+    // 2. Parse as expression (Displacement)
+    call    parser_evaluate_expression
+    check_err
+    // result in rdx
+    add     [r12 + OPERAND_imm], rdx
+    jmp     .loop
 
 .finalize:
-    call    preprocessor_next_token
-    IF byte [rdx + TOKEN_kind], ne, TOK_RBRACKET
-        mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .error
-    ENDIF
-    
     // ---- STRUCT BOUNDS CHECK ----
     // If OPERAND_sym is set, the base address expression contained a
     // struct-field dot-access (e.g. PageTable.Present).  At this point
@@ -571,6 +569,9 @@ parser_parse_mem_operand:
 
 .error:
     epilogue
+
+[SECTION .rodata]
+str_rel: db "rel", 0
 
 /**
  * [parser_is_register]
