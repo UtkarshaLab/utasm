@@ -484,34 +484,40 @@ prep_expand_next:
     inc     qword [r13 + MACROEXP_body]
 
     // 3. Handle parameter substitution
-    // Macro parameters are TOK_DIRECTIVE with value like "1", "2"
+    // Macro parameters are TOK_DIRECTIVE with value like "0", "1", "2"...
     cmp     byte [r12 + TOKEN_kind], TOK_DIRECTIVE
     jne     .produced
 
-    // check if value is a number
     mov     rdi, [r12 + TOKEN_value]
     movzx   rax, byte [rdi]
+    
+    // CASE 1: %0 (Parameter Count)
+    IF al, e, '0'
+        mov     byte [r12 + TOKEN_kind], TOK_NUMBER
+        movzx   rax, byte [r13 + MACROEXP_nparams]
+        mov     [r12 + TOKEN_value], rax
+        jmp     .produced
+    ENDIF
+
+    // CASE 2: %1-%9 (Parameter Reference)
     sub     al, '0'
-    cmp     al, 1
-    jl      .produced              // not a param (e.g. %define)
-    cmp     al, 9
-    jg      .produced
-    
-    // it's a param ref! (1-9)
-    // check if it is within nparams
-    movzx   rcx, byte [r13 + MACROEXP_nparams]
-    cmp     al, cl
-    jg      .produced              // out of range, keep as directive? 
-    
-    // replace r12 with the parameter token
-    dec     al                     // 0-indexed
-    mov     r11, [r13 + MACROEXP_params]
-    movzx   rax, al
-    mov     rsi, [r11 + rax * 8]   // rsi = param token
-    
-    mov     rdi, r12
-    mov     rcx, (TOKEN_SIZE / 8)
-    rep movsq
+    IF al, ge, 1 | IF al, le, 9
+        // it's a param ref! (1-9)
+        // check if it is within nparams
+        movzx   rcx, byte [r13 + MACROEXP_nparams]
+        cmp     al, cl
+        jg      .produced              // out of range, keep as directive
+        
+        // replace r12 with the parameter token
+        dec     al                     // 0-indexed
+        mov     r11, [r13 + MACROEXP_params]
+        movzx   rax, al
+        mov     rsi, [r11 + rax * 8]   // rsi = param token
+        
+        mov     rdi, r12
+        mov     rcx, (TOKEN_SIZE / 8)
+        rep movsq
+    ENDIF
 
 .produced:
     xor     rax, rax
