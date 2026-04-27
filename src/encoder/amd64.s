@@ -95,6 +95,14 @@ amd64_encode_instruction:
         mov     r13, 0x29 | mov r14, 5 | call amd64_encode_arithmetic
     ELSEIF ax, e, 1075             // CMP
         mov     r13, 0x39 | mov r14, 7 | call amd64_encode_arithmetic
+    ELSEIF ax, e, 1084             // CMPXCHG
+        mov     r13, 0xB1 | call amd64_encode_bin0f
+    ELSEIF ax, e, 2150             // XADD
+        mov     r13, 0xC1 | call amd64_encode_bin0f
+    ELSEIF ax, e, 1086             // CMPXCHG8B
+        mov     r14, 1 | call amd64_encode_cmpxchg_nb
+    ELSEIF ax, e, 1085             // CMPXCHG16B
+        mov     r14, 1 | call amd64_encode_cmpxchg_nb
     ELSEIF ax, e, 1028             // AND
         mov     r13, 0x21 | mov r14, 4 | call amd64_encode_arithmetic
     ELSEIF ax, e, 1442             // OR
@@ -1571,6 +1579,55 @@ amd64_encode_string:
         inc al
     ENDIF
     call    amd64_emit_byte
+    jmp     .done
+
+/**
+ * [amd64_encode_bin0f]
+ * R13 = Opcode (after 0x0F)
+ */
+amd64_encode_bin0f:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    mov     al, [r10 + OPERAND_size]
+    mov     rsi, r11           // Reg (Src)
+    mov     rdx, r10           // R/M (Dst)
+    call    amd64_emit_prefixes
+    
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, r13b
+    IF byte [r10 + OPERAND_size], e, 8
+        dec al                 // 0xB1 -> 0xB0 for byte
+    ENDIF
+    call    amd64_emit_byte
+    
+    mov     al, [r11 + OPERAND_reg]
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_cmpxchg_nb]
+ * CMPXCHG8B / CMPXCHG16B
+ */
+amd64_encode_cmpxchg_nb:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    
+    // REX.W for 16B
+    IF word [r12 + INST_op_id], e, 1085
+        mov al, 0x48 | call amd64_emit_byte
+    ELSEIF byte [r10 + OPERAND_reg], ge, 8
+        mov al, 0x41 | call amd64_emit_byte
+    ENDIF
+    
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0xC7 | call amd64_emit_byte
+    
+    mov     al, r14b           // Digit 1
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
     jmp     .done
 
 /**
