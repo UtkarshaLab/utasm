@@ -169,6 +169,9 @@ struc ASMCTX
     field flags,       4       // CTX_FLAG_* values
     field last_global, 8       // pointer to string of last global label
     field curr_sec,    8       // pointer to current active SECTION
+    field total_lines, 8       // total lines processed
+    field perf_start,  8       // RDTSC start cycles
+    field perf_end,    8       // RDTSC end cycles
     field symhash,     8       // pointer to symbol hash table (64k entries)
     field pad2,        8       // future reservation
 endstruc

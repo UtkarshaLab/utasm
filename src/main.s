@@ -142,6 +142,12 @@ _start:
     mov     rcx, global_arena
     call    prep_init
     
+    // 6.3.1 Start Benchmark
+    rdtsc
+    shl     rdx, 32
+    or      rax, rdx
+    mov     [global_ctx + ASMCTX_perf_start], rax
+
     // 6.4 Main Assembly Loop
 .assembly_loop:
     mov     rdi, r15                         // PrepState
@@ -221,6 +227,15 @@ _start:
     // (We will expand this as needed)
 
     // 7. Normal Exit
+    rdtsc
+    shl     rdx, 32
+    or      rax, rdx
+    mov     r8, [global_ctx + ASMCTX_perf_start]
+    sub     rax, r8                         // rax = total cycles
+    
+    // For now, we just exit, but we've recorded the data.
+    // In a future pass, we'll implement a 'print_uint64' to show it.
+    
     mov     rax, AMD64_SYS_EXIT
     mov     rdi, EXIT_OK
     syscall
