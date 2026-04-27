@@ -83,19 +83,19 @@ aarch64_encode_instruction:
     // ---- System & Barrier Instructions ----
     ELSEIF eax, e, ID_AARCH64_SVC
         call    aarch64_encode_svc
-    ELSEIF eax, ge, 2328            // MRS/MSR range
-        IF eax, le, 2330
+    ELSEIF eax, ge, ID_AARCH64_MRS         // MRS/MSR range
+        IF eax, le, ID_AARCH64_MSR
             call aarch64_encode_system_reg
         ENDIF
-    ELSEIF eax, e, 2133             // DSB
+    ELSEIF eax, e, ID_AARCH64_DSB
         mov     edi, 0xD503309F | call aarch64_emit_word
-    ELSEIF eax, e, 2131             // DMB
+    ELSEIF eax, e, ID_AARCH64_DMB
         mov     edi, 0xD50330BF | call aarch64_emit_word
-    ELSEIF eax, e, 2228             // ISB
+    ELSEIF eax, e, ID_AARCH64_ISB
         mov     edi, 0xD5033FDF | call aarch64_emit_word
-    ELSEIF eax, e, 2617             // WFI
+    ELSEIF eax, e, ID_AARCH64_WFI
         mov     edi, 0xD503205F | call aarch64_emit_word
-    ELSEIF eax, e, 2176             // HLT
+    ELSEIF eax, e, ID_AARCH64_HLT
         call    aarch64_encode_hlt
 
     // ---- Floating Point (Basic) ----
