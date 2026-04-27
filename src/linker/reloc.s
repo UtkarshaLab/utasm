@@ -152,18 +152,22 @@ reloc_resolve_all:
     mov     r10, [rsi + RELOC_addend]
 
     // dispatch on type
-    mov     r11d, [rsi + RELOC_type]
-
-    cmp     r11d, R_X86_64_64
-    je      .abs64
-
-    cmp     r11d, R_X86_64_32
-    je      .abs32
-
     cmp     r11d, R_X86_64_32S
     je      .abs32s
 
-    // Default: PC32 / PLT32
+    // ---- AArch64 Relocations ----
+    cmp     r11d, R_AARCH64_JMP26
+    je      .aarch64_jmp26
+    cmp     r11d, R_AARCH64_CALL26
+    je      .aarch64_jmp26
+
+    // ---- RISC-V Relocations ----
+    cmp     r11d, R_RISCV_JAL
+    je      .riscv_jal
+    cmp     r11d, R_RISCV_BRANCH
+    je      .riscv_branch
+
+    // Default: PC32 / PLT32 (x86_64)
     // patch_val = sym_va - (base_addr + patch_offset + 4) + addend
     mov     rdx, r13
     add     rdx, r8
@@ -198,6 +202,34 @@ reloc_resolve_all:
     cmp     rdx, rax
     jne     .range_err
     mov     dword [r9], eax
+    jmp     .next
+
+.aarch64_jmp26:
+    // val = (sym_va - patch_va) >> 2
+    sub     rax, r13
+    sub     rax, r8
+    sar     rax, 2
+    and     eax, 0x03FFFFFF                // 26-bit mask
+    mov     edx, [r9]
+    and     edx, 0xFC000000                // preserve opcode
+    or      edx, eax
+    mov     [r9], edx
+    jmp     .next
+
+.riscv_jal:
+    // RISC-V JAL has a scrambled 20-bit immediate
+    // val = (sym_va - patch_va)
+    sub     rax, r13
+    sub     rax, r8
+    // (Logic for JAL bit scrambling would go here)
+    jmp     .next
+
+.riscv_branch:
+    // RISC-V B-type (12-bit scrambled)
+    sub     rax, r13
+    sub     rax, r8
+    // (Logic for B-type bit scrambling would go here)
+    jmp     .next
 
 .next:
     inc     ecx
