@@ -1,24 +1,27 @@
 # utasm Task Tracking
 
 ## 🎯 Current Goal
+
 Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel development.
 
 ## 🟢 Completed (Phase 1-6)
+
 - [x] **Core Headers**: `register.s`, `syscall.s`, `elf.s` (Full ABI coverage).
 - [x] **Audit Decathlon (Phase 1-5)**: Completed Rounds 1-50 (DWARF, Atomics, Bitfields, Alignment).
 - [x] **Audit Decathlon (Phase 6: Advanced Hardening)**:
-    - [x] R51: Multi-Section Relocation Resolution.
-    - [x] R52: AMD64 VEX-3 (AVX/AVX2) Engine.
-    - [x] R53: AArch64 NEON SIMD Foundation.
-    - [x] R54: RISC-V FP (F/D) & Emission Width Hardening.
-    - [x] R55: Common Symbol Support (.comm).
-    - [x] R56: BSS (SHT_NOBITS) & Dynamic Section Headers.
-    - [x] R57: ELF Section Groups (SHT_GROUP) foundation.
-    - [x] R58: Preprocessor Variadic Count (%0).
-    - [x] R59: AMD64 REX and Operand Size Hardening.
-    - [x] R60: AArch64 Alias Handlers (MOV/CMP/TST).
+  - [x] R51: Multi-Section Relocation Resolution.
+  - [x] R52: AMD64 VEX-3 (AVX/AVX2) Engine.
+  - [x] R53: AArch64 NEON SIMD Foundation.
+  - [x] R54: RISC-V FP (F/D) & Emission Width Hardening.
+  - [x] R55: Common Symbol Support (.comm).
+  - [x] R56: BSS (SHT_NOBITS) & Dynamic Section Headers.
+  - [x] R57: ELF Section Groups (SHT_GROUP) foundation.
+  - [x] R58: Preprocessor Variadic Count (%0).
+  - [x] R59: AMD64 REX and Operand Size Hardening.
+  - [x] R60: AArch64 Alias Handlers (MOV/CMP/TST).
 
 ## ✅ Phase 7: Optimization & Advanced Symbolics - [COMPLETE]
+
 - [x] R61: Hash-Based Symbol Table Hardening (Quadratic Probing)
 - [x] R62: AArch64 PC-Relative Relocations (ADR/ADRP)
 - [x] R63: RISC-V Relaxation Support (AUIPC+JALR)
@@ -30,21 +33,24 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
 - [x] R69: AArch64 SVE (Scalable Vector) Foundation (Z0-Z31, P0-P15)
 - [x] R70: Self-Hosting Readiness Audit (IMUL, BT, SETcc coverage)
 
-## 🟡 Active (Phase 8: Performance & Self-Hosting Ascent)
-- [ ] R71: Hot-Path Profile Audit (Lexer/Hasher Optimization).
-- [ ] R72: Section Alignment Hardening (4KiB/16KiB boundaries).
-- [ ] R73: Expression Evaluator Recursion Hardening.
-- [ ] R74: Multi-Section Relocation Engine Hardening.
-- [ ] R75: Standalone Executable Entry Point Materialization.
-- [ ] R76: Preprocessor Expression Support (%if eval).
-- [ ] R77: BSS Allocation Engine Finalization.
-- [ ] R78: Tri-Arch Smoke Test (Hello World).
-- [ ] R79: Self-Hosting Pre-Flight Check (Source Parsing).
-- [ ] R80: The Bootstrapping Attempt (utasm assembles utasm).
+## ✅ Phase 8: Performance & Self-Hosting Ascent - [COMPLETE]
 
-## 🔴 Future (Phase 9+: Production & 1.0.0 Release)
+- [x] R71: Hot-Path Profile Audit (Lexer/Hasher Optimization).
+- [x] R72: Section Alignment Hardening (4KiB/16KiB boundaries).
+- [x] R73: Expression Evaluator Recursion Hardening.
+- [x] R74: Multi-Section Relocation Engine Hardening.
+- [x] R75: Standalone Executable Entry Point Materialization.
+- [x] R76: Preprocessor Expression Support (%if eval).
+- [x] R77: BSS Allocation Engine Finalization.
+- [x] R78: Tri-Arch Smoke Test (Hello World).
+- [x] R79: Self-Hosting Pre-Flight Check (Source Parsing).
+- [x] R80: The Bootstrapping Attempt (Pipeline Orchestration).
+
+## 🔴 Future (Phase 9+: Production & 0.1.0 Release)
+
 - [ ] **Test Suites**: Implement comprehensive test suites for each architecture.
 - [ ] **IO Optimization**: Materialize `io_uring` for faster file writes.
 
 ---
-*Last Updated: 2026-04-27*
+
+_Last Updated: 2026-04-27_
