@@ -59,6 +59,13 @@
 %def ID_AARCH64_TBNZ        2583
 %def ID_AARCH64_TBZ         2584
 %def ID_AARCH64_TST         2602
+%def ID_AARCH64_MRS         2328
+%def ID_AARCH64_MSR         2330
+%def ID_AARCH64_DSB         2133
+%def ID_AARCH64_DMB         2131
+%def ID_AARCH64_ISB         2228
+%def ID_AARCH64_WFI         2617
+%def ID_AARCH64_HLT         2176
 
 /**
  * [define_mnemonic]
