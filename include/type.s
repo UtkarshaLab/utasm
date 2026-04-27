@@ -309,14 +309,15 @@ struc OPERAND
     field reg,      1       // register ID
     field segment,  1       // segment override (0x64, 0x65)
     field is_high,  1       // 1 if AH/CH/DH/BH
-    field pad0,     2       // alignment padding
+    field mask,     1       // AVX-512 k-register mask (0-7)
+    field ctrl,     1       // AVX-512 rounding/broadcast control
     field imm,      8       // immediate or displacement
     field base,     1       // base register
     field index,    1       // index register
     field scale,    1       // scale factor
-    field pad1,     5       // alignment padding
+    field pad0,     5       // alignment padding
     field sym,      8       // pointer to Symbol
-    field pad2,     16      // future reservation
+    field pad1,     16      // future reservation
 endstruc
 
 // ============================================================================
