@@ -28,7 +28,10 @@ extern riscv64_encode_instruction
 extern elf64_emit
 extern binary_emit
 extern reloc_init
-extern reloc_resolve_all
+extern linker_run
+extern listing_generate
+extern mapfile_generate
+extern asm_ctx_align
 
 [SECTION .data]
     // Professional banner for the assembler
@@ -150,13 +153,21 @@ _start:
     mov     rsi, rdx                         // rsi = INST*
     mov     rdi, global_ctx
     
+    movzx   eax, byte [global_ctx + ASMCTX_target]
+    
+    // ---- FIX: ALIGNMENT GUARD ----
+    IF eax, ne, TARGET_AMD64
+        mov     rdi, global_ctx
+        mov     rsi, 4
+        call    asm_ctx_align
+    ENDIF
+
     // Dispatch to arch-specific encoder
-    movzx   eax, byte [global_ctx + ASMCTX_arch]
-    IF eax, e, ARCH_AMD64
+    IF eax, e, TARGET_AMD64
         call    amd64_encode_instruction
-    ELSEIF eax, e, ARCH_AARCH64
+    ELSEIF eax, e, TARGET_AARCH64
         call    aarch64_encode_instruction
-    ELSEIF eax, e, ARCH_RISCV64
+    ELSEIF eax, e, TARGET_RISCV64
         call    riscv64_encode_instruction
     ENDIF
     check_err
@@ -172,22 +183,20 @@ _start:
     
 .emission:
     // 6.5 Emission Phase
-    // Resolve Relocations
     mov     rdi, global_ctx
-    xor     rsi, rsi                         // buffer (emitters will handle)
-    xor     rdx, rdx                         // base
-    call    reloc_resolve_all
-    
-    // Emit Output
-    movzx   eax, byte [global_ctx + ASMCTX_format]
-    IF eax, e, FORMAT_ELF64
-        mov     rdi, global_ctx
-        call    elf64_emit
-    ELSE
-        mov     rdi, global_ctx
-        call    binary_emit
-    ENDIF
+    call    linker_run
     check_err
+
+    // 6.6 Diagnostic Phase (Optional)
+    mov     rax, [global_ctx + ASMCTX_flags]
+    test    rax, CTX_FLAG_LISTING
+    jz      .check_map
+    mov     rdi, global_ctx
+    call    listing_generate
+
+.check_map:
+    // Logic for map file...
+    // (We will expand this as needed)
 
     // 7. Normal Exit
     mov     rax, AMD64_SYS_EXIT
