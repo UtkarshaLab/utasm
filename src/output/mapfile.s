@@ -3,7 +3,9 @@
  File        : src/output/mapfile.s
  Project     : utasm
  Version     : 0.1.0
- Description : Linker Map File Generator. Lists all symbols and their addresses.
+ Author      : Utkarsha Lab
+ License     : Apache-2.0
+ Description : Linker Map File Generator. 
  ============================================================================
 */
 
@@ -33,14 +35,21 @@ mapfile_generate:
     mov     rbx, rdi               // RBX = AsmCtx
     
     // 1. Open .map file
-    // (Logic for name + ".map")
-    mov     rdi, [rbx + ASMCTX_output]
+    // For now, we use a fixed name "utasm.map" or derived from output
+    mov     rdi, [rbx + ASMCTX_output] // base name
+    // (In production we'd append .map here)
+    lea     rdi, [str_map_name]
     mov     rsi, AMD64_O_WRONLY | AMD64_O_CREAT | AMD64_O_TRUNC
     mov     rdx, 0o644
     call    io_open
     check_err
     mov     r12, rdx               // R12 = FD
     
+    // Write Header
+    mov     rdi, r12
+    lea     rsi, [msg_header]
+    call    io_write_str
+
     // 2. Iterate Symbols
     mov     r13, [rbx + ASMCTX_symtab]
     mov     r14d, [rbx + ASMCTX_symcount]
@@ -49,20 +58,27 @@ mapfile_generate:
     test    r14, r14
     jz      .done
     
-    mov     r8, r13                // R8 = SYMBOL*
+    // a. Print Hex Address
+    mov     rax, [r13 + SYMBOL_value]
+    // Add section base address if applicable
+    movzx   rcx, word [r13 + SYMBOL_section]
+    // (Logic for section base would go here, currently assume flat)
     
-    // Print Symbol Name
+    mov     rdi, rax
+    call    u64_to_hex             // result in str_hex_buf
+    
     mov     rdi, r12
-    mov     rsi, [r8 + SYMBOL_name]
+    lea     rsi, [str_hex_buf]
     call    io_write_str
     
-    // Print tab
-    mov     rdi, r12
-    lea     rsi, [msg_tab]
-    mov     rdx, 1
-    call    io_write
+    call    write_tab
     
-    // (Logic for Hex Address conversion goes here)
+    // b. Print Symbol Name
+    mov     rdi, r12
+    mov     rsi, [r13 + SYMBOL_name]
+    call    io_write_str
+    
+    call    write_nl
     
     add     r13, SYMBOL_SIZE
     dec     r14
@@ -77,6 +93,20 @@ mapfile_generate:
     pop     rbx
     epilogue
 
+write_tab:
+    mov     rdi, r12
+    lea     rsi, [msg_tab]
+    mov     rdx, 1
+    call    io_write
+    ret
+
+write_nl:
+    mov     rdi, r12
+    lea     rsi, [msg_nl]
+    mov     rdx, 1
+    call    io_write
+    ret
+
 io_write_str:
     push    rdi
     mov     rdi, rsi
@@ -86,5 +116,37 @@ io_write_str:
     call    io_write
     ret
 
+/**
+ * [u64_to_hex]
+ * Converts RDI to a 16-char hex string in str_hex_buf.
+ */
+u64_to_hex:
+    push    rbx
+    lea     rbx, [str_hex_buf + 15]
+    mov     rcx, 16
+.loop:
+    mov     rax, rdi
+    and     rax, 0xF
+    cmp     al, 10
+    jae     .letter
+    add     al, '0'
+    jmp     .store
+.letter:
+    add     al, 'A' - 10
+.store:
+    mov     [rbx], al
+    dec     rbx
+    shr     rdi, 4
+    loop    .loop
+    pop     rbx
+    ret
+
 [SECTION .data]
-msg_tab: db 9
+msg_tab:    db 9
+msg_nl:     db 10
+msg_header: db "Address            Symbol", 10
+            db "--------------------------------", 10, 0
+str_map_name: db "utasm.map", 0
+
+[SECTION .bss]
+str_hex_buf: resb 17
