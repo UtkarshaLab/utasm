@@ -93,6 +93,10 @@ elf64_emit:
     check_err
     call    elf64_write_debug_line
     check_err
+    call    elf64_write_debug_info
+    check_err
+    call    elf64_write_debug_abbrev
+    check_err
 
     // ---- 6. Write Section Header Table ----
     call    elf64_write_shdrs
@@ -130,6 +134,64 @@ elf64_write_debug_line:
     
     add     rsp, 16
     pop     rbx
+    xor     rax, rax
+    epilogue
+
+/**
+ * [elf64_write_debug_info]
+ * Writes a minimal DWARF v5 Compile Unit header.
+ */
+elf64_write_debug_info:
+    prologue
+    push    rbx
+    sub     rsp, 16
+    
+    // 1. Unit Length (Dummy 12 bytes for header)
+    mov     dword [rsp], 12
+    mov     rdi, r13d
+    mov     rsi, rsp
+    mov     rdx, 4
+    call    io_write
+    
+    // 2. Version (5)
+    mov     word [rsp], 5
+    mov     rdx, 2
+    call    io_write
+    
+    // 3. Unit Type (DW_UT_compile = 1)
+    mov     byte [rsp], 1
+    mov     rdx, 1
+    call    io_write
+    
+    // 4. Address Size (8)
+    mov     byte [rsp], 8
+    mov     rdx, 1
+    call    io_write
+    
+    // 5. Abbrev Offset (0)
+    mov     dword [rsp], 0
+    mov     rdx, 4
+    call    io_write
+    
+    add     rsp, 16
+    pop     rbx
+    xor     rax, rax
+    epilogue
+
+/**
+ * [elf64_write_debug_abbrev]
+ * Writes a minimal DWARF v5 abbreviation table.
+ */
+elf64_write_debug_abbrev:
+    prologue
+    // Write a single 0 byte (Empty abbrev table)
+    sub     rsp, 16
+    mov     byte [rsp], 0
+    mov     rdi, r13d
+    mov     rsi, rsp
+    mov     rdx, 1
+    call    io_write
+    add     rsp, 16
     xor     rax, rax
     epilogue
 
