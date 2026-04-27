@@ -301,8 +301,28 @@
  */
 %macro IF 3
     %push   if
+    %assign %$if_depth 1
     cmp     %1, %3
     jn%2    %$else_label
+%endmacro
+
+%macro ELSEIF 3
+    %ifctx if
+        jmp     %$endif_label
+        %$else_label:
+        %rep 1
+            %assign %%old_depth %$if_depth
+            %define %%old_endif %$endif_label
+            %pop    if
+            %push   if
+            %assign %$if_depth %%old_depth
+            %define %$endif_label %%old_endif
+        %endrep
+        cmp     %1, %3
+        jn%2    %$else_label
+    %else
+        %error "ELSEIF without IF"
+    %endif
 %endmacro
 
 %macro ELSE 0
@@ -1153,6 +1173,7 @@
     dq      %%h
     db      %2
     dw      %3
+    db      0, 0, 0, 0, 0  ; 5 bytes padding to reach 16-byte stride
 %endmacro
 
 /**

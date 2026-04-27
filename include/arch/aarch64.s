@@ -28,3 +28,11 @@
 %def ARM_OP_EOR             107
 %def ARM_OP_LDR             108
 %def ARM_OP_STR             109
+
+/**
+ * [define_mnemonic]
+ * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
+ */
+%macro define_mnemonic 3
+    mnemonic_entry %1, %2, %3
+%endmacro
