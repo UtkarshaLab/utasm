@@ -39,7 +39,7 @@ parser_parse_instruction:
     // 2. Get mnemonic token
     call    preprocessor_next_token
     check_err
-    mov     r12, rax
+    mov     r12, rdx
     
     mov     al, [r12 + TOKEN_kind]
     IF al, e, TOK_EOF
@@ -86,7 +86,7 @@ parser_parse_instruction:
     mov     [r15 + INST_nops], r14b
     
     call    preprocessor_peek_token
-    IF byte [rax + TOKEN_kind], e, TOK_COMMA
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
         jmp     .operand_loop
     ENDIF
@@ -117,7 +117,7 @@ parser_parse_operand:
     mov     byte [r12 + OPERAND_tag], TAG_OPERAND
     
     call    preprocessor_next_token
-    mov     r13, rax
+    mov     r13, rdx
     
     mov     al, [r13 + TOKEN_kind]
     
@@ -201,16 +201,16 @@ parser_parse_mem_operand:
     mov     byte [r12 + OPERAND_kind], OP_MEM
     
     call    preprocessor_peek_token
-    mov     al, [rax + TOKEN_kind]
+    mov     al, [rdx + TOKEN_kind]
     
     IF al, e, TOK_NUMBER
         call    preprocessor_next_token
-        mov     rsi, [rax + TOKEN_value]
+        mov     rsi, [rdx + TOKEN_value]
         call    str_to_int
         mov     [r12 + OPERAND_imm], rax
     ELSEIF al, e, TOK_IDENT
         call    preprocessor_next_token
-        mov     rsi, [rax + TOKEN_value]
+        mov     rsi, [rdx + TOKEN_value]
         mov     rdi, r10                // Use active register table
         call    parser_is_register
         IF rax, e, ERR
@@ -222,7 +222,7 @@ parser_parse_mem_operand:
     
 .offset_chain:
     call    preprocessor_peek_token
-    mov     r13, rax
+    mov     r13, rdx
     mov     al, [r13 + TOKEN_kind]
     
     IF al, e, TOK_PLUS
@@ -230,13 +230,15 @@ parser_parse_mem_operand:
         mov     r14, 1
     ELSEIF al, e, TOK_MINUS
         call    preprocessor_next_token
+        check_err
         mov     r14, -1
     ELSE
         jmp     .finalize
     ENDIF
     
     call    preprocessor_next_token
-    mov     r13, rax
+    check_err
+    mov     r13, rdx
     mov     al, [r13 + TOKEN_kind]
     
     IF al, e, TOK_IDENT
@@ -250,10 +252,10 @@ parser_parse_mem_operand:
         mov     [r12 + OPERAND_index], al
         
         call    preprocessor_peek_token
-        IF byte [rax + TOKEN_kind], e, TOK_STAR
+        IF byte [rdx + TOKEN_kind], e, TOK_STAR
             call    preprocessor_next_token
             call    preprocessor_next_token
-            mov     rsi, [rax + TOKEN_value]
+            mov     rsi, [rdx + TOKEN_value]
             call    str_to_int
             mov     [r12 + OPERAND_scale], al
         ENDIF
@@ -270,7 +272,7 @@ parser_parse_mem_operand:
 
 .finalize:
     call    preprocessor_next_token
-    IF byte [rax + TOKEN_kind], ne, TOK_RBRACKET
+    IF byte [rdx + TOKEN_kind], ne, TOK_RBRACKET
         mov     rax, EXIT_UNEXPECTED_TOKEN
         jmp     .error
     ENDIF

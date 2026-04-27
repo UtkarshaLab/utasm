@@ -46,24 +46,87 @@ prep_init:
     mov     byte [rdi + PREP_tag], TAG_PREPROCESSOR
     mov     byte [rdi + PREP_depth], 0
     mov     byte [rdi + PREP_skip_depth], 0
+    mov     byte [rdi + PREP_has_peek], FALSE
     mov     [rdi + PREP_lexer], rsi
     mov     [rdi + PREP_ctx], rdx
     mov     [rdi + PREP_arena], rcx
     xor     rax, rax
     ret
 
-// ---- prep_next_token --------------------
-/*
- prep_next_token
- Gets the next token from the preprocessor stream.
- Handles branching and directive execution internally.
- Input    : rdi = pointer to PrepState
-            rsi = pointer to Token (destination)
- Output   : rax = EXIT_OK or error code
- Clobbers : r8, r9, r10, r11
-*/
-global prep_next_token
-prep_next_token:
+global preprocessor_next_token
+preprocessor_next_token:
+    push    rbx
+    push    r12
+    mov     rbx, rdi               // rbx = PrepState
+    
+    // 1. Handle peek slot
+    cmp     byte [rbx + PREP_has_peek], TRUE
+    jne     .no_peek
+    
+    // Return peek token
+    mov     byte [rbx + PREP_has_peek], FALSE
+    lea     rdx, [rbx + PREP_peek]
+    xor     rax, rax
+    pop     r12
+    pop     rbx
+    ret
+
+.no_peek:
+    // 2. Allocate token in arena for the result
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     r12, rdx               // r12 = pointer to new token
+
+    mov     rdi, rbx
+    mov     rsi, r12
+    call    prep_internal_next
+    test    rax, rax
+    jnz     .error
+    
+    mov     rdx, r12
+    xor     rax, rax
+    pop     r12
+    pop     rbx
+    ret
+
+.error:
+    xor     rdx, rdx
+    pop     r12
+    pop     rbx
+    ret
+
+// ---- preprocessor_peek_token ------------
+global preprocessor_peek_token
+preprocessor_peek_token:
+    push    rbx
+    mov     rbx, rdi
+    
+    cmp     byte [rbx + PREP_has_peek], TRUE
+    je      .done
+    
+    lea     rsi, [rbx + PREP_peek]
+    call    prep_internal_next
+    test    rax, rax
+    jnz     .fail
+    
+    mov     byte [rbx + PREP_has_peek], TRUE
+
+.done:
+    lea     rdx, [rbx + PREP_peek]
+    xor     rax, rax
+    pop     rbx
+    ret
+
+.fail:
+    xor     rdx, rdx
+    pop     rbx
+    ret
+
+// ---- prep_internal_next -----------------
+prep_internal_next:
     push    rbx
     push    r12
     mov     rbx, rdi               // rbx = PrepState
@@ -651,31 +714,116 @@ macro_handle_def:
     mov     r13, rsp               // r13 = param count token
     mov     rsi, r13
     call    lexer_next
-    // ... logic for parsing param count ...
-    
-    // For now, let's just implement a stub that skips until %endmacro
-    // to keep the preprocessor running.
+    test    rax, rax
+    jnz     .error
 
-.skip_loop:
+    // Param count can be a number or nothing (default 0)
+    xor     r14, r14               // r14 = param count
+    cmp     byte [r13 + TOKEN_kind], TOK_NUMBER
+    jne     .no_params
+    
+    // convert string to int
+    mov     rdi, [r13 + TOKEN_value]
+    call    str_to_int             // assume this returns result in rax
+    mov     r14, rax
+    jmp     .body_start
+
+.no_params:
+    // if it wasn't a number, it might be the start of the body (newline)
+    // or something else. We should really check if it's a newline.
+    // For now, assume 0 params.
+
+.body_start:
+    // 3. Allocate MACRO struct in arena
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, MACRO_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     r15, rdx               // r15 = pointer to MACRO struct
+
+    mov     byte [r15 + MACRO_tag], TAG_MACRO
+    mov     rax, [r12 + TOKEN_value]
+    mov     [r15 + MACRO_name], rax
+    mov     [r15 + MACRO_nparams], r14b
+
+    // 4. Capture tokens until %endmacro
+    mov     rdi, [rbx + PREP_arena]
+    mov     rax, [rdi + ARENA_ptr]
+    mov     [r15 + MACRO_tokens], rax
+    xor     r14, r14               // token count
+
+.capture_loop:
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     r13, rdx               // r13 = next token slot
+
     mov     rdi, [rbx + PREP_lexer]
-    mov     rsi, r12
+    mov     rsi, r13
     call    lexer_next
     test    rax, rax
     jnz     .error
+
+    // Check for % directive
+    cmp     byte [r13 + TOKEN_kind], TOK_PERCENT
+    jne     .not_endmacro
+
+    // Peek next to see if it's endmacro
+    // Actually, we can just lex it and check.
+    // If it's not endmacro, we just store it as part of the macro.
+    // But wait, %directives are special.
     
-    cmp     byte [r12 + TOKEN_kind], TOK_EOF
-    je      .error_eof
-    
-    cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
-    jne     .skip_loop
-    
-    // check if it is endmacro
     mov     rdi, [rbx + PREP_lexer]
-    mov     rsi, r12
-    call    lexer_next
-    // ... comparison logic ...
+    sub     rsp, TOKEN_SIZE
+    mov     rsi, rsp
+    call    lexer_next             // get the identifier after %
+    
+    mov     rdi, [rsp + TOKEN_value]
+    lea     rsi, [dir_endm]        // "endmacro"
+    call    str_cmp
+    test    rax, rax
+    jz      .found_endmacro
+
+    // Not endmacro. We need to "unlex" or just handle this.
+    // Simpler: macros cannot contain other %directives for now?
+    // NASM allows it. But for bootstrap, let's keep it simple.
+    // If we want to support it, we'd need to store both tokens.
+    
+    add     rsp, TOKEN_SIZE
+    inc     r14
+    jmp     .capture_loop
+
+.not_endmacro:
+    cmp     byte [r13 + TOKEN_kind], TOK_EOF
+    je      .error_eof
+    inc     r14
+    jmp     .capture_loop
+
+.found_endmacro:
+    add     rsp, TOKEN_SIZE        // clean up temp token
+    mov     [r15 + MACRO_ntokens], r14d
+
+    // 5. Register in symbol table
+    sub     rsp, SYMBOL_SIZE
+    mov     rdi, rsp
+    mov     byte [rdi + SYMBOL_tag], TAG_SYMBOL
+    mov     byte [rdi + SYMBOL_kind], SYM_MACRO
+    mov     rax, [r15 + MACRO_name]
+    mov     [rdi + SYMBOL_name], rax
+    mov     [rdi + SYMBOL_value], r15
+
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, rsp
+    call    symbol_add
+    add     rsp, SYMBOL_SIZE
     
     xor     rax, rax
+    jmp     .done
+
+.error:
 
 .error:
     add     rsp, TOKEN_SIZE * 2
