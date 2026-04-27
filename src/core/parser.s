@@ -1002,6 +1002,16 @@ parser_handle_pseudo_op:
         jmp     .done
     ENDIF
 
+    // 2.5 Comm Directive
+    mov     rdi, rbx
+    lea     rsi, [str_comm]
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_comm
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
     // 3. Align Directives
     mov     rdi, rbx
     lea     rsi, [str_align]
@@ -1357,6 +1367,90 @@ parser_handle_visibility:
     pop     rbx
     epilogue
 
+/**
+ * [parser_handle_comm]
+ * Purpose: Parses .comm name, size, [align]
+ */
+parser_handle_comm:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    mov     rbx, rdi               // AsmCtx
+    
+    // 1. Get Name
+    call    preprocessor_next_token
+    check_err
+    mov     r11, rdx
+    IF byte [r11 + TOKEN_kind], ne, TOK_IDENT
+        mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+    ENDIF
+    mov     r12, [r11 + TOKEN_value]
+    
+    // 2. Expect Comma
+    call    preprocessor_next_token
+    check_err
+    mov     r11, rdx
+    IF byte [r11 + TOKEN_kind], ne, TOK_COMMA
+        mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+    ENDIF
+    
+    // 3. Get Size
+    call    preprocessor_next_token
+    check_err
+    mov     r11, rdx
+    IF byte [r11 + TOKEN_kind], ne, TOK_INT
+        mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+    ENDIF
+    mov     r13, [r11 + TOKEN_value]
+    
+    // 4. Expect Comma (optional align)
+    mov     r14, 1                 // Default align = 1
+    call    preprocessor_next_token
+    check_err
+    mov     r11, rdx
+    IF byte [r11 + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        check_err
+        mov     r11, rdx
+        IF byte [r11 + TOKEN_kind], ne, TOK_INT
+            mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+        ENDIF
+        mov     r14, [r11 + TOKEN_value]
+    ENDIF
+    
+    // 5. Create / Update Symbol
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, r12
+    extern  symbol_find
+    call    symbol_find
+    
+    IF rax, e, OK
+        mov     r11, rdx
+    ELSE
+        mov     rdi, [rbx + PREP_ctx]
+        mov     rsi, r12
+        xor     rdx, rdx
+        mov     cl, VIS_GLOBAL
+        extern  symbol_add
+        call    symbol_add
+        mov     r11, rdx
+    ENDIF
+    
+    // Hardening for SHN_COMMON
+    mov     word [r11 + SYMBOL_section], 0xFFF2 // SHN_COMMON
+    mov     [r11 + SYMBOL_value], r14           // st_value = align
+    mov     [r11 + SYMBOL_size], r13            // st_size = size
+    
+    mov     rax, OK
+.done:
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
 [SECTION .rodata]
 str_global:    db "global", 0
 str_weak:      db "weak", 0
@@ -1367,3 +1461,4 @@ str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
 str_field:     db "field", 0
 str_rel:       db "rel", 0
+str_comm:      db "comm", 0
