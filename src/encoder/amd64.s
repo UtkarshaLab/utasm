@@ -174,6 +174,17 @@ amd64_encode_instruction:
         mov     r14, 6 | call amd64_encode_vm_m
     ELSEIF ax, e, 1734             // VMPTRST
         mov     r14, 7 | call amd64_encode_vm_m
+    ELSEIF ax, e, 1359             // LFENCE
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        mov     al, 0xE8 | call amd64_emit_byte
+    ELSEIF ax, e, 1642             // SFENCE
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        mov     al, 0xF8 | call amd64_emit_byte
+    ELSEIF ax, e, 1380             // MFENCE
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
+        mov     al, 0xF0 | call amd64_emit_byte
+    ELSEIF ax, e, 1067             // CLFLUSH
+        mov     r14, 7 | call amd64_encode_mem_sync
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -1104,6 +1115,24 @@ amd64_encode_vm_m:
     
     mov     al, r14b           // Digit 6 or 7
     mov     rdi, r10           // Must be memory
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_mem_sync]
+ * CLFLUSH/etc.
+ */
+amd64_encode_mem_sync:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0xAE
+    call    amd64_emit_byte
+    
+    mov     al, r14b           // Digit 7 for CLFLUSH
+    mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
 
