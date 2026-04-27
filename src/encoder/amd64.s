@@ -30,9 +30,15 @@ amd64_encode_instruction:
     mov     rbx, rdi               // RBX = AsmCtx
     mov     r12, rsi               // R12 = INST
     
+    // 1. Emit Prefix if present
+    mov     al, [r12 + INST_prefix]
+    IF al, ne, 0
+        call    amd64_emit_byte
+    ENDIF
+    
+    // 2. Dispatch based on Mnemonic ID
     movzx   rax, word [r12 + INST_op_id]
     
-    // Dispatch based on Mnemonic ID
     IF ax, e, 1391                 // MOV
         call    amd64_encode_mov
     ELSEIF ax, e, 1356             // LEA
@@ -59,6 +65,14 @@ amd64_encode_instruction:
         mov     r14, 3 | call amd64_encode_unary
     ELSEIF ax, e, 1441             // NOT
         mov     r14, 2 | call amd64_encode_unary
+    ELSEIF ax, e, 1419             // MOVSB
+        mov     al, 0xA4 | call amd64_emit_byte
+    ELSEIF ax, e, 1422             // MOVSQ
+        mov     al, 0x48 | call amd64_emit_byte | mov al, 0xA5 | call amd64_emit_byte
+    ELSEIF ax, e, 1670             // STOSB
+        mov     al, 0xAA | call amd64_emit_byte
+    ELSEIF ax, e, 1672             // STOSQ
+        mov     al, 0x48 | call amd64_emit_byte | mov al, 0xAB | call amd64_emit_byte
     ELSEIF ax, e, 1647             // SHL/SAL
         mov     r14, 4 | call amd64_encode_shift
     ELSEIF ax, e, 1650             // SHR

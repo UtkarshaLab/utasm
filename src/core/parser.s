@@ -37,6 +37,7 @@ parser_parse_instruction:
     mov     r10, rdx                // R10 = Register Table
     
     // 2. Get mnemonic token
+.get_mnemonic:
     call    preprocessor_next_token
     check_err
     mov     r12, rdx
@@ -56,7 +57,18 @@ parser_parse_instruction:
         jmp     .error
     ENDIF
     
-    // 3. Lookup Mnemonic in the resolved table
+    // 3. Lookup Mnemonic
+    mov     rsi, [r12 + TOKEN_value]
+    
+    // Check for prefixes
+    call    parser_check_prefix
+    test    rax, rax
+    jz      .lookup_mnemonic
+    
+    mov     byte [r15 + INST_prefix], al
+    jmp     .get_mnemonic           // Get the actual mnemonic after prefix
+
+.lookup_mnemonic:
     mov     rsi, [r12 + TOKEN_value]
     hash_fnv1a_64 rsi, r13
     
@@ -328,3 +340,38 @@ parser_lookup_mnemonic:
 .not_found:
     xor     rax, rax
     epilogue
+
+/**
+ * [parser_check_prefix]
+ * Input: RSI = String pointer
+ * Output: AL = Prefix byte or 0
+ */
+parser_check_prefix:
+    prologue
+    extern str_compare
+    mov     rdi, rsi
+    
+    lea     rsi, [str_rep]
+    call    str_compare
+    IF rax, e, 0 | mov al, 0xF3 | epilogue | ENDIF
+    
+    lea     rsi, [str_repe]
+    call    str_compare
+    IF rax, e, 0 | mov al, 0xF3 | epilogue | ENDIF
+    
+    lea     rsi, [str_repne]
+    call    str_compare
+    IF rax, e, 0 | mov al, 0xF2 | epilogue | ENDIF
+    
+    lea     rsi, [str_lock]
+    call    str_compare
+    IF rax, e, 0 | mov al, 0xF0 | epilogue | ENDIF
+    
+    xor     rax, rax
+    epilogue
+
+[SECTION .rodata]
+str_rep:    db "rep", 0
+str_repe:   db "repe", 0
+str_repne:  db "repne", 0
+str_lock:   db "lock", 0
