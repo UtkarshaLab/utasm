@@ -298,6 +298,10 @@ amd64_encode_instruction:
         mov     r13, 0x57 | mov r14, 0 | call amd64_encode_sse
     ELSEIF ax, e, 1008             // ADDPS
         mov     r13, 0x58 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, ID_VADDPS
+        mov     r13, 0x58 | mov r14, 0 | call amd64_encode_avx
+    ELSEIF ax, e, ID_VXORPS
+        mov     r13, 0x57 | mov r14, 0 | call amd64_encode_avx
     ELSEIF ax, e, 1010             // ADDSS
         mov     r13, 0x58 | mov r14, 1 | call amd64_encode_sse
     ELSEIF ax, e, 1678             // SUBPS
@@ -2984,5 +2988,120 @@ amd64_emit_qword:
     shr     rdi, 8
     loop    .loopq
     pop     rcx
+    pop     rax
+    ret
+
+/**
+ * [amd64_encode_avx]
+ * Encodes 3-operand AVX instructions.
+ * Input:
+ *   r13 = Opcode
+ *   r14 = Type (0=None, 1=66, 2=F3, 3=F2)
+ */
+amd64_encode_avx:
+    prologue
+    // Operands: R12 points to INST
+    lea     r10, [r12 + INST_op0] // Dest
+    lea     r11, [r12 + INST_op1] // Src1 (vvvv)
+    lea     r9,  [r12 + INST_op2] // Src2 (ModRM)
+    
+    // 1. Determine Prefix
+    // For now, assume VEX2 if possible.
+    // R, X, B bits
+    xor     r8, r8                 // r8 = R,X,B packed
+    
+    movzx   rax, byte [r10 + OPERAND_reg]
+    test    al, 8
+    jz      .no_r
+    or      r8, 4
+.no_r:
+    movzx   rax, byte [r9 + OPERAND_reg]
+    test    al, 8
+    jz      .no_b
+    or      r8, 1
+.no_b:
+
+    // 2. Emit VEX
+    // dl = R,X,B, cl = vvvv, r8b = W,L,pp, r9b = map
+    mov     dl, r8b
+    movzx   rcx, byte [r11 + OPERAND_reg]
+    mov     r8b, r14b              // pp
+    mov     r9b, 1                 // map 0F
+    
+    // Check if we can use VEX2 (map 0F, X=0, B=0, W=0)
+    test    dl, 0x03               // X or B?
+    jnz     .use_vex3
+    
+    call    amd64_emit_vex2
+    jmp     .vex_done
+    
+.use_vex3:
+    call    amd64_emit_vex3
+
+.vex_done:
+    // 3. Emit Opcode
+    mov     al, r13b
+    call    amd64_emit_byte
+    
+    // 4. Emit ModRM
+    // reg = op0, r/m = op2
+    movzx   rax, byte [r10 + OPERAND_reg]
+    and     al, 7
+    shl     al, 3
+    movzx   rcx, byte [r9 + OPERAND_reg]
+    and     cl, 7
+    or      al, cl
+    or      al, 0xC0               // Register-Register for now
+    call    amd64_emit_byte
+    
+    epilogue
+ * Optimized 2-byte VEX (0xC5)
+ */
+amd64_emit_vex2:
+    push    rax
+    mov     al, 0xC5
+    call    amd64_emit_byte
+    xor     dl, 1
+    shl     dl, 7
+    not     cl
+    and     cl, 0x0F
+    shl     cl, 3
+    or      dl, cl
+    shl     r8b, 2
+    or      dl, r8b
+    or      dl, r9b
+    mov     al, dl
+    call    amd64_emit_byte
+    pop     rax
+    ret
+
+/**
+ * [amd64_emit_vex3]
+ * Full 3-byte VEX (0xC4)
+ */
+amd64_emit_vex3:
+    push    rax
+    mov     al, 0xC4
+    call    amd64_emit_byte
+    xor     dl, 0x07
+    shl     dl, 5
+    or      dl, r9b
+    mov     al, dl
+    call    amd64_emit_byte
+    not     cl
+    and     cl, 0x0F
+    shl     cl, 3
+    mov     al, r8b
+    and     al, 0x03
+    test    r8b, 4
+    jz      .no_w
+    or      al, 0x80
+.no_w:
+    test    r8b, 2
+    jz      .no_l
+    or      al, 0x04
+.no_l:
+    or      al, cl
+    call    amd64_emit_byte
     pop     rax
     ret

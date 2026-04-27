@@ -93,3 +93,6 @@
 %def OP_NOP                 14
 %def OP_INT3                15
 %def OP_SYSCALL             16
+%def ID_VADDPS              3000
+%def ID_VMOVUPS              3001
+%def ID_VXORPS              3002
