@@ -568,7 +568,7 @@ riscv64_encode_csr:
     epilogue
 
 // ---- riscv64_encode_fp ----
-// FADD.S/D, FSUB.S/D, FMUL.S/D, FDIV.S/D
+// FADD.S/D, FSUB.S/D, FMUL.S/D, FDIV.S/D, FSQRT.S/D
 riscv64_encode_fp:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -578,13 +578,29 @@ riscv64_encode_fp:
     mov     eax, 0x00000053
     movzx   ecx, word [r12 + INST_op_id]
     
-    // Funct7 mapping (Simplified)
+    // Funct7 & Funct3 mapping
     IF ecx, ge, 3128 | IF ecx, le, 3131 // FADD
         or eax, 0x00000000
     ENDIF | ENDIF
+    IF ecx, ge, 3177 | IF ecx, le, 3180 // FSUB
+        or eax, 0x08000000
+    ENDIF | ENDIF
+    IF ecx, ge, 3161 | IF ecx, le, 3164 // FMUL
+        or eax, 0x10000000
+    ENDIF | ENDIF
+    IF ecx, ge, 3156 | IF ecx, le, 3159 // FDIV
+        or eax, 0x18000000
+    ENDIF | ENDIF
     
-    // TODO: Fully map floating point opcodes based on ID ranges
+    // Precision: bit 25 (0=Single, 1=Double)
+    // We assume ID even=single, odd=double in the ISA table
+    test    ecx, 1
+    jnz     .double
+    jmp     .reg
+.double:
+    or      eax, 0x01000000
     
+.reg:
     movzx   edi, byte [r10 + OPERAND_reg]
     shl     edi, 7
     or      eax, edi
