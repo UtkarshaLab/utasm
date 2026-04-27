@@ -10,165 +10,173 @@
 
 %inc "include/constant.s"
 %inc "include/type.s"
+%inc "include/macro.s"
 
 // ============================================================================
-// SYMBOL TABLE
+// SYMBOL TABLE (Hash Table Implementation)
 // ============================================================================
 // Manages the registration and lookup of labels, constants, and macros.
-// Currently implements a linear search (bootstrap-grade).
-// Will be upgraded to a hash table for production performance.
-//
-// Calling convention (AMD64):
-//   args  : rdi, rsi, rdx, rcx, r8, r9
-//   return: rax = error code, rdx = result
-//   callee saved: rbx, r12-r15, rbp
+// Implements a high-performance FNV-1a 64-bit hash table with linear probing.
 // ============================================================================
 
 [SECTION .text]
 
 // ---- symbol_init ------------------------
-/*
- symbol_init
- Initialises the symbol table within an AsmCtx.
- Input    : rdi = pointer to AsmCtx
- Output   : rax = EXIT_OK or error code
-*/
 global symbol_init
 symbol_init:
+    prologue
     push    rbx
-    mov     rbx, rdi               // rbx = AsmCtx
+    mov     rbx, rdi
 
-    // Allocate initial symbol table (e.g. 1024 symbols)
+    // 1. Allocate Linear Symbol Array (Sequential storage)
     mov     rdi, [rbx + ASMCTX_arena]
     mov     rsi, SYMBOL_SIZE
-    imul    rsi, MAX_SYMBOL       // MAX_SYMBOL defined in constant.s
+    imul    rsi, MAX_SYMBOL
     call    arena_alloc
-    test    rax, rax
-    jnz     .error
-
+    check_err
     mov     [rbx + ASMCTX_symtab], rdx
     mov     dword [rbx + ASMCTX_symcount], 0
+
+    // 2. Allocate Hash Table (Bucket index)
+    // 64k entries * 8 bytes/entry = 512KB
+    mov     rdi, [rbx + ASMCTX_arena]
+    mov     rsi, 8
+    imul    rsi, MAX_SYMBOL
+    call    arena_alloc
+    check_err
+    mov     [rbx + ASMCTX_symhash], rdx
+
+    // 3. Zero the hash table
+    mov     rdi, rdx
+    mov     rsi, 8
+    imul    rsi, MAX_SYMBOL
+    extern  mem_zero
+    call    mem_zero
+
     xor     rax, rax
     pop     rbx
-    ret
+    epilogue
 
-.error:
-    pop     rbx
-    ret
+// ---- symbol_hash ------------------------
+// FNV-1a 64-bit hash
+// Input: RSI = string pointer
+// Output: RAX = hash
+symbol_hash:
+    prologue
+    mov     rax, 0xcbf29ce484222325 // FNV offset basis
+    mov     r10, 0x100000001b3      // FNV prime
+.loop:
+    movzx   rcx, byte [rsi]
+    test    cl, cl
+    jz      .done
+    xor     al, cl
+    mul     r10
+    inc     rsi
+    jmp     .loop
+.done:
+    epilogue
 
 // ---- symbol_add -------------------------
-/*
- symbol_add
- Adds a new symbol to the table.
- Input    : rdi = pointer to AsmCtx
-            rsi = pointer to Symbol (template)
- Output   : rax = EXIT_OK or EXIT_SYMBOL_EXISTS
-            rdx = pointer to the stored Symbol
-*/
 global symbol_add
 symbol_add:
+    prologue
     push    rbx
     push    r12
     push    r13
-    mov     rbx, rdi               // rbx = AsmCtx
-    mov     r12, rsi               // r12 = source symbol
-
-    // 1. Check if it already exists
+    mov     rbx, rdi               // AsmCtx
+    mov     r12, rsi               // Template symbol
+    
+    // 1. Check if it already exists (Hash lookup)
     mov     rdi, rbx
     mov     rsi, [r12 + SYMBOL_name]
     call    symbol_find
-    test    rax, rax
-    jz      .exists
+    IF rax, e, OK
+        mov     rax, EXIT_DUP_SYMBOL
+        jmp     .done
+    ENDIF
 
-    // 2. Check for overflow
+    // 2. Add to Linear Array
     mov     eax, [rbx + ASMCTX_symcount]
-    cmp     eax, MAX_SYMBOL
-    jge     .error_full
-
-    // 3. Copy symbol into table
+    mov     rcx, rax
+    imul    rcx, SYMBOL_SIZE
     mov     r13, [rbx + ASMCTX_symtab]
-    movzx   rax, ax
-    imul    rax, SYMBOL_SIZE
-    add     r13, rax               // r13 = dest symbol pointer
-
-    // copy fields (48 bytes = 6 qwords)
+    add     r13, rcx               // r13 = Slot in linear table
+    
+    // Copy symbol data
     mov     rdi, r13
     mov     rsi, r12
-    mov     rcx, 6
+    mov     rcx, 6                 // SYMBOL_SIZE / 8
     rep movsq
+
+    // 3. Index in Hash Table (Linear Probing)
+    mov     rsi, [r13 + SYMBOL_name]
+    call    symbol_hash
+    mov     r10, rax
+    and     r10, (MAX_SYMBOL - 1)  // Table size MUST be power of 2
+    
+    mov     r11, [rbx + ASMCTX_symhash]
+.probe:
+    lea     rdx, [r11 + r10 * 8]
+    cmp     qword [rdx], 0
+    je      .found_slot
+    inc     r10
+    and     r10, (MAX_SYMBOL - 1)
+    jmp     .probe
+
+.found_slot:
+    mov     [rdx], r13             // Store pointer to symbol in bucket
 
     // 4. Increment count
     inc     dword [rbx + ASMCTX_symcount]
-
-    mov     rdx, r13               // return pointer to stored symbol
-    xor     rax, rax               // EXIT_OK
-    jmp     .done
-
-.exists:
-    mov     rax, EXIT_DUP_SYMBOL
-    mov     rdx, r12
-    jmp     .done
-
-.error_full:
-    mov     rax, EXIT_ERROR
-    xor     rdx, rdx
+    mov     rdx, r13               // Return pointer to stored symbol
+    xor     rax, rax
 
 .done:
     pop     r13
     pop     r12
     pop     rbx
-    ret
+    epilogue
 
 // ---- symbol_find ------------------------
-/*
- symbol_find
- Searches for a symbol by name.
- Input    : rdi = pointer to AsmCtx
-            rsi = pointer to name string (null-terminated)
- Output   : rax = EXIT_OK (found) or EXIT_SYMBOL_NOT_FOUND
-            rdx = pointer to Symbol (if found)
-*/
 global symbol_find
 symbol_find:
+    prologue
     push    rbx
     push    r12
-    push    r13
-    push    r14
-
-    mov     rbx, rdi               // rbx = AsmCtx
-    mov     r12, rsi               // r12 = name to find
-    mov     r13, [rbx + ASMCTX_symtab]
-    mov     r14d, [rbx + ASMCTX_symcount]
-
-    test    r13, r13
+    mov     rbx, rdi
+    mov     r12, rsi               // Name to find
+    
+    call    symbol_hash
+    mov     r10, rax
+    and     r10, (MAX_SYMBOL - 1)
+    
+    mov     r11, [rbx + ASMCTX_symhash]
+.probe:
+    mov     rdx, [r11 + r10 * 8]
+    test    rdx, rdx
     jz      .not_found
-
-.loop:
-    test    r14d, r14d
-    jz      .not_found
-
-    mov     rdi, [r13 + SYMBOL_name]
+    
+    // Compare names
+    mov     rdi, [rdx + SYMBOL_name]
     mov     rsi, r12
+    extern  str_cmp
     call    str_cmp
     test    rax, rax
     jz      .found
-
-    add     r13, SYMBOL_SIZE
-    dec     r14d
-    jmp     .loop
+    
+    inc     r10
+    and     r10, (MAX_SYMBOL - 1)
+    jmp     .probe
 
 .found:
-    mov     rdx, r13               // return pointer
-    xor     rax, rax               // EXIT_OK
-    jmp     .done
+    // rdx already points to the symbol
+    xor     rax, rax
+    pop     r12
+    pop     rbx
+    epilogue
 
 .not_found:
     mov     rax, EXIT_UNDEF_SYMBOL
-    xor     rdx, rdx
-
-.done:
-    pop     r14
-    pop     r13
     pop     r12
     pop     rbx
-    ret
+    epilogue
