@@ -180,17 +180,12 @@ lexer_next:
     cmp     rcx, '%'               // directive
     je      .lex_directive
 
-    // identifier or label
-    mov     rdi, rcx
-    call    str_is_ident_start
-    cmp     rax, TRUE
-    je      .lex_ident
-
-    // number
-    mov     rdi, rcx
-    call    str_is_digit
-    cmp     rax, TRUE
-    je      .lex_number
+    // identifier, label, or number
+    movzx   eax, byte [lexer_char_props + rcx]
+    test    al, CHAR_IS_IDENT_START
+    jnz     .lex_ident
+    test    al, CHAR_IS_DIGIT
+    jnz     .lex_number
 
     // single character tokens
     cmp     rcx, ','
@@ -962,13 +957,9 @@ lexer_next:
 
     movzx   rcx, byte [r10]
 
-    // skip space and tab and CR
-    cmp     rcx, ' '
-    je      .skip_ws
-    cmp     rcx, 9              // tab
-    je      .skip_ws
-    cmp     rcx, 13             // CR
-    je      .skip_ws
+    // skip whitespace (Space, Tab, CR)
+    test    byte [lexer_char_props + rcx], CHAR_IS_WHITESPACE
+    jnz     .skip_ws
 
     // check for // comment
     cmp     rcx, '/'
@@ -1284,3 +1275,25 @@ msg_unexpected_token:
     db      "unexpected token", 0
 msg_string_too_long:
     db      "string literal too long", 0
+
+// ============================================================================
+// CHARACTER PROPERTIES LOOKUP TABLE (LUT)
+// ============================================================================
+
+global lexer_char_props
+lexer_char_props:
+    %assign i 0
+    %rep 256
+        %assign mask 0
+        %if i >= '0' && i <= '9'
+            %assign mask mask | CHAR_IS_DIGIT | CHAR_IS_IDENT_PART | CHAR_IS_HEX
+        %elif (i >= 'a' && i <= 'f') || (i >= 'A' && i <= 'F')
+            %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART | CHAR_IS_HEX
+        %elif (i >= 'g' && i <= 'z') || (i >= 'G' && i <= 'Z') || i == '_' || i == '.'
+            %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART
+        %elif i == ' ' || i == 9 || i == 13
+            %assign mask mask | CHAR_IS_WHITESPACE
+        %endif
+        db mask
+        %assign i i+1
+    %endrep

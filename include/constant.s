@@ -581,3 +581,12 @@
 %def R_RISCV_LO12_I         27
 %def R_RISCV_CALL           18
 %def R_RISCV_RELAX          51
+
+// ============================================================================
+// LEXER CHARACTER PROPERTIES
+// ============================================================================
+%def CHAR_IS_DIGIT          0x01
+%def CHAR_IS_IDENT_START    0x02
+%def CHAR_IS_IDENT_PART     0x04
+%def CHAR_IS_WHITESPACE     0x08
+%def CHAR_IS_HEX            0x10
