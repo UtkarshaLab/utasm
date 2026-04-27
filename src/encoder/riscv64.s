@@ -700,15 +700,23 @@ riscv64_encode_rvc_mv:
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     
-    mov     edi, 0x8002
+    // Constraints: rd != 0, rs2 != 0
     movzx   eax, byte [r10 + OPERAND_reg]
+    test    al, al | jz .error_reg
+    movzx   ecx, byte [r11 + OPERAND_reg]
+    test    cl, cl | jz .error_reg
+    
+    mov     edi, 0x8002
     shl     eax, 7
     or      edi, eax
-    movzx   eax, byte [r11 + OPERAND_reg]
-    shl     eax, 2
-    or      edi, eax
+    shl     ecx, 2
+    or      edi, ecx
     
     call    riscv64_emit_half
+    jmp     .done
+.error_reg:
+    mov     rax, EXIT_INVALID_REG
+.done:
     epilogue
 
 /**
@@ -720,22 +728,33 @@ riscv64_encode_rvc_addi:
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     
-    mov     edi, 0x0001
     movzx   eax, byte [r10 + OPERAND_reg]
+    test    al, al | jz .error_reg     // rd != 0
+    
+    mov     edi, 0x0001
     shl     eax, 7
     or      edi, eax
     
     mov     rax, [r11 + OPERAND_imm]
+    test    rax, rax | jz .error_imm   // nzimm
+    
     mov     rcx, rax
     and     ecx, 0x1F              // imm[4:0]
     shl     ecx, 2
     or      edi, ecx
     
-    and     eax, 0x20              // imm[5]
-    shl     eax, 7                 // shift to bit 12
+    and     rax, 0x20              // imm[5]
+    shl     rax, 7                 // shift to bit 12
     or      edi, eax
     
     call    riscv64_emit_half
+    jmp     .done
+.error_reg:
+    mov     rax, EXIT_INVALID_REG
+    jmp     .done
+.error_imm:
+    mov     rax, EXIT_IMM_RANGE
+.done:
     epilogue
 
 /**
