@@ -503,7 +503,7 @@ amd64_encode_instruction:
         mov     al, [r10 + OPERAND_reg]
         mov     rdi, r11 | call amd64_emit_modrm_sib
         
-    // ---- Phase 3: Advanced Bit Manipulation (BMI1/BMI2/TBM) ----
+    // ---- Advanced Bit Manipulation (BMI1/BMI2/TBM) ----
     ELSEIF ax, e, 1029             // ANDN
         mov     r13, 0xF2 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
     ELSEIF ax, e, 1035             // BEXTR
@@ -534,7 +534,7 @@ amd64_encode_instruction:
         mov     al, 0xF3 | call amd64_emit_byte
         mov     r13, 0x0FBC | call amd64_encode_rm_r
         
-    // ---- Phase 4: Hardware Sync (WaitPKG / UINTR) ----
+    // ----Hardware Sync (WaitPKG / UINTR) ----
     ELSEIF ax, e, 1698             // TPAUSE
         mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
         lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
@@ -556,7 +556,7 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1675             // STUI
         mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEF | call amd64_emit_byte
 
-    // ---- Phase 5: CET (Control-Flow Enforcement Technology) ----
+    // ---- CET (Control-Flow Enforcement Technology) ----
     ELSEIF ax, e, 1602             // RDSSPD
         mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1E | call amd64_emit_byte
         lea     r10, [r12 + INST_op0] | mov al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib
@@ -588,15 +588,15 @@ amd64_encode_instruction:
     // ----Hardware Sign-Extension & Type Conversion ----
     ELSEIF ax, e, 1060             // CBW
         mov     al, 0x66 | call amd64_emit_byte | mov al, 0x98 | call amd64_emit_byte
-    ELSEIF ax, e, 1111             // CWDE
+    ELSEIF ax, e, 1115             // CWDE
         mov     al, 0x98 | call amd64_emit_byte
     ELSEIF ax, e, 1062             // CDQE
         mov     al, 0x48 | call amd64_emit_byte | mov al, 0x98 | call amd64_emit_byte
-    ELSEIF ax, e, 1110             // CWD
+    ELSEIF ax, e, 1114             // CWD
         mov     al, 0x66 | call amd64_emit_byte | mov al, 0x99 | call amd64_emit_byte
     ELSEIF ax, e, 1061             // CDQ
         mov     al, 0x99 | call amd64_emit_byte
-    ELSEIF ax, e, 1088             // CQO
+    ELSEIF ax, e, 1090             // CQO
         mov     al, 0x48 | call amd64_emit_byte | mov al, 0x99 | call amd64_emit_byte
 
     // ----Legacy Bit Scanning & Byte Swapping ----
@@ -610,6 +610,20 @@ amd64_encode_instruction:
         mov     rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
         mov     al, 0x0F | call amd64_emit_byte
         mov     al, [r10 + OPERAND_reg] | and al, 7 | add al, 0xC8 | call amd64_emit_byte
+
+    // ---- Phase 8.6: 1980s BCD Legacy Suite ----
+    ELSEIF ax, e, 1000             // AAA
+        mov     al, 0x37 | call amd64_emit_byte
+    ELSEIF ax, e, 1001             // AAD
+        mov     al, 0xD5 | call amd64_emit_byte | mov al, 0x0A | call amd64_emit_byte
+    ELSEIF ax, e, 1002             // AAM
+        mov     al, 0xD4 | call amd64_emit_byte | mov al, 0x0A | call amd64_emit_byte
+    ELSEIF ax, e, 1003             // AAS
+        mov     al, 0x3F | call amd64_emit_byte
+    ELSEIF ax, e, 1116             // DAA
+        mov     al, 0x27 | call amd64_emit_byte
+    ELSEIF ax, e, 1117             // DAS
+        mov     al, 0x2F | call amd64_emit_byte
 
     ELSEIF ax, e, 1680             // SWAPGS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
