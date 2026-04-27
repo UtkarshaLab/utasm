@@ -944,6 +944,27 @@ parser_handle_pseudo_op:
         jmp     .done
     ENDIF
 
+    // 4. Visibility Directives (global, weak)
+    mov     rdi, rbx
+    lea     rsi, [str_global]
+    call    str_cmp
+    IF rax, e, 0
+        mov     rsi, SYM_GLOBAL
+        call    parser_handle_visibility
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
+    mov     rdi, rbx
+    lea     rsi, [str_weak]
+    call    str_cmp
+    IF rax, e, 0
+        mov     rsi, SYM_WEAK
+        call    parser_handle_visibility
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
     xor     rax, rax               // Not a pseudo-op
 
 .done:
@@ -1096,7 +1117,51 @@ parser_handle_section_directive:
     pop     rbx
     epilogue
 
+/**
+ * [parser_handle_visibility]
+ * RSI = Target visibility (SYM_GLOBAL, SYM_WEAK)
+ */
+parser_handle_visibility:
+    prologue
+    push    rbx
+    push    r12
+    mov     r12, rsi               // r12 = visibility
+    
+    call    preprocessor_next_token
+    check_err
+    mov     r11, rdx
+    IF byte [r11 + TOKEN_kind], ne, TOK_IDENT
+        mov     rax, EXIT_UNEXPECTED_TOKEN
+        jmp     .done
+    ENDIF
+    
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [r11 + TOKEN_value]
+    extern  symbol_find
+    call    symbol_find
+    
+    IF rax, e, OK
+        // Symbol exists, update visibility
+        mov     byte [rdx + SYMBOL_kind], r12b
+    ELSE
+        // Symbol doesn't exist, create it as UNDEFINED for now
+        mov     rdi, [rbx + PREP_ctx]
+        mov     rsi, [r11 + TOKEN_value]
+        xor     rdx, rdx           // value = 0
+        mov     cl, r12b           // visibility
+        extern  symbol_add
+        call    symbol_add
+    ENDIF
+    
+    mov     rax, OK
+.done:
+    pop     r12
+    pop     rbx
+    epilogue
+
 [SECTION .rodata]
+str_global:    db "global", 0
+str_weak:      db "weak", 0
 str_align:     db "align", 0
 str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
