@@ -82,7 +82,15 @@ parser_parse_instruction:
         jmp     .error
     ENDIF
     
-    // 3. Lookup Mnemonic
+    // 3. Sync DWARF line info
+    mov     rdi, [rbx + PREP_ctx]
+    mov     eax, [rbx + PREP_line]
+    mov     [rdi + ASMCTX_debug_line], eax
+    mov     ax, [rbx + PREP_col]
+    movzx   eax, ax
+    mov     [rdi + ASMCTX_debug_col], eax
+    
+    // 4. Lookup Mnemonic
     mov     rsi, [r12 + TOKEN_value]
     
     // Check for prefixes

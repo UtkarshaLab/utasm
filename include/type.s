@@ -161,6 +161,9 @@ struc ASMCTX
     field relocs,      8       // pointer to relocation array
     field nrelocs,     4       // relocation count
     field inst_len,    4       // current instruction length (0-15)
+    field debug_line,  4       // current source line for DWARF
+    field debug_file,  4       // current source file index for DWARF
+    field debug_col,   4       // current source column for DWARF
     field inc_ctx,     8       // current IncludeCtx
     field mac_exp,     8       // current MacroExpansion
     field input,       8       // input filename

@@ -96,7 +96,11 @@ elf64_emit:
     call    elf64_write_rela
     check_err
 
-    // ---- 9. Write Section Header Table ----
+    // ---- 9. Write .debug_line ----
+    call    elf64_write_debug_line
+    check_err
+
+    // ---- 10. Write Section Header Table ----
     call    elf64_write_shdrs
     check_err
 
@@ -110,6 +114,33 @@ elf64_emit:
     pop     r14
     pop     r13
     pop     r12
+    epilogue
+
+/**
+ * [elf64_write_debug_line]
+ */
+elf64_write_debug_line:
+    prologue
+    push    rbx
+    sub     rsp, 16
+    
+    // 1. Unit Length
+    mov     dword [rsp], 32
+    mov     rdi, r13d
+    mov     rsi, rsp
+    mov     rdx, 4
+    call    io_write
+    check_err
+    
+    // 2. Version
+    mov     word [rsp], 5
+    mov     rdx, 2
+    call    io_write
+    check_err
+    
+    add     rsp, 16
+    pop     rbx
+    xor     rax, rax
     epilogue
 
 // ============================================================================
