@@ -113,12 +113,29 @@ amd64_encode_instruction:
         mov     r14, 2 | call amd64_encode_unary
     ELSEIF ax, e, 1419             // MOVSB
         mov     al, 0xA4 | call amd64_emit_byte
+    ELSEIF ax, e, 1421             // MOVSW
+        mov     al, 16 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
+        mov     al, 0xA5 | call amd64_emit_byte
+    ELSEIF ax, e, 1420             // MOVSD
+        mov     al, 0xA5 | call amd64_emit_byte
     ELSEIF ax, e, 1422             // MOVSQ
-        mov     al, 0x48 | call amd64_emit_byte | mov al, 0xA5 | call amd64_emit_byte
-    ELSEIF ax, e, 1670             // STOSB
+        mov     al, 64 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
+        mov     al, 0xA5 | call amd64_emit_byte
+    ELSEIF ax, e, 1669             // STOSB
         mov     al, 0xAA | call amd64_emit_byte
-    ELSEIF ax, e, 1672             // STOSQ
-        mov     al, 0x48 | call amd64_emit_byte | mov al, 0xAB | call amd64_emit_byte
+    ELSEIF ax, e, 1672             // STOSW
+        mov     al, 16 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
+        mov     al, 0xAB | call amd64_emit_byte
+    ELSEIF ax, e, 1670             // STOSD
+        mov     al, 0xAB | call amd64_emit_byte
+    ELSEIF ax, e, 1671             // STOSQ
+        mov     al, 64 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
+        mov     al, 0xAB | call amd64_emit_byte
+    ELSEIF ax, ge, 1630            // SCAS
+        IF ax, le, 1632
+            sub ax, 1630
+            // logic for 0xA6/0xA7
+        ENDIF
     ELSEIF ax, e, 1647             // SHL/SAL
         mov     r14, 4 | call amd64_encode_shift
     ELSEIF ax, e, 1650             // SHR
@@ -249,8 +266,7 @@ amd64_encode_instruction:
         mov     r13, 0xE8
         call    amd64_encode_branch
     ELSEIF ax, e, 1611             // RET
-        mov     al, 0xC3
-        call    amd64_emit_byte
+        call    amd64_encode_ret
     ELSEIF ax, ge, 4016            // SETcc
         call    amd64_encode_setcc
     ELSEIF ax, ge, 4000            // CMOVcc
@@ -263,18 +279,8 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1373             // LOOP
         mov     al, 0xE2
         call    amd64_emit_branch_rel8
-    ELSEIF ax, e, 1684             // SYSEXIT
-        mov     al, 0x0F
-        call    amd64_emit_byte
-        mov     al, 0x35
-        call    amd64_emit_byte
     ELSEIF ax, e, 1685             // SYSRET
-        mov     al, 0x48
-        call    amd64_emit_byte
-        mov     al, 0x0F
-        call    amd64_emit_byte
-        mov     al, 0x07
-        call    amd64_emit_byte
+        call    amd64_encode_sysret
     ELSEIF ax, e, 1682             // SYSCALL
         call    amd64_encode_syscall
     ELSEIF ax, e, 1440             // NOP
@@ -467,6 +473,16 @@ amd64_encode_arithmetic:
         
         // Case 2: r/m, imm
         IF byte [r11 + OPERAND_kind], e, OP_IMM
+            // VALIDATION: Arithmetic instructions only support 32-bit sign-extended IMM
+            mov     rax, [r11 + OPERAND_imm]
+            mov     rcx, rax
+            sar     rcx, 31            // Check if bits 31-63 are identical
+            IF ecx, ne, 0
+                IF ecx, ne, 0xFFFFFFFF
+                    jmp .error
+                ENDIF
+            ENDIF
+
             // Smart Prefixes
             mov     al, [r10 + OPERAND_size]
             xor     rsi, rsi
@@ -615,10 +631,17 @@ amd64_encode_arithmetic:
  * [amd64_encode_syscall]
  */
 amd64_encode_syscall:
-    mov     al, 0x0F
-    call    amd64_emit_byte
-    mov     al, 0x05
-    call    amd64_emit_byte
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x05 | call amd64_emit_byte
+    ret
+
+/**
+ * [amd64_encode_sysret]
+ */
+amd64_encode_sysret:
+    mov     al, 0x48 | call amd64_emit_byte
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x07 | call amd64_emit_byte
     ret
 
 /**
@@ -688,51 +711,57 @@ amd64_encode_pop:
     epilogue
 
 /**
- * [amd64_encode_pop]
+ * [amd64_encode_branch]
+ * Input: R13 = Opcode for REL32 form
  */
-amd64_encode_pop:
+amd64_encode_branch:
     prologue
     lea     r10, [r12 + INST_op0]
     
-    // Case 1: Register (0x58 + reg)
-    IF byte [r10 + OPERAND_kind], e, OP_REG
-        mov     cl, [r10 + OPERAND_reg]
-        IF cl, ge, 8
-            mov  al, 0x41 | call amd64_emit_byte
-        ENDIF
-        mov     al, 0x58 | and cl, 0x07 | add al, cl
+    // Case 1: Symbol (REL32)
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        mov     al, r13b
+        call    amd64_emit_byte
+        mov     al, RELOC_REL32
+        mov     rsi, [r10 + OPERAND_sym]
+        call    amd64_emit_reloc
+        xor     rax, rax
+        call    amd64_emit_dword
+        jmp     .done
+    ENDIF
+    
+    // Case 2: Register or Memory (FF /digit)
+    // CALL = FF /2, JMP = FF /4
+    mov     al, 0xFF
+    call    amd64_emit_byte
+    
+    mov     al, 2               // Default to CALL extension
+    IF r13b, e, 0xE9            // If it was JMP (E9)
+        mov al, 4               // Use JMP extension
+    ENDIF
+    
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_ret]
+ */
+amd64_encode_ret:
+    prologue
+    cmp     byte [r12 + INST_nops], 0
+    IF e
+        mov     al, 0xC3
         call    amd64_emit_byte
         jmp     .done
     ENDIF
     
-    // Case 2: Memory (8F /0)
-    IF byte [r10 + OPERAND_kind], e, OP_MEM
-        mov     al, 0x8F | call amd64_emit_byte
-        mov     al, 0    // Extension Digit
-        mov     rdi, r10
-        call    amd64_emit_modrm_sib
-        jmp     .done
-    ENDIF
-    jmp     .error
-
-/**
- * [amd64_encode_branch]
- * Input: R13 = Opcode
- */
-amd64_encode_branch:
-    prologue
-    mov     al, r13b
+    // RET imm16 (0xC2)
+    mov     al, 0xC2
     call    amd64_emit_byte
-    
     lea     r10, [r12 + INST_op0]
-    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
-        mov     al, RELOC_REL32
-        mov     rsi, [r10 + OPERAND_sym]
-        call    amd64_emit_reloc
-    ENDIF
-    
-    xor     rax, rax
-    call    amd64_emit_dword
+    mov     rax, [r10 + OPERAND_imm]
+    call    amd64_emit_word
     jmp     .done
 
 /**
@@ -1215,41 +1244,89 @@ amd64_encode_vex:
     prologue
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
-    lea     r13, [r12 + INST_op2]
+    lea     rdx, [r12 + INST_op2]  // Optional 3rd op
     
-    // VEX 3-byte prefix (0xC4)
-    // Byte 1: R X B Map (5 bits)
-    // Byte 2: W vvvv L pp (8 bits)
+    // Default VEX payload bits
+    // R=1, X=1, B=1, m-mmmm=Map, W=0, vvvv=1111, L=0, pp=00
     
-    mov     al, 0xC4
+    // 1. Determine if we need 3-byte VEX
+    mov     r15b, 0xC4         // Assume 3-byte
+    
+    // Check if 2-byte VEX (0xC5) is possible:
+    // Only if X=1, B=1, and Map=1
+    mov     al, [r11 + OPERAND_reg]
+    mov     cl, [rdx + OPERAND_reg]
+    IF al, lt, 8
+        IF cl, lt, 8
+            IF r14b, e, 1
+                mov r15b, 0xC5
+            ENDIF
+        ENDIF
+    ENDIF
+    
+    IF r15b, e, 0xC4
+        // 3-byte VEX (0xC4)
+        mov     al, 0xC4 | call amd64_emit_byte
+        
+        // Byte 1: R X B m-mmmm
+        mov     al, r14b           // Map
+        and     al, 0x1F
+        
+        // R, X, B are inverted (0 = present)
+        mov     cl, [r10 + OPERAND_reg]
+        IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF  // R
+        mov     cl, [rdx + OPERAND_reg]
+        IF cl, ge, 8 | ELSE | or al, 0x40 | ENDIF  // X
+        mov     cl, [rdx + OPERAND_base]
+        IF cl, ge, 8 | ELSE | or al, 0x20 | ENDIF  // B
+        call    amd64_emit_byte
+        
+        // Byte 2: W vvvv L pp
+        mov     al, 0              // W=0 (Assume 32-bit/VEX.W=0)
+        // pp (Assume 00 for now, should come from instruction metadata)
+        
+        // vvvv (Inverted)
+        IF byte [r12 + INST_nops], ge, 3
+            mov cl, [r11 + OPERAND_reg]
+            and cl, 0x0F
+            xor cl, 0x0F           // Invert 4 bits
+            shl cl, 3
+            or  al, cl
+        ELSE
+            or  al, 0x78           // 1111
+        ENDIF
+        call    amd64_emit_byte
+    ELSE
+        // 2-byte VEX (0xC5)
+        mov     al, 0xC5 | call amd64_emit_byte
+        
+        // Byte 1: R vvvv L pp
+        mov     al, 0
+        mov     cl, [r10 + OPERAND_reg]
+        IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF
+        
+        IF byte [r12 + INST_nops], ge, 3
+            mov cl, [r11 + OPERAND_reg]
+            and cl, 0x0F
+            xor cl, 0x0F
+            shl cl, 3
+            or  al, cl
+        ELSE
+            or  al, 0x78
+        ENDIF
+        call    amd64_emit_byte
+    ENDIF
+    
+    // 3. Emit Opcode
+    mov     al, r13b
     call    amd64_emit_byte
     
-    // Byte 1: ~R ~X ~B Map
-    mov     al, 0xE0           // Inverted R X B (all 1)
-    or      al, r14b           // Map
-    // Adjust R X B based on operands (not fully implemented for now)
-    call    amd64_emit_byte
-    
-    // Byte 2: W ~vvvv L pp
-    // W=1 (Assume 64-bit/W bit), L=0 (128-bit)
-    mov     al, 0x80           // W=1
-    mov     cl, [r11 + OPERAND_reg]
-    not     cl                 // Inverted vvvv
-    and     cl, 0x0F
-    shl     cl, 3
-    or      al, cl
-    call    amd64_emit_byte
-    
-    mov     rax, r13
-    call    amd64_emit_byte
-    
+    // 4. ModRM/SIB
     mov     al, [r10 + OPERAND_reg]
-    mov     rdi, r13           // Third operand
-    call    amd64_emit_modrm_sib
-    jmp     .done
-
-    mov     al, [r10 + OPERAND_reg]
-    mov     rdi, r13           // Third operand
+    mov     rdi, rdx
+    IF byte [r12 + INST_nops], lt, 3
+        mov rdi, r11
+    ENDIF
     call    amd64_emit_modrm_sib
     jmp     .done
 
