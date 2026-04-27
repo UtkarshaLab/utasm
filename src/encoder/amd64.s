@@ -185,6 +185,15 @@ amd64_encode_instruction:
         mov     al, 0xF0 | call amd64_emit_byte
     ELSEIF ax, e, 1067             // CLFLUSH
         mov     r14, 7 | call amd64_encode_mem_sync
+    ELSEIF ax, e, 1686             // SYSENTER
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x34 | call amd64_emit_byte
+    ELSEIF ax, e, 1680             // SWAPGS
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        mov     al, 0xF8 | call amd64_emit_byte
+    ELSEIF ax, e, 1351             // LAR
+        mov     r13, 0x0F02 | call amd64_encode_rm_r
+    ELSEIF ax, e, 1377             // LSL
+        mov     r13, 0x0F03 | call amd64_encode_rm_r
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -1133,6 +1142,37 @@ amd64_encode_mem_sync:
     
     mov     al, r14b           // Digit 7 for CLFLUSH
     mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_rm_r]
+ * R13 = Opcode (multi-byte)
+ */
+amd64_encode_rm_r:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    // REX.W
+    mov     al, 0x48
+    IF byte [r10 + OPERAND_reg], ge, 8
+        or  al, 0x04
+    ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8
+        or  al, 0x01
+    ENDIF
+    call    amd64_emit_byte
+    
+    // Multi-byte Opcode
+    mov     ax, r13w
+    xchg    al, ah
+    IF al, ne, 0 | call amd64_emit_byte | ENDIF
+    mov     al, ah
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
     call    amd64_emit_modrm_sib
     jmp     .done
 
