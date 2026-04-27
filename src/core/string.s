@@ -1022,3 +1022,42 @@ str_int_to_str:
     mov     rax, EXIT_ERROR
     xor     rdx, rdx
     ret
+
+/**
+ * [str_concat]
+ * Purpose: Concatenates two null-terminated strings into a destination.
+ * Input:
+ *   RDI: Destination buffer
+ *   RSI: String A
+ *   RDX: String B
+ */
+global str_concat
+str_concat:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi               // RBX = Dest
+    mov     r12, rsi               // R12 = A
+    mov     r13, rdx               // R13 = B
+    
+    // Copy String A
+    mov     rdi, rbx
+    mov     rsi, r12
+    call    str_copy
+    
+    // Find end of Dest
+    mov     rdi, rbx
+    call    str_len
+    add     rdi, rax               // RDI points to null terminator of A
+    
+    // Copy String B
+    mov     rsi, r13
+    call    str_copy
+    
+    pop     r13
+    pop     r12
+    pop     rbx
+    xor     rax, rax
+    epilogue
