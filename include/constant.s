@@ -29,7 +29,8 @@
 %def EXIT_INC_NOT_FOUND     10  // included file specified by source not found
 %def EXIT_MACRO_DEF         11  // malformed or illegal macro definition
 %def EXIT_MACRO_EXP         12  // failure during macro expansion phase
-%def EXIT_DEFINE            13  // invalid or malformed %define directive
+%def EXIT_MACRO_RECURSION   13  // nested macro depth exceeded limit
+%def EXIT_DEFINE            14  // invalid or malformed %define directive
 
 %def EXIT_UNKNOWN_INSTR     20  // mnemonic does not match any known instruction
 %def EXIT_INVALID_OPERAND   21  // operand syntax is not valid for instruction

@@ -92,11 +92,25 @@ preprocessor_next_token:
     pop     rbx
     ret
 
-.error:
-    xor     rdx, rdx
+global preprocessor_putback_token
+preprocessor_putback_token:
+    prologue
+    push    rbx
+    push    r12
+    mov     rbx, rdi               // rdi = PrepState
+    mov     r12, rsi               // rsi = TOKEN*
+    
+    // Copy token into peek slot
+    lea     rdi, [rbx + PREP_peek]
+    mov     rsi, r12
+    mov     rcx, TOKEN_SIZE
+    rep     movsb
+    
+    mov     byte [rbx + PREP_has_peek], TRUE
+    
     pop     r12
     pop     rbx
-    ret
+    epilogue
 
 // ---- preprocessor_peek_token ------------
 global preprocessor_peek_token
@@ -246,6 +260,25 @@ prep_expand_start:
     push    r15
     mov     rbx, rdi               // rbx = PrepState
     mov     r12, rsi               // r12 = MACRO struct
+
+    // 0. Check recursion depth
+    mov     r8, [rbx + PREP_ctx]
+    mov     r9, [r8 + ASMCTX_mac_exp]
+    xor     ecx, ecx
+.depth_loop:
+    test    r9, r9
+    jz      .depth_ok
+    inc     ecx
+    cmp     ecx, MAX_MACRO_DEPTH
+    jge     .error_recursion
+    mov     r9, [r9 + MACROEXP_parent]
+    jmp     .depth_loop
+
+.error_recursion:
+    mov     rax, EXIT_MACRO_RECURSION
+    jmp     .error
+
+.depth_ok:
 
     // 1. Allocate MACROEXP struct
     mov     rdi, [rbx + PREP_arena]
