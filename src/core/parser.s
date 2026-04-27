@@ -1260,9 +1260,10 @@ parser_handle_section_directive:
         mov     r13, rdx
     ENDIF
 
-    // 2. Auto-assign flags for standard sections if new
+    // 2. Auto-assign flags and type for standard sections if new
     IF rax, ne, OK
         mov     rdi, [r12 + TOKEN_value]
+        mov     dword [r13 + SECTION_elf_type], SHT_PROGBITS // Default
         
         // .text -> AX
         lea     rsi, [str_text]
@@ -1276,11 +1277,12 @@ parser_handle_section_directive:
             IF rax, e, OK
                 mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
             ELSE
-                // .bss -> AW
+                // .bss -> AW, NOBITS
                 lea     rsi, [str_bss]
                 call    str_cmp
                 IF rax, e, OK
                     mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
+                    mov dword [r13 + SECTION_elf_type], SHT_NOBITS
                 ELSE
                     // .rodata -> A
                     lea     rsi, [str_rodata]

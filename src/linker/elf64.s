@@ -657,88 +657,66 @@ elf64_write_rela:
 elf64_write_shdrs:
     prologue
     push    rbx
-
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    
+    mov     rbx, rdi               // AsmCtx
+    mov     r12, rsi               // FD
+    
     sub     rsp, ELF64_SHDR_SIZE   // scratch shdr
-
-    // Helper: write one zeroed shdr then fill fields
-    // For brevity each section uses its own inline block.
-
-    // [0] NULL section header
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [1] .text
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  1            // offset in shstrtab
-    mov     dword [rsp + SHDR_TYPE],  SHT_PROGBITS
-    mov     qword [rsp + SHDR_FLAGS], SHF_ALLOC | SHF_EXECINSTR
-    mov     qword [rsp + SHDR_ADDRALIGN], 16
-    // size and offset filled in by caller (or via AsmCtx)
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [2] .data
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  7
-    mov     dword [rsp + SHDR_TYPE],  SHT_PROGBITS
-    mov     qword [rsp + SHDR_FLAGS], SHF_ALLOC | SHF_WRITE
-    mov     qword [rsp + SHDR_ADDRALIGN], 8
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [3] .bss
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  13
-    mov     dword [rsp + SHDR_TYPE],  SHT_NOBITS
-    mov     qword [rsp + SHDR_FLAGS], SHF_ALLOC | SHF_WRITE
-    mov     qword [rsp + SHDR_ADDRALIGN], 8
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [4] .symtab
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  18
-    mov     dword [rsp + SHDR_TYPE],  SHT_SYMTAB
-    mov     qword [rsp + SHDR_FLAGS], 0
-    mov     dword [rsp + SHDR_LINK],  5            // .strtab index
-    mov     qword [rsp + SHDR_ENTSIZE], ELF64_SYM_SIZE
-    mov     qword [rsp + SHDR_ADDRALIGN], 8
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [5] .strtab
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  26
-    mov     dword [rsp + SHDR_TYPE],  SHT_STRTAB
-    mov     qword [rsp + SHDR_FLAGS], 0
-    mov     qword [rsp + SHDR_ADDRALIGN], 1
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [6] .shstrtab
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  34
-    mov     dword [rsp + SHDR_TYPE],  SHT_STRTAB
-    mov     qword [rsp + SHDR_FLAGS], 0
-    mov     qword [rsp + SHDR_ADDRALIGN], 1
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
-    // [7] .rela.text
-    mov     rdi, rsp | mov     rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME],  44
-    mov     dword [rsp + SHDR_TYPE],  SHT_RELA
-    mov     qword [rsp + SHDR_FLAGS], SHF_INFO_LINK
-    mov     dword [rsp + SHDR_LINK],  4            // .symtab index
-    mov     dword [rsp + SHDR_INFO],  1            // applies to .text (index 1)
-    mov     qword [rsp + SHDR_ENTSIZE], ELF64_RELA_SIZE
-    mov     qword [rsp + SHDR_ADDRALIGN], 8
-    mov     rdi, r13d | mov     rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    check_err
-
+    
+    // 1. NULL Section [0]
+    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    
+    // 2. Iterate User Sections
+    mov     r14, [rbx + ASMCTX_sections]
+    mov     r15d, [rbx + ASMCTX_seccount]
+    xor     ecx, ecx
+    
+.sec_loop:
+    cmp     ecx, r15d
+    jge     .sec_done
+    
+    mov     r13, [r14 + rcx * 8]   // r13 = SECTION*
+    
+    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    
+    // Name (offset in shstrtab - need to implement shstrtab collection)
+    // For now, use a placeholder or handle later in Audit 57.
+    mov     dword [rsp + SHDR_NAME], 0 
+    
+    mov     eax, [r13 + SECTION_elf_type]
+    mov     dword [rsp + SHDR_TYPE], eax
+    
+    movzx   eax, word [r13 + SECTION_flags]
+    mov     qword [rsp + SHDR_FLAGS], rax
+    
+    mov     rax, [r13 + SECTION_addr]
+    mov     qword [rsp + SHDR_ADDR], rax
+    
+    mov     rax, [r13 + SECTION_size]
+    mov     qword [rsp + SHDR_SIZE], rax
+    
+    mov     rax, [r13 + SECTION_align]
+    mov     qword [rsp + SHDR_ADDRALIGN], rax
+    
+    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    
+    inc     ecx
+    jmp     .sec_loop
+    
+.sec_done:
+    // 3. Built-in Sections (symtab, strtab, shstrtab)
+    // ... will be handled in a more refined multi-pass loop later ...
+    
     add     rsp, ELF64_SHDR_SIZE
-    xor     rax, rax
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
     pop     rbx
     epilogue
 

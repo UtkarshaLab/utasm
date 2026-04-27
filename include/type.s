@@ -65,9 +65,9 @@ endstruc
 
 struc SECTION
     field tag,      1       // always TAG_SECTION
-    field type,     1       // SEC_* value
+    field kind,     1       // SEC_* internal kind
     field flags,    2       // SHF_* flags
-    field pad0,      4       // alignment padding
+    field elf_type, 4       // SHT_* ELF type
     field name,     8       // pointer to section name
     field data,     8       // pointer to content buffer
     field size,     8       // current size
