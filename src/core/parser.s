@@ -170,21 +170,42 @@ parser_parse_operand:
     
     mov     al, [r13 + TOKEN_kind]
     
+    // 1. Memory Operands [base + index*scale + disp]
+    IF al, e, TOK_LBRACKET
+        call    parser_parse_mem_operand
+        check_err
+        jmp     .success
+    ENDIF
+
+    // 2. Registers (handled via ident lookup)
     IF al, e, TOK_IDENT
         mov     rsi, [r13 + TOKEN_value]
-        mov     rdi, r10                // R10 preserved from parser_parse_instruction
+        mov     rdi, r10
         call    parser_parse_reg_info
         IF rax, ne, ERR
             mov     byte [r12 + OPERAND_kind], OP_REG
-        ELSE
-            mov     byte [r12 + OPERAND_kind], OP_SYMBOL
-            mov     rax, [r13 + TOKEN_value]
-            mov     [r12 + OPERAND_sym], rax
+            jmp     .success
+        ENDIF
+        // Not a register, fall through to expression (it's a symbol)
+        call    preprocessor_putback_token // put back the ident
+    ENDIF
+
+    // 3. Expressions (Numbers, Symbols, Math)
+    call    parser_evaluate_expression
+    test    rax, rax
+    IF z
+        mov     byte [r12 + OPERAND_kind], OP_IMM
+        mov     [r12 + OPERAND_imm], rdx
+        // If the expression involved symbols, we mark it
+        IF rcx, ne, 0
+             mov     byte [r12 + OPERAND_kind], OP_SYMBOL
+             mov     [r12 + OPERAND_sym], rcx
         ENDIF
         jmp     .success
     ENDIF
 
-    // ... (rest of function)
+    mov     rax, EXIT_INVALID_OPERAND
+    epilogue
 
 /**
  * [parser_parse_reg_info]
@@ -215,22 +236,170 @@ parser_parse_reg_info:
     
     mov     rax, OK
     epilogue
+
+/**
+ * [parser_evaluate_expression]
+ * Purpose: Entry point for expression evaluation (Additive level: + -)
+ */
+parser_evaluate_expression:
+    prologue
+    push    rbx
+    
+    call    parser_evaluate_term
+    check_err
+    mov     rbx, rdx               // RBX = current running total
+    
+.loop:
+    call    preprocessor_peek_token
+    mov     r12, rdx
+    mov     al, [r12 + TOKEN_kind]
+    
+    IF al, e, TOK_PLUS
+        call    preprocessor_next_token
+        call    parser_evaluate_term
+        check_err
+        add     rbx, rdx
+        jmp     .loop
+    ELSEIF al, e, TOK_MINUS
+        call    preprocessor_next_token
+        call    parser_evaluate_term
+        check_err
+        sub     rbx, rdx
+        jmp     .loop
+    ENDIF
+    
+    mov     rdx, rbx
+    xor     rax, rax
+    pop     rbx
+    epilogue
+
+/**
+ * [parser_evaluate_term]
+ * Purpose: Multiplicative level (* / << >> & | ^)
+ */
+parser_evaluate_term:
+    prologue
+    push    rbx
+    
+    call    parser_evaluate_factor
+    check_err
+    mov     rbx, rdx
+    
+.loop:
+    call    preprocessor_peek_token
+    mov     r12, rdx
+    mov     al, [r12 + TOKEN_kind]
+    
+    IF al, e, TOK_STAR
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        imul    rbx, rdx
+        jmp     .loop
+    ELSEIF al, e, TOK_SLASH
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        test    rdx, rdx
+        jz      .div_zero
+        mov     r13, rdx           // R13 = divisor
+        mov     rax, rbx           // RAX = dividend
+        cdq                        // Sign-extend EAX into EDX
+        idiv    r13
+        mov     rbx, rax
+        jmp     .loop
+    ELSEIF al, e, TOK_LSHIFT
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        mov     rcx, rdx
+        shl     rbx, cl
+        jmp     .loop
+    ELSEIF al, e, TOK_RSHIFT
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        mov     rcx, rdx
+        shr     rbx, cl
+        jmp     .loop
+    ELSEIF al, e, TOK_AMPERSAND
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        and     rbx, rdx
+        jmp     .loop
+    ELSEIF al, e, TOK_PIPE
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        or      rbx, rdx
+        jmp     .loop
+    ELSEIF al, e, TOK_CARET
+        call    preprocessor_next_token
+        call    parser_evaluate_factor
+        check_err
+        xor     rbx, rdx
+        jmp     .loop
+    ENDIF
+    
+    mov     rdx, rbx
+    xor     rax, rax
+    pop     rbx
+    epilogue
+
+.div_zero:
+    mov     rax, EXIT_INVALID_IMM
+    pop     rbx
+    epilogue
+
+/**
+ * [parser_evaluate_factor]
+ * Purpose: Primary level (Numbers, Symbols, Parens)
+ */
+parser_evaluate_factor:
+    prologue
+    call    preprocessor_next_token
+    check_err
+    mov     r12, rdx
+    mov     al, [r12 + TOKEN_kind]
     
     IF al, e, TOK_NUMBER
-        mov     byte [r12 + OPERAND_kind], OP_IMM
-        mov     rsi, [r13 + TOKEN_value]
+        mov     rsi, [r12 + TOKEN_value]
         call    str_to_int
-        mov     [r12 + OPERAND_imm], rax
-        jmp     .success
-    ENDIF
-    
-    IF al, e, TOK_LBRACKET
-        call    parser_parse_mem_operand
+        mov     rdx, rax
+        xor     rax, rax
+        epilogue
+    ELSEIF al, e, TOK_IDENT
+        // Symbol lookup (Round 6 will industrialize this)
+        mov     rdi, [rbx + PREP_ctx]
+        mov     rsi, [r12 + TOKEN_value]
+        extern  symbol_find
+        call    symbol_find
+        IF rax, e, OK
+            mov     rdx, [rdx + SYMBOL_value]
+            xor     rax, rax
+        ELSE
+            // Deferred symbol (R_ABS64 reloc)
+            mov     rdx, 0
+            mov     rcx, [r12 + TOKEN_value] // return symbol name in RCX
+            xor     rax, rax
+        ENDIF
+        epilogue
+    ELSEIF al, e, TOK_LPAREN
+        call    parser_evaluate_expression
         check_err
-        jmp     .success
+        mov     r13, rdx
+        call    preprocessor_next_token
+        IF byte [rdx + TOKEN_kind], ne, TOK_RPAREN
+            mov rax, EXIT_UNEXPECTED_TOKEN
+            epilogue
+        ENDIF
+        mov     rdx, r13
+        xor     rax, rax
+        epilogue
     ENDIF
     
-    mov     rax, EXIT_INVALID_OPERAND
+    mov     rax, EXIT_INVALID_EXPR
     epilogue
 
 .success:
