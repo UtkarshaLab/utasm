@@ -137,10 +137,19 @@ reloc_resolve_all:
     call    symbol_find
     test    rax, rax
     jnz     .undef
-
-    // sym_va = base_addr + symbol.value
-    mov     rax, [rdx + SYMBOL_value]
-    add     rax, r13                       // sym_va
+    
+    mov     r10, rdx                       // r10 = SYMBOL*
+    
+    // sym_va = symbol.section.addr + symbol.value
+    movzx   eax, word [r10 + SYMBOL_section] // section index
+    // lookup section addr
+    // (Simplified: Get section pointer from AsmCtx.sections + index*8)
+    mov     rdi, [rbx + ASMCTX_sections]
+    mov     rax, [rdi + rax * 8]             // rax = SECTION*
+    mov     rdi, [rax + SECTION_addr]        // rdi = section VA
+    
+    mov     rax, [r10 + SYMBOL_value]
+    add     rax, rdi                         // sym_va = section_base + value
 
     // patch_offset = reloc.offset
     mov     r8, [rsi + RELOC_offset]
@@ -151,12 +160,10 @@ reloc_resolve_all:
     // addend
     mov     r10, [rsi + RELOC_addend]
 
-    // dispatch on type
-    mov     r11d, [rsi + RELOC_type]
-
-    // patch_va = base_addr + patch_offset
-    mov     r10, r13
-    add     r10, r8
+    // patch_va = reloc.section.addr + patch_offset
+    mov     rax, [rsi + RELOC_section]     // rsi is RELOC*, get SECTION*
+    mov     r10, [rax + SECTION_addr]
+    add     r10, r8                        // r10 = patch_va
 
     // Apply the relocation via unified helper
     mov     rdi, rsi                       // RELOC*
