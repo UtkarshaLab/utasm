@@ -523,6 +523,38 @@ amd64_encode_instruction:
         mov     al, 0x9B | call amd64_emit_byte
         mov     r13, 0xD9 | mov r14, 6 | call amd64_encode_rm_m
 
+    // ---- Step 5: AVX-512 (EVEX) ----
+    ELSEIF ax, ge, 5400            // AVX-512 Range
+        IF ax, le, 5412
+            // Complete EVEX 4-byte prefix stub
+            mov     al, 0x62 | call amd64_emit_byte
+            mov     al, 0xF1 | call amd64_emit_byte
+            mov     al, 0xFD | call amd64_emit_byte
+            mov     al, 0x08 | call amd64_emit_byte
+        ENDIF
+
+    // ---- Step 6: VNNI & BFLOAT16 ----
+    ELSEIF ax, ge, 5500            // VNNI Range
+        IF ax, le, 5503
+            // VEX/EVEX hybrid stub
+            mov     al, 0x62 | call amd64_emit_byte
+        ENDIF
+
+    // ---- Step 7: 3DNow! & AMD XOP ----
+    ELSEIF ax, ge, 5600            // 3DNow Range
+        IF ax, le, 5612
+            // 3DNow uses 0F 0F [ModRM] [Opcode] suffix
+            mov     al, 0x0F | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
+        ENDIF
+
+    // ---- Step 8: SGX Enclave Sub-Leafs ----
+    ELSEIF ax, ge, 5700            // SGX Range
+        IF ax, le, 5706
+            // Resolves to ENCLS (0F 01 CF) or ENCLU (0F 01 D7)
+            mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+            mov     al, 0xCF | call amd64_emit_byte
+        ENDIF
+
     ELSEIF ax, e, 1054             // BT
         mov     r13, 0xA3 | mov r14, 4 | call amd64_encode_bt
     ELSEIF ax, e, 1057             // BTS

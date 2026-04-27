@@ -1330,6 +1330,52 @@ amd64_mnemonic_table:
     mnemonic_entry "vpclmulqdq", 0, 5104
     mnemonic_entry "vmovdqa64", 0, 5105
     mnemonic_entry "vaddpd", 0, 5106
+
+    // ---- Step 5: AVX-512 (Custom IDs) ----
+    mnemonic_entry "kaddw", 0, 5400
+    mnemonic_entry "kandw", 0, 5401
+    mnemonic_entry "korw", 0, 5402
+    mnemonic_entry "kxorw", 0, 5403
+    mnemonic_entry "kmovw", 0, 5404
+    mnemonic_entry "kunpckbw", 0, 5405
+    mnemonic_entry "vgatherdpd", 0, 5406
+    mnemonic_entry "vscatterdps", 0, 5407
+    mnemonic_entry "vpconflictd", 0, 5408
+    mnemonic_entry "vpconflictq", 0, 5409
+    mnemonic_entry "vreducess", 0, 5410
+    mnemonic_entry "vexp2ps", 0, 5411
+    mnemonic_entry "vrcp14ps", 0, 5412
+
+    // ---- Step 6: VNNI & BF16 (Custom IDs) ----
+    mnemonic_entry "vpdpbusd", 0, 5500
+    mnemonic_entry "vpdpwssd", 0, 5501
+    mnemonic_entry "vdpbf16ps", 0, 5502
+    mnemonic_entry "vcvtne2ps2bf16", 0, 5503
+
+    // ---- Step 7: 3DNow! & XOP (Custom IDs) ----
+    mnemonic_entry "femms", 0, 5600
+    mnemonic_entry "pfadd", 0, 5601
+    mnemonic_entry "pfcmpeq", 0, 5602
+    mnemonic_entry "pfmax", 0, 5603
+    mnemonic_entry "pfmin", 0, 5604
+    mnemonic_entry "pfrcp", 0, 5605
+    mnemonic_entry "pfrsqrt", 0, 5606
+    mnemonic_entry "pi2fd", 0, 5607
+    mnemonic_entry "vpmacssww", 0, 5608
+    mnemonic_entry "vpmadcsswd", 0, 5609
+    mnemonic_entry "vpperm", 0, 5610
+    mnemonic_entry "vprotb", 0, 5611
+    mnemonic_entry "vpshab", 0, 5612
+
+    // ---- Step 8: SGX Sub-Leafs (Custom IDs) ----
+    mnemonic_entry "eadd", 0, 5700
+    mnemonic_entry "eblock", 0, 5701
+    mnemonic_entry "ecreate", 0, 5702
+    mnemonic_entry "einit", 0, 5703
+    mnemonic_entry "eenter", 0, 5704
+    mnemonic_entry "eresume", 0, 5705
+    mnemonic_entry "egetkey", 0, 5706
+
     dq 0
 
 global amd64_register_table
