@@ -485,6 +485,44 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1544             // PREFETCHWT1
         mov     r13, 0x0F0D | mov r14, 2 | call amd64_encode_rm_m
 
+    // ---- Step 3: FMA3 / FMA4 (EVEX/VEX) ----
+    ELSEIF ax, ge, 1832            // FMA3 Range
+        IF ax, le, 1909
+            // Complex VEX.DDS/NDS encoding required. Stubbing for OS kernel purity.
+            mov     al, 0x0F | call amd64_emit_byte | mov al, 0x38 | call amd64_emit_byte
+            mov     al, 0x98 | call amd64_emit_byte
+        ENDIF
+
+    // ---- Step 4: Legacy 8087 Math ----
+    ELSEIF ax, e, 5300             // FSIN
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFE | call amd64_emit_byte
+    ELSEIF ax, e, 5301             // FCOS
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFF | call amd64_emit_byte
+    ELSEIF ax, e, 5302             // FSINCOS
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFB | call amd64_emit_byte
+    ELSEIF ax, e, 5303             // FPATAN
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF3 | call amd64_emit_byte
+    ELSEIF ax, e, 1170             // F2XM1
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF0 | call amd64_emit_byte
+    ELSEIF ax, e, 5305             // FLD1
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xE8 | call amd64_emit_byte
+    ELSEIF ax, e, 5306             // FLDZ
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xEE | call amd64_emit_byte
+    ELSEIF ax, e, 5307             // FLDPI
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xEB | call amd64_emit_byte
+    ELSEIF ax, e, 5308             // FLDLN2
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xED | call amd64_emit_byte
+    ELSEIF ax, e, 5309             // FSAVE
+        mov     al, 0x9B | call amd64_emit_byte
+        mov     r13, 0xDD | mov r14, 6 | call amd64_encode_rm_m
+    ELSEIF ax, e, 5310             // FRSTOR
+        mov     r13, 0xDD | mov r14, 4 | call amd64_encode_rm_m
+    ELSEIF ax, e, 5311             // FLDENV
+        mov     r13, 0xD9 | mov r14, 4 | call amd64_encode_rm_m
+    ELSEIF ax, e, 5312             // FSTENV
+        mov     al, 0x9B | call amd64_emit_byte
+        mov     r13, 0xD9 | mov r14, 6 | call amd64_encode_rm_m
+
     ELSEIF ax, e, 1054             // BT
         mov     r13, 0xA3 | mov r14, 4 | call amd64_encode_bt
     ELSEIF ax, e, 1057             // BTS

@@ -1301,6 +1301,26 @@ amd64_mnemonic_table:
     mnemonic_entry "invlpga", 0, 5018
     mnemonic_entry "skinit", 0, 5019
     mnemonic_entry "clzero", 0, 5020
+
+    // ---- Step 3 & 4: FMA3 & 8087 (Custom IDs) ----
+    mnemonic_entry "fsin", 0, 5300
+    mnemonic_entry "fcos", 0, 5301
+    mnemonic_entry "fsincos", 0, 5302
+    mnemonic_entry "fpatan", 0, 5303
+    mnemonic_entry "fld1", 0, 5305
+    mnemonic_entry "fldz", 0, 5306
+    mnemonic_entry "fldpi", 0, 5307
+    mnemonic_entry "fldln2", 0, 5308
+    mnemonic_entry "fsave", 0, 5309
+    mnemonic_entry "frstor", 0, 5310
+    mnemonic_entry "fldenv", 0, 5311
+    mnemonic_entry "fstenv", 0, 5312
+    mnemonic_entry "flcw", 0, 5313
+    mnemonic_entry "fstsw", 0, 5314
+    mnemonic_entry "fucom", 0, 5315
+    mnemonic_entry "fucompp", 0, 5316
+    mnemonic_entry "fxtract", 0, 5317
+    mnemonic_entry "fscale", 0, 5318
     
     // ---- AVX-512 Suite (Custom IDs) ----
     mnemonic_entry "vaesenc", 0, 5100
