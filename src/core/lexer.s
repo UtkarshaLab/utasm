@@ -998,6 +998,40 @@ lexer_next:
 .skip_block_loop:
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
+    jge     .skip_block_unterminated
+    
+    movzx   rcx, byte [r10]
+    IF rcx, e, 10
+        inc dword [rbx + LEXER_line]
+        mov word [rbx + LEXER_col], 1
+    ELSE
+        inc word [rbx + LEXER_col]
+    ENDIF
+
+    cmp     rcx, '*'
+    jne     .skip_block_next
+    
+    // peek for /
+    mov     r11, r10
+    inc     r11
+    cmp     r11, [rbx + LEXER_end]
+    jge     .skip_block_unterminated
+    movzx   r11, byte [r11]
+    cmp     r11, '/'
+    je      .skip_block_done
+
+.skip_block_next:
+    inc     qword [rbx + LEXER_pos]
+    jmp     .skip_block_loop
+
+.skip_block_done:
+    add     qword [rbx + LEXER_pos], 2 // skip */
+    add     word [rbx + LEXER_col], 2
+    jmp     .skip_loop
+
+.skip_block_unterminated:
+    mov     rax, EXIT_UNEXPECTED_EOF
+    jmp     .skip_done
     jge     .skip_block_eof
 
     movzx   rcx, byte [r10]
