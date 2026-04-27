@@ -46,15 +46,15 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
 - [x] R79: Self-Hosting Pre-Flight Check (Source Parsing).
 - [x] R80: The Bootstrapping Attempt (Pipeline Orchestration).
 
-## 🟢 Active (Phase 9: Production & 0.1.0 Release)
+## ✅ Phase 9: Production & 0.1.0 Release - [COMPLETE]
 
-- [ ] R81: AMD64 Test Suite Materialization (Core & SIMD).
-- [ ] R82: AArch64 Test Suite Materialization (Base & NEON/SVE).
-- [ ] R83: RISC-V 64 Test Suite Materialization (Base & F/D/V).
-- [ ] R84: Test Harness Orchestration (`scripts/test.sh`).
-- [ ] R85: Industrial I/O Hardening: `io_uring` Foundation.
-- [ ] R86: `io_uring` Asynchronous File Writes.
-- [ ] R87: 0.1.0 Release Purification (Documentation & Polish).
+- [x] R81: AMD64 Test Suite Materialization (Core & SIMD).
+- [x] R82: AArch64 Test Suite Materialization (Base & NEON/SVE).
+- [x] R83: RISC-V 64 Test Suite Materialization (Base & F/D/V).
+- [x] R84: Test Harness Orchestration (`scripts/test.sh`).
+- [x] R85: Industrial I/O Hardening: `io_uring` Foundation.
+- [x] R86: `io_uring` Asynchronous File Writes.
+- [x] R87: 0.1.0 Release Purification (Documentation & Polish).
 
 ---
 
