@@ -50,23 +50,27 @@ elf64_emit:
     mov     r12, rdi               // r12 = AsmCtx
     mov     r13d, esi              // r13d = fd
 
-    // ---- 1. Allocate scratch buffer for ELF header (64 bytes) ----
+    // ---- 1. Write ELF Header ----
     mov     rdi, [r12 + ASMCTX_arena]
     mov     rsi, ELF64_EHDR_SIZE
     call    arena_alloc
     check_err
     mov     r14, rdx               // r14 = ehdr buffer
 
-    call    elf64_write_ehdr       // fill header fields
+    call    elf64_write_ehdr
     check_err
 
-    // ---- 2. Write ELF File Header ----
-    mov     rdi, r13               // fd
-    mov     rsi, r14               // buffer
+    mov     rdi, r13d
+    mov     rsi, r14
     mov     rdx, ELF64_EHDR_SIZE
-    extern  io_write
     call    io_write
     check_err
+
+    // ---- 2. Write Program Headers (if standalone) ----
+    IF byte [r12 + ASMCTX_standalone], e, 1
+        call    elf64_write_phdrs
+        check_err
+    ENDIF
 
     // ---- 3. Write .text section ----
     call    elf64_write_text_section
@@ -76,39 +80,25 @@ elf64_emit:
     call    elf64_write_data_section
     check_err
 
-    // ---- 5. Prepare .strtab indices ----
+    // ---- 5. Write Metadata sections ----
     call    elf64_prepare_strtab
     check_err
-
-    // ---- 6. Write .symtab ----
     call    elf64_write_symtab
     check_err
-
-    // ---- 6. Write .strtab ----
     call    elf64_write_strtab
     check_err
-
-    // ---- 7. Write .shstrtab ----
     call    elf64_write_shstrtab
     check_err
-
-    // ---- 8. Write .rela.text ----
     call    elf64_write_rela
     check_err
-
-    // ---- 9. Write .debug_line ----
     call    elf64_write_debug_line
     check_err
 
-    // ---- 10. Write Section Header Table ----
+    // ---- 6. Write Section Header Table ----
     call    elf64_write_shdrs
     check_err
 
     xor     rax, rax
-    jmp     .done
-
-.error:
-    // rax already holds the error code from check_err
 .done:
     pop     r15
     pop     r14
@@ -172,8 +162,12 @@ elf64_write_ehdr:
     mov     byte [r14 + EHDR_IDENT + EI_VERSION], EV_CURRENT
     mov     byte [r14 + EHDR_IDENT + EI_OSABI],   ELFOSABI_NONE
 
-    // e_type = ET_REL (relocatable object)
-    mov     word [r14 + EHDR_TYPE],    ET_REL
+    // e_type
+    IF byte [r12 + ASMCTX_standalone], e, 1
+        mov     word [r14 + EHDR_TYPE],    ET_EXEC
+    ELSE
+        mov     word [r14 + EHDR_TYPE],    ET_REL
+    ENDIF
     
     // ---- FIX: DYNAMIC MACHINE TYPE ----
     mov     al, [r12 + ASMCTX_target]
@@ -187,25 +181,104 @@ elf64_write_ehdr:
     
     mov     dword [r14 + EHDR_VERSION], EV_CURRENT
 
-    // e_entry = 0 (relocatable object has no entry point)
-    mov     qword [r14 + EHDR_ENTRY], 0
+    // e_entry
+    mov     rax, [r12 + ASMCTX_entry_point]
+    mov     qword [r14 + EHDR_ENTRY], rax
 
-    // e_phoff = 0 (no program header table in .o files)
-    mov     qword [r14 + EHDR_PHOFF], 0
+    // e_phoff
+    IF byte [r12 + ASMCTX_standalone], e, 1
+        mov     qword [r14 + EHDR_PHOFF], ELF64_EHDR_SIZE
+        mov     word  [r14 + EHDR_PHENTSIZE], ELF64_PHDR_SIZE
+        mov     word  [r14 + EHDR_PHNUM], 2 // For now: 1 Code + 1 Data
+    ELSE
+        mov     qword [r14 + EHDR_PHOFF], 0
+        mov     word  [r14 + EHDR_PHENTSIZE], 0
+        mov     word  [r14 + EHDR_PHNUM], 0
+    ENDIF
 
     // e_shoff will be patched after all sections are written
-    // Store placeholder; elf64_write_shdrs will seek+patch it
     mov     qword [r14 + EHDR_SHOFF], 0
-
     mov     dword [r14 + EHDR_FLAGS], 0
     mov     word  [r14 + EHDR_EHSIZE],    ELF64_EHDR_SIZE
-    mov     word  [r14 + EHDR_PHENTSIZE], 0
-    mov     word  [r14 + EHDR_PHNUM],     0
     mov     word  [r14 + EHDR_SHENTSIZE], ELF64_SHDR_SIZE
     // e_shnum and e_shstrndx patched in elf64_write_shdrs
     mov     word  [r14 + EHDR_SHNUM],     7   // NULL,.text,.data,.bss,.symtab,.strtab,.shstrtab + .rela.text = 8
     mov     word  [r14 + EHDR_SHSTRNDX],  6   // .shstrtab is section index 6
 
+    xor     rax, rax
+    epilogue
+
+/**
+ * [elf64_write_phdrs]
+ */
+elf64_write_phdrs:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    
+    mov     r12, rdi               // r12 = AsmCtx
+    mov     r13d, esi              // r13d = fd
+    
+    // Allocate 112 bytes for 2 PHDRs
+    mov     rdi, [r12 + ASMCTX_arena]
+    mov     rsi, 112
+    call    arena_alloc
+    check_err
+    mov     r14, rdx               // r14 = buffer
+    
+    mov     rdi, r14
+    mov     rsi, 112
+    call    mem_zero
+    
+    // CODE Segment
+    mov     dword [r14 + PHDR_type],   PT_LOAD
+    mov     dword [r14 + PHDR_flags],  (PF_R | PF_X)
+    mov     qword [r14 + PHDR_offset], 176
+    mov     rax, [r12 + ASMCTX_entry_point]
+    mov     qword [r14 + PHDR_vaddr],  rax
+    mov     qword [r14 + PHDR_paddr],  rax
+    
+    mov     rdi, r12
+    mov     rsi, SEC_TEXT
+    call    asmctx_get_section
+    mov     rax, [rdx + SECTION_size]
+    mov     qword [r14 + PHDR_filesz], rax
+    mov     qword [r14 + PHDR_memsz],  rax
+    mov     qword [r14 + PHDR_align],  0x1000
+    
+    // DATA Segment
+    add     r14, 56
+    mov     dword [r14 + PHDR_type],   PT_LOAD
+    mov     dword [r14 + PHDR_flags],  (PF_R | PF_W)
+    // Simplified offset for now
+    mov     qword [r14 + PHDR_offset], 4096
+    mov     rax, [r12 + ASMCTX_entry_point]
+    add     rax, 4096
+    mov     qword [r14 + PHDR_vaddr],  rax
+    mov     qword [r14 + PHDR_paddr],  rax
+    
+    mov     rdi, r12
+    mov     rsi, SEC_DATA
+    call    asmctx_get_section
+    mov     rax, [rdx + SECTION_size]
+    mov     qword [r14 + PHDR_filesz], rax
+    mov     qword [r14 + PHDR_memsz],  rax
+    mov     qword [r14 + PHDR_align],  0x1000
+    
+    // Write buffer
+    sub     r14, 56
+    mov     rdi, r13d
+    mov     rsi, r14
+    mov     rdx, 112
+    call    io_write
+    check_err
+    
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
     xor     rax, rax
     epilogue
 

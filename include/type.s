@@ -166,6 +166,9 @@ struc ASMCTX
     field debug_line,  4       // current source line for DWARF
     field debug_file,  4       // current source file index for DWARF
     field debug_col,   4       // current source column for DWARF
+    field standalone,  1       // 1 if generating standalone executable
+    field pad_sove,    7       // alignment padding
+    field entry_point, 8       // virtual address of entry point
     field inc_ctx,     8       // current IncludeCtx
     field mac_exp,     8       // current MacroExpansion
     field input,       8       // input filename
@@ -253,9 +256,23 @@ struc INST
     field prefix,    1       // instruction prefix (e.g. 0xF3)
     field nops,      1       // operand count
     field flags,     1       // instruction flags
-    field pad0,       2       // alignment padding
+    field pad0,      1       // alignment padding
     field op0,       OPERAND_SIZE
     field op1,       OPERAND_SIZE
     field op2,       OPERAND_SIZE
-    field pad1,      8       // alignment padding
+    field op3,       OPERAND_SIZE
+endstruc
+
+// ============================================================================
+// STRUCT: PHDR (Elf64_Phdr)
+// ============================================================================
+struc PHDR
+    field type,     4       // segment type (PT_LOAD, etc)
+    field flags,    4       // segment flags (PF_X | PF_W | PF_R)
+    field offset,   8       // file offset
+    field vaddr,    8       // virtual address
+    field paddr,    8       // physical address
+    field filesz,   8       // size in file
+    field memsz,    8       // size in memory
+    field align,    8       // alignment
 endstruc

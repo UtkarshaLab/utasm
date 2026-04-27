@@ -462,9 +462,13 @@
 // ============================================================================
 // ELF64 PROGRAM HEADER TYPES
 // ============================================================================
-// Types of segments described by program headers.
-
-%def PT_LOAD                1           // loadable segment
+%def PT_NULL                0
+%def PT_LOAD                1
+%def PT_DYNAMIC             2
+%def PT_INTERP              3
+%def PT_NOTE                4
+%def PT_SHLIB               5
+%def PT_PHDR                6
 
 // ============================================================================
 // ELF64 PROGRAM HEADER FLAGS
