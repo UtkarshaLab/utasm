@@ -900,83 +900,11 @@ error_struct_bounds:
 parser_handle_pseudo_op:
     prologue
     push    rbx
-    push    rsi
+    push    r12
+    mov     rbx, rsi               // rbx = mnemonic string
     
-    mov     rbx, rsi               // RBX = mnemonic
-    
-    IF rbx, e, "db"
-        call    parser_emit_data_8
-        mov     rax, 1
-    ELSEIF rbx, e, "dw"
-        call    parser_emit_data_16
-        mov     rax, 1
-    ELSEIF rbx, e, "dd"
-        call    parser_emit_data_32
-        mov     rax, 1
-    ELSEIF rbx, e, "dq"
-        call    parser_emit_data_64
-        mov     rax, 1
-    ELSEIF rbx, e, "SECTION"
-        call    parser_handle_section_directive
-        mov     rax, 1
-    ELSE
-        xor     rax, rax
-    ENDIF
-    
-    pop     rsi
-    pop     rbx
-    epilogue
-
-parser_emit_data_8:
-    prologue
-.loop:
-    call    preprocessor_next_token
-    mov     r12, rdx
-    mov     al, [r12 + TOKEN_kind]
-    
-    IF al, e, TOK_NUMBER
-        mov     rsi, [r12 + TOKEN_value]
-        call    str_to_int
-        mov     rsi, rax
-        mov     rdi, [global_ctx]
-        extern  asm_ctx_emit_byte
-        call    asm_ctx_emit_byte
-    ELSEIF al, e, TOK_STRING
-        mov     rsi, [r12 + TOKEN_value]
-        mov     rdi, [global_ctx]
-        extern  asm_ctx_emit_string
-        call    asm_ctx_emit_string
-    ENDIF
-    
-    call    preprocessor_peek_token
-    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
-        call    preprocessor_next_token
-        jmp     .loop
-    ENDIF
-    epilogue
-
-parser_handle_pseudo_op:
-    prologue
-    push    rbx
-    push    rsi
-    
-    // 1. section
-    mov     rdi, rsi
-    lea     rsi, [str_section]
-    extern  str_cmp
-    call    str_cmp
-    IF rax, e, 0
-        call    parser_handle_section_directive
-        mov     rax, OK
-        jmp     .done
-    ENDIF
-    
-    // 2. data (db, dw, dd, dq)
-    pop     rsi
-    push    rsi
-    mov     rax, [rsi]
-    and     rax, 0xFFFF
-    
+    // 1. Data Directives (db, dw, dd, dq)
+    mov     ax, [rbx]
     IF ax, e, 'db'
         call    parser_emit_data_8
         mov     rax, OK
@@ -995,10 +923,59 @@ parser_handle_pseudo_op:
         jmp     .done
     ENDIF
 
-    mov     rax, 0 // Not a pseudo-op
+    // 2. Section Directive
+    mov     rdi, rbx
+    lea     rsi, [str_section]
+    extern  str_cmp
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_section_directive
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
+    // 3. Align Directive
+    mov     rdi, rbx
+    lea     rsi, [str_align]
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_align
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
+    xor     rax, rax               // Not a pseudo-op
+
 .done:
-    pop     rsi
+    pop     r12
     pop     rbx
+    epilogue
+
+/**
+ * [parser_handle_align]
+ */
+parser_handle_align:
+    prologue
+    call    parser_evaluate_expression
+    check_err
+    
+    // Validate power of 2
+    mov     rax, rdx
+    mov     rcx, rax
+    dec     rcx
+    and     rcx, rax
+    IF rcx, ne, 0
+        mov     rax, EXIT_INVALID_ALIGN
+        jmp     .error
+    ENDIF
+    
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, rax
+    extern  asm_ctx_align
+    call    asm_ctx_align
+    mov     rax, OK
+    epilogue
+.error:
     epilogue
 
 parser_emit_data_8:
@@ -1120,6 +1097,8 @@ parser_handle_section_directive:
     epilogue
 
 [SECTION .rodata]
+str_align:     db "align", 0
 str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
 str_field:     db "field", 0
+str_rel:       db "rel", 0

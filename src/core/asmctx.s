@@ -383,3 +383,59 @@ asmctx_find_section:
     pop     r12
     pop     rbx
     epilogue
+
+/**
+ * [asm_ctx_align]
+ * Aligns the current section to the specified boundary.
+ * Input:
+ *   RDI: AsmCtx*
+ *   RSI: Alignment (Power of 2)
+ */
+global asm_ctx_align
+asm_ctx_align:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    
+    mov     rbx, rdi
+    mov     r12, rsi               // r12 = alignment
+    
+    // 1. Get current section
+    mov     r13, [rbx + ASMCTX_curr_sec]
+    test    r13, r13
+    jz      .done
+    
+    // 2. Calculate padding
+    mov     rax, [r13 + SECTION_size]
+    mov     rcx, r12
+    dec     rcx                    // mask = align - 1
+    
+    mov     rdx, rax
+    and     rdx, rcx               // offset = size & mask
+    jz      .done                  // already aligned
+    
+    sub     r12, rdx               // padding = align - offset
+    
+    // 3. Determine fill byte
+    mov     r14b, 0                // default zero
+    mov     al, byte [r13 + SECTION_type]
+    cmp     al, SEC_TEXT
+    jne     .fill_loop
+    mov     r14b, 0x90         // NOP for AMD64
+    
+.fill_loop:
+    mov     rdi, rbx
+    movzx   rsi, r14b
+    extern  asm_ctx_emit_byte
+    call    asm_ctx_emit_byte
+    dec     r12
+    jnz     .fill_loop
+
+.done:
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
