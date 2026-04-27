@@ -491,12 +491,12 @@ lexer_next:
     jge     .lex_number_done
     movzx   rdi, byte [r10]
 
-    // accept hex digits, x, b, o for prefix detection
+    // accept hex digits
     call    str_is_hex_digit
     cmp     rax, TRUE
     je      .lex_number_advance
 
-    // accept x b o X B O for prefix
+    // accept prefixes and scientific markers
     movzx   rdi, byte [r10]
     cmp     rdi, 'x'
     je      .lex_number_advance
@@ -510,6 +510,21 @@ lexer_next:
     je      .lex_number_advance
     cmp     rdi, 'O'
     je      .lex_number_advance
+    cmp     rdi, '.'
+    je      .lex_number_advance
+    cmp     rdi, 'e'
+    je      .lex_number_advance
+    cmp     rdi, 'E'
+    je      .lex_number_advance
+    cmp     rdi, 'p'
+    je      .lex_number_advance
+    cmp     rdi, 'P'
+    je      .lex_number_advance
+    cmp     rdi, '+'
+    je      .lex_number_advance
+    cmp     rdi, '-'
+    je      .lex_number_advance
+    
     jmp     .lex_number_done
 
 .lex_number_advance:
