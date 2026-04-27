@@ -1097,20 +1097,43 @@ parser_handle_section_directive:
     call    asmctx_find_section
     
     IF rax, e, OK
-        // Switch current section
-        mov     rdi, [rbx + PREP_ctx]
-        mov     [rdi + ASMCTX_curr_sec], rdx
+        mov     r13, rdx               // r13 = existing section
     ELSE
         // Create new section
         mov     rdi, [rbx + PREP_ctx]
         mov     rsi, [r12 + TOKEN_value]
-        mov     rdx, SEC_CUSTOM        // Default to custom for now
+        mov     rdx, SEC_CUSTOM
         extern  asm_ctx_create_section
         call    asm_ctx_create_section
         check_err
-        
-        mov     rdi, [rbx + PREP_ctx]
-        mov     [rdi + ASMCTX_curr_sec], rdx
+        mov     r13, rdx
+    ENDIF
+
+    mov     rdi, [rbx + PREP_ctx]
+    mov     [rdi + ASMCTX_curr_sec], r13
+
+    // 2. Check for attributes (comma + string)
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        call    preprocessor_next_token
+        check_err
+        mov     r14, rdx               // r14 = attribute token
+        IF byte [r14 + TOKEN_kind], e, TOK_STRING
+            mov     rsi, [r14 + TOKEN_value]
+            xor     rax, rax           // flags accumulator
+        .flag_loop:
+            mov     cl, [rsi]
+            test    cl, cl
+            jz      .flag_done
+            IF cl, e, 'a' | or ax, SHF_ALLOC | ENDIF
+            IF cl, e, 'w' | or ax, SHF_WRITE | ENDIF
+            IF cl, e, 'x' | or ax, SHF_EXECINSTR | ENDIF
+            inc     rsi
+            jmp     .flag_loop
+        .flag_done:
+            mov     [r13 + SECTION_flags], ax
+        ENDIF
     ENDIF
     
     pop     r12
