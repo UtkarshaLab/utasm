@@ -592,6 +592,12 @@ prep_handle_directive:
     jz      .do_def
 
     mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_if]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_if
+
+    mov     rdi, [r12 + TOKEN_value]
     lea     rsi, [dir_ifdef]
     call    str_cmp
     test    rax, rax
@@ -642,6 +648,11 @@ prep_handle_directive:
     jne     .done                  // don't execute when skipping
     mov     rdi, rbx
     call    prep_handle_def
+    jmp     .done
+
+.do_if:
+    mov     rdi, rbx
+    call    prep_handle_if
     jmp     .done
 
 .do_ifdef:
@@ -1001,6 +1012,55 @@ prep_capture_greedy:
     pop     r12
     pop     rbx
     xor     rax, rax
+    epilogue
+
+// ---- prep_handle_if ---------------------
+/*
+ prep_handle_if
+ Handles the %if directive by evaluating a mathematical expression.
+ Input    : rdi = PrepState
+ Output   : rax = EXIT_OK or error
+*/
+prep_handle_if:
+    prologue
+    push    rbx
+    push    r12
+    mov     rbx, rdi               // rbx = PrepState
+
+    // 1. If we are already skipping, just increment depth
+    cmp     byte [rbx + PREP_skip_depth], 0
+    jne     .already_skipping
+
+    // 2. Evaluate expression
+    mov     rdi, [rbx + PREP_ctx]
+    extern  parser_evaluate_expression
+    call    parser_evaluate_expression
+    test    rax, rax
+    jnz     .done
+    
+    // 3. Evaluate boolean result
+    test    rdx, rdx
+    jnz     .condition_true
+
+    // 4. Condition false, begin skipping
+    inc     byte [rbx + PREP_skip_depth]
+    inc     byte [rbx + PREP_depth]
+    xor     rax, rax
+    jmp     .done
+
+.condition_true:
+    inc     byte [rbx + PREP_depth]
+    xor     rax, rax
+    jmp     .done
+
+.already_skipping:
+    inc     byte [rbx + PREP_skip_depth]
+    inc     byte [rbx + PREP_depth]
+    xor     rax, rax
+
+.done:
+    pop     r12
+    pop     rbx
     epilogue
 
 // ---- prep_handle_ifdef ------------------
