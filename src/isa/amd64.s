@@ -1398,9 +1398,39 @@ amd64_register_table:
 
     // ---- SIMD (XMM) ----
     %assign i 0
-    %rep 16
+    // ---- SIMD (XMM/YMM/ZMM) ----
+    %assign i 0
+    %rep 32
         compile_time_hash "xmm%[i]", H_XMM%[i]
-        dq H_XMM%[i], (16 << 8) | (16 + %[i])
+        dq H_XMM%[i], (16 << 8) | (80 + %[i])
+        compile_time_hash "ymm%[i]", H_YMM%[i]
+        dq H_YMM%[i], (32 << 8) | (80 + %[i])
+        compile_time_hash "zmm%[i]", H_ZMM%[i]
+        dq H_ZMM%[i], (64 << 8) | (80 + %[i])
+        %assign i i+1
+    %endrep
+
+    // ---- Opmask (K0-K7) ----
+    %assign i 0
+    %rep 8
+        compile_time_hash "k%[i]", H_K%[i]
+        dq H_K%[i], (8 << 8) | (72 + %[i])
+        %assign i i+1
+    %endrep
+
+    // ---- Control Registers (CR0-CR15) ----
+    %assign i 0
+    %rep 16
+        compile_time_hash "cr%[i]", H_CR%[i]
+        dq H_CR%[i], (8 << 8) | (32 + %[i])
+        %assign i i+1
+    %endrep
+
+    // ---- Debug Registers (DR0-DR15) ----
+    %assign i 0
+    %rep 16
+        compile_time_hash "dr%[i]", H_DR%[i]
+        dq H_DR%[i], (8 << 8) | (48 + %[i])
         %assign i i+1
     %endrep
 

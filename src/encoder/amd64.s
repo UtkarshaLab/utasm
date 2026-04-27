@@ -293,7 +293,28 @@ amd64_encode_instruction:
         mov     r13, 0xF7 | mov r14, 2 | mov r15, 3 | call amd64_encode_vex
     ELSEIF ax, e, 1626             // SARX
         mov     r13, 0xF7 | mov r14, 2 | mov r15, 2 | call amd64_encode_vex
+    ELSEIF ax, ge, 1714            // AVX-512 (EVEX)
+        IF ax, le, 1898
+            call    amd64_encode_evex
+        ENDIF
     ELSEIF ax, e, 1440             // NOP
+        mov     al, 0x90 | call amd64_emit_byte
+    ELSEIF ax, e, 1888             // XBEGIN
+        mov     al, 0xC7 | call amd64_emit_byte
+        mov     al, 0xF8 | call amd64_emit_byte
+        mov     r13, 0xE8 | call amd64_encode_branch // Use branch logic for rel32
+    ELSEIF ax, e, 1889             // XEND
+        mov     al, 0x0F | call amd64_emit_byte
+        mov     al, 0x01 | call amd64_emit_byte
+        mov     al, 0xD5 | call amd64_emit_byte
+    ELSEIF ax, e, 1887             // XABORT
+        mov     al, 0xC6 | call amd64_emit_byte
+        mov     al, 0xF8 | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov     rax, [r10 + OPERAND_imm] | call amd64_emit_byte
+    ELSEIF ax, e, 1069             // CLI / STI / CLD / STD
+        mov     al, 0xFA | IF ax, e, 1666 | mov al, 0xFB | ELSEIF ax, e, 1065 | mov al, 0xFC | ELSEIF ax, e, 1665 | mov al, 0xFD | ENDIF
+        call    amd64_emit_byte
     ELSE
         mov     rax, EXIT_ENCODE_FAIL
     ENDIF
@@ -1362,6 +1383,68 @@ amd64_encode_vex:
     ENDIF
     call amd64_emit_modrm_sib
     jmp .done
+
+/**
+ * [amd64_encode_evex]
+ * Complex 4-byte prefix starting with 0x62.
+ */
+amd64_encode_evex:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    lea     rdx, [r12 + INST_op2]
+    
+    // Byte 0: 0x62
+    mov     al, 0x62 | call amd64_emit_byte
+    
+    // Byte 1: ~R ~X ~B ~R' 0 0 m m
+    // m-mmmm (Map) is usually in metadata, assume 1 (0F) for now
+    mov     al, 0x01
+    
+    // R, X, B, R' inverted
+    mov cl, [r10 + OPERAND_reg]
+    IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF  // R
+    IF cl, ge, 16 | ELSE | or al, 0x10 | ENDIF // R'
+    
+    mov cl, [rdx + OPERAND_reg]
+    IF cl, ge, 8 | ELSE | or al, 0x40 | ENDIF  // X
+    
+    mov cl, [rdx + OPERAND_base]
+    IF cl, ge, 8 | ELSE | or al, 0x20 | ENDIF  // B
+    call    amd64_emit_byte
+    
+    // Byte 2: W vvvv 1 pp
+    // pp (Assume 00), W=0
+    mov     al, 0x04           // Bit 2 is mandatory 1
+    // vvvv (inverted, includes v' in byte 3)
+    IF byte [r12 + INST_nops], ge, 3
+        mov cl, [r11 + OPERAND_reg] | and cl, 0x0F | xor cl, 0x0F | shl cl, 3 | or al, cl
+    ELSE
+        or al, 0x78
+    ENDIF
+    call    amd64_emit_byte
+    
+    // Byte 3: z L' L b V' aaa
+    // aaa = Masking register
+    mov     al, [r10 + OPERAND_mask]
+    and     al, 0x07
+    
+    // V' (inverted)
+    mov     cl, [r11 + OPERAND_reg]
+    IF cl, ge, 16 | ELSE | or al, 0x08 | ENDIF
+    
+    // b = Broadcast/Static Rounding
+    mov     cl, [r10 + OPERAND_ctrl]
+    and     cl, 0x01 | shl cl, 4 | or al, cl
+    
+    call    amd64_emit_byte
+    
+    // Opcode & ModRM
+    // (In a real implementation, opcode would be retrieved from metadata)
+    // For now, assume a placeholder
+    mov     al, 0x00 | call amd64_emit_byte
+    mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    jmp     .done
 
 /**
  * [amd64_encode_sec_r]

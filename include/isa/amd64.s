@@ -25,15 +25,20 @@
 %def REG_R14                14
 %def REG_R15                15
 
-// ---- SIMD Registers (XMM) ----------------
-%def REG_XMM0               16
-%def REG_XMM1               17
-%def REG_XMM2               18
-%def REG_XMM3               19
-%def REG_XMM4               20
-%def REG_XMM5               21
-%def REG_XMM6               22
-%def REG_XMM7               23
+// ---- SIMD Registers (XMM/YMM/ZMM) --------
+%def REG_ZMM0               80
+%def REG_ZMM1               81
+%def REG_ZMM2               82
+%def REG_ZMM3               83
+%def REG_ZMM4               84
+%def REG_ZMM5               85
+%def REG_ZMM6               86
+%def REG_ZMM7               87
+%assign i 8
+%rep 24
+    %def REG_ZMM%[i] 80+%[i]
+    %assign i i+1
+%endrep
 
 // ---- Segment Registers -------------------
 %def REG_CS                 24
@@ -42,6 +47,34 @@
 %def REG_FS                 27
 %def REG_GS                 28
 %def REG_SS                 29
+
+// ---- Control Registers (CR0-CR15) --------
+%assign i 0
+%rep 16
+    %def REG_CR%[i] 32+%[i]
+    %assign i i+1
+%endrep
+
+// ---- Debug Registers (DR0-DR15) ----------
+%assign i 0
+%rep 16
+    %def REG_DR%[i] 48+%[i]
+    %assign i i+1
+%endrep
+
+// ---- FPU Stack (ST0-ST7) -----------------
+%assign i 0
+%rep 8
+    %def REG_ST%[i] 64+%[i]
+    %assign i i+1
+%endrep
+
+// ---- Opmask Registers (K0-K7) ------------
+%assign i 0
+%rep 8
+    %def REG_K%[i] 72+%[i]
+    %assign i i+1
+%endrep
 
 // ---- Mnemonic IDs (AMD64 Specific) -------
 %def OP_MOV                 1
