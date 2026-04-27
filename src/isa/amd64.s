@@ -343,6 +343,66 @@ amd64_mnemonic_table:
     mnemonic_entry "jpo", 0, 3027
     mnemonic_entry "js", 0, 3028
     mnemonic_entry "jz", 0, 3029
+    mnemonic_entry "cmovo", 0, 4000
+    mnemonic_entry "cmovno", 0, 4001
+    mnemonic_entry "cmovb", 0, 4002
+    mnemonic_entry "cmovc", 0, 4002
+    mnemonic_entry "cmovnae", 0, 4002
+    mnemonic_entry "cmovae", 0, 4003
+    mnemonic_entry "cmovnb", 0, 4003
+    mnemonic_entry "cmovnc", 0, 4003
+    mnemonic_entry "cmove", 0, 4004
+    mnemonic_entry "cmovz", 0, 4004
+    mnemonic_entry "cmovne", 0, 4005
+    mnemonic_entry "cmovnz", 0, 4005
+    mnemonic_entry "cmovbe", 0, 4006
+    mnemonic_entry "cmovna", 0, 4006
+    mnemonic_entry "cmova", 0, 4007
+    mnemonic_entry "cmovnbe", 0, 4007
+    mnemonic_entry "cmovs", 0, 4008
+    mnemonic_entry "cmovns", 0, 4009
+    mnemonic_entry "cmovp", 0, 4010
+    mnemonic_entry "cmovpe", 0, 4010
+    mnemonic_entry "cmovnp", 0, 4011
+    mnemonic_entry "cmovpo", 0, 4011
+    mnemonic_entry "cmovl", 0, 4012
+    mnemonic_entry "cmovnge", 0, 4012
+    mnemonic_entry "cmovge", 0, 4013
+    mnemonic_entry "cmovnl", 0, 4013
+    mnemonic_entry "cmovle", 0, 4014
+    mnemonic_entry "cmovng", 0, 4014
+    mnemonic_entry "cmovg", 0, 4015
+    mnemonic_entry "cmovnle", 0, 4015
+    mnemonic_entry "seto", 0, 4016
+    mnemonic_entry "setno", 0, 4017
+    mnemonic_entry "setb", 0, 4018
+    mnemonic_entry "setc", 0, 4018
+    mnemonic_entry "setnae", 0, 4018
+    mnemonic_entry "setae", 0, 4019
+    mnemonic_entry "setnb", 0, 4019
+    mnemonic_entry "setnc", 0, 4019
+    mnemonic_entry "sete", 0, 4020
+    mnemonic_entry "setz", 0, 4020
+    mnemonic_entry "setne", 0, 4021
+    mnemonic_entry "setnz", 0, 4021
+    mnemonic_entry "setbe", 0, 4022
+    mnemonic_entry "setna", 0, 4022
+    mnemonic_entry "seta", 0, 4023
+    mnemonic_entry "setnbe", 0, 4023
+    mnemonic_entry "sets", 0, 4024
+    mnemonic_entry "setns", 0, 4025
+    mnemonic_entry "setp", 0, 4026
+    mnemonic_entry "setpe", 0, 4026
+    mnemonic_entry "setnp", 0, 4027
+    mnemonic_entry "setpo", 0, 4027
+    mnemonic_entry "setl", 0, 4028
+    mnemonic_entry "setnge", 0, 4028
+    mnemonic_entry "setge", 0, 4029
+    mnemonic_entry "setnl", 0, 4029
+    mnemonic_entry "setle", 0, 4030
+    mnemonic_entry "setng", 0, 4030
+    mnemonic_entry "setg", 0, 4031
+    mnemonic_entry "setnle", 0, 4031
     mnemonic_entry "jmp", 0, 1298
     mnemonic_entry "kaddb", 0, 1299
     mnemonic_entry "kaddd", 0, 1300

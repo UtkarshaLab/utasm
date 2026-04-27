@@ -90,8 +90,30 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1611             // RET
         mov     al, 0xC3
         call    amd64_emit_byte
-    ELSEIF ax, ge, 3000            // Conditional Jumps
-        call    amd64_encode_jcc
+    ELSEIF ax, ge, 4016            // SETcc
+        call    amd64_encode_setcc
+    ELSEIF ax, ge, 4000            // CMOVcc
+        call    amd64_encode_cmovcc
+    ELSEIF ax, e, 1168             // ENTER
+        call    amd64_encode_enter
+    ELSEIF ax, e, 1357             // LEAVE
+        mov     al, 0xC9
+        call    amd64_emit_byte
+    ELSEIF ax, e, 1373             // LOOP
+        mov     al, 0xE2
+        call    amd64_emit_branch_rel8
+    ELSEIF ax, e, 1684             // SYSEXIT
+        mov     al, 0x0F
+        call    amd64_emit_byte
+        mov     al, 0x35
+        call    amd64_emit_byte
+    ELSEIF ax, e, 1685             // SYSRET
+        mov     al, 0x48
+        call    amd64_emit_byte
+        mov     al, 0x0F
+        call    amd64_emit_byte
+        mov     al, 0x07
+        call    amd64_emit_byte
     ELSEIF ax, e, 1682             // SYSCALL
         call    amd64_encode_syscall
     ELSEIF ax, e, 1440             // NOP
@@ -638,6 +660,101 @@ amd64_encode_unary_math:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+
+    xor     rdi, rdi
+    call    amd64_emit_dword
+    jmp     .done
+
+/**
+ * [amd64_encode_cmovcc]
+ */
+amd64_encode_cmovcc:
+    prologue
+    mov     ax, [r12 + INST_id]
+    sub     ax, 4000
+    and     rax, 0x0F
+    mov     r14, rax           // Condition Code
+    
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    // REX.W
+    mov     al, 0x48
+    IF byte [r10 + OPERAND_reg], ge, 8
+        or  al, 0x04
+    ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8
+        or  al, 0x01
+    ENDIF
+    call    amd64_emit_byte
+    
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0x40
+    add     al, r14b
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_setcc]
+ */
+amd64_encode_setcc:
+    prologue
+    mov     ax, [r12 + INST_id]
+    sub     ax, 4016
+    and     rax, 0x0F
+    mov     r14, rax
+    
+    lea     r10, [r12 + INST_op0]
+    
+    // REX if reg >= 8
+    IF byte [r10 + OPERAND_reg], ge, 8
+        mov al, 0x41
+        call    amd64_emit_byte
+    ENDIF
+    
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0x90
+    add     al, r14b
+    call    amd64_emit_byte
+    
+    xor     al, al             // Reg field 0
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+
+/**
+ * [amd64_encode_enter]
+ */
+amd64_encode_enter:
+    prologue
+    mov     al, 0xC8
+    call    amd64_emit_byte
+    
+    lea     r10, [r12 + INST_op0]
+    mov     ax, [r10 + OPERAND_imm]
+    call    amd64_emit_byte    // Enter uses word, then byte
+    mov     al, ah
+    call    amd64_emit_byte
+    
+    lea     r11, [r12 + INST_op1]
+    mov     al, [r11 + OPERAND_imm]
+    call    amd64_emit_byte
+    jmp     .done
+
+/**
+ * [amd64_emit_branch_rel8]
+ */
+amd64_emit_branch_rel8:
+    call    amd64_emit_byte
+    xor     al, al             // rel8 placeholder
+    call    amd64_emit_byte
+    ret
 
 /**
  * [amd64_emit_modrm_sib]
