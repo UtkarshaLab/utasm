@@ -29,12 +29,19 @@ asm_ctx_emit_byte:
     mov     rbx, rdi               // RBX = AsmCtx
     
     // 1. Get current section
-    // For now, we assume the first section is active
-    // We should later add a 'current_section' field to ASMCTX
+    mov     r12, [rbx + ASMCTX_curr_sec]
+    test    r12, r12
+    jz      .try_first_section
+    
+    jmp     .check_cap
+
+.try_first_section:
     mov     r12, [rbx + ASMCTX_sections]
+    mov     r12, [r12]             // Get first SECTION*
     test    r12, r12
     jz      .no_section
-    
+
+.check_cap:
     // 2. Check capacity
     mov     rax, [r12 + SECTION_size]
     cmp     rax, [r12 + SECTION_cap]
@@ -241,8 +248,79 @@ asm_ctx_align:
     dec     r13
     jmp     .pad_loop
 
-.done_align:
-    pop     r13
+/**
+ * [asm_ctx_emit_word]
+ * Purpose: Appends 2 bytes (16-bit) to the active section.
+ */
+global asm_ctx_emit_word
+asm_ctx_emit_word:
+    prologue
+    push    rbx
+    push    r12
+    mov     rbx, rdi
+    mov     r12, rsi
+    
+    mov     rdi, rbx
+    mov     rsi, r12
+    call    asm_ctx_emit_byte
+    mov     rdi, rbx
+    mov     rsi, r12
+    shr     rsi, 8
+    call    asm_ctx_emit_byte
+    
+    pop     r12
+    pop     rbx
+    epilogue
+
+/**
+ * [asm_ctx_emit_qword]
+ * Purpose: Appends 8 bytes (64-bit) to the active section.
+ */
+global asm_ctx_emit_qword
+asm_ctx_emit_qword:
+    prologue
+    push    rbx
+    push    r12
+    mov     rbx, rdi
+    mov     r12, rsi
+    
+    mov     rdi, rbx
+    mov     rsi, r12
+    call    asm_ctx_emit_dword
+    mov     rdi, rbx
+    mov     rsi, r12
+    shr     rsi, 32
+    call    asm_ctx_emit_dword
+    
+    pop     r12
+    pop     rbx
+    epilogue
+
+/**
+ * [asm_ctx_emit_string]
+ * Purpose: Appends a null-terminated string to the active section.
+ * Input:
+ *   RDI: Pointer to AsmCtx
+ *   RSI: Pointer to null-terminated string
+ */
+global asm_ctx_emit_string
+asm_ctx_emit_string:
+    prologue
+    push    rbx
+    push    r12
+    mov     rbx, rdi
+    mov     r12, rsi
+    
+.loop:
+    movzx   rsi, byte [r12]
+    test    sil, sil
+    jz      .done
+    mov     rdi, rbx
+    call    asm_ctx_emit_byte
+    inc     r12
+    jmp     .loop
+    
+.done:
     pop     r12
     pop     rbx
     epilogue
