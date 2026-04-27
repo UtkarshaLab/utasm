@@ -1199,7 +1199,40 @@ parser_handle_section_directive:
         mov     r13, rdx
     ENDIF
 
-    // 2. Reset last_global on section change
+    // 2. Auto-assign flags for standard sections if new
+    IF rax, ne, OK
+        mov     rdi, [r12 + TOKEN_value]
+        
+        // .text -> AX
+        lea     rsi, [str_text]
+        call    str_cmp
+        IF rax, e, OK
+            mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_EXECINSTR)
+        ELSE
+            // .data -> AW
+            lea     rsi, [str_data]
+            call    str_cmp
+            IF rax, e, OK
+                mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
+            ELSE
+                // .bss -> AW
+                lea     rsi, [str_bss]
+                call    str_cmp
+                IF rax, e, OK
+                    mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
+                ELSE
+                    // .rodata -> A
+                    lea     rsi, [str_rodata]
+                    call    str_cmp
+                    IF rax, e, OK
+                        mov word [r13 + SECTION_flags], SHF_ALLOC
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDIF
+
+    // 3. Reset last_global on section change
     mov     rdi, [rbx + PREP_ctx]
     mov     qword [rdi + ASMCTX_last_global], 0
     
