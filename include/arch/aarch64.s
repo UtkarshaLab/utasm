@@ -71,6 +71,11 @@
 %def ID_AARCH64_UBFM        2605
 %def ID_AARCH64_SBFM        2501
 %def ID_AARCH64_BFM         2074
+%def ID_AARCH64_ADD_V       2800
+%def ID_AARCH64_SUB_V       2801
+%def ID_AARCH64_AND_V       2802
+%def ID_AARCH64_ORR_V       2803
+%def ID_AARCH64_EOR_V       2804
 
 /**
  * [define_mnemonic]

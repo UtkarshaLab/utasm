@@ -159,6 +159,12 @@ aarch64_encode_instruction:
     ELSEIF eax, e, ID_AARCH64_STP
         mov     r13d, 0 | call aarch64_encode_ldst_pair
 
+    // ---- SIMD (NEON) ----
+    ELSEIF eax, ge, ID_AARCH64_ADD_V
+        IF eax, le, ID_AARCH64_EOR_V
+            call    aarch64_encode_vector_bin
+        ENDIF
+    
     // ---- Misc ----
     ELSEIF eax, e, ID_AARCH64_NOP
         mov     edi, 0xD503201F | call aarch64_emit_word
@@ -793,4 +799,57 @@ aarch64_encode_extend:
     or      eax, edi
     mov     rdi, rax
     call    aarch64_emit_word
+    epilogue
+
+// ---- aarch64_encode_vector_bin ----
+aarch64_encode_vector_bin:
+    prologue
+    push    rbx
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    lea     r9,  [r12 + INST_op2]
+    
+    // Base patterns (Arithmetic vs Logical)
+    movzx   ecx, word [r12 + INST_op_id]
+    IF ecx, ge, ID_AARCH64_AND_V
+        mov     eax, 0x0E201C00        // Logical base (AND)
+        IF ecx, e, ID_AARCH64_ORR_V
+            or      eax, 0x00400000    // ORR (size bits used as op modifier)
+        ELSEIF ecx, e, ID_AARCH64_EOR_V
+            or      eax, 0x20000000    // EOR (U bit used as op modifier)
+        ENDIF
+    ELSE
+        mov     eax, 0x0E208400        // Arithmetic base (ADD)
+        IF ecx, e, ID_AARCH64_SUB_V
+            or      eax, 0x20000000    // SUB (U bit)
+        ENDIF
+    ENDIF
+    
+    // Q bit (bit 30)
+    movzx   ecx, byte [r10 + OPERAND_size]
+    IF ecx, e, 16
+        or      eax, 0x40000000
+    ENDIF
+    
+    // Size (bits 23-22) - only for arithmetic
+    movzx   ecx, word [r12 + INST_op_id]
+    IF ecx, lt, ID_AARCH64_AND_V
+        // Assuming 32-bit elements (10) for now
+        or      eax, 0x00800000
+    ENDIF
+    
+    // Registers: Rd=bits 4-0, Rn=bits 9-5, Rm=bits 20-16
+    movzx   edi, byte [r10 + OPERAND_reg]
+    or      eax, edi
+    movzx   edi, byte [r11 + OPERAND_reg]
+    shl     edi, 5
+    or      eax, edi
+    movzx   edi, byte [r9 + OPERAND_reg]
+    shl     edi, 16
+    or      eax, edi
+    
+    mov     rdi, rax
+    call    aarch64_emit_word
+    
+    pop     rbx
     epilogue
