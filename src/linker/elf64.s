@@ -387,13 +387,17 @@ elf64_prepare_strtab:
 elf64_write_symtab:
     prologue
     push    rbx
+    push    r12
+    push    r13
     push    r14
     push    r15
 
-    // Allocate one Sym64 entry on stack as scratch
-    sub     rsp, ELF64_SYM_SIZE
+    mov     r12, rdi               // r12 = AsmCtx
+    mov     r13d, esi              // r13d = fd
+    
+    sub     rsp, ELF64_SYM_SIZE    // scratch Sym64
 
-    // First entry: null symbol (required by ELF spec)
+    // ---- 1. Null Symbol ----
     mov     rdi, rsp
     mov     rsi, ELF64_SYM_SIZE
     call    mem_zero
@@ -403,56 +407,96 @@ elf64_write_symtab:
     call    io_write
     check_err
 
-    // Walk symbol table
-    mov     rbx, [r12 + ASMCTX_symtab]
-    mov     r14d, [r12 + ASMCTX_symcount]
-    xor     r15, r15               // symbol index
+    // ---- 2. Pass 1: Local Symbols ----
+    xor     r14, r14               // index
+    mov     r15, [r12 + ASMCTX_symtab]
+    mov     ebx, [r12 + ASMCTX_symcount]
+.local_loop:
+    cmp     r14d, ebx
+    jge     .global_pass
+    
+    lea     r10, [r15 + r14 * SYMBOL_SIZE]
+    IF byte [r10 + SYMBOL_vis], e, VIS_LOCAL
+        call    .write_one_sym
+        check_err
+    ENDIF
+    inc     r14
+    jmp     .local_loop
 
-.loop:
-    cmp     r15d, r14d
+    // ---- 3. Pass 2: Global/Weak Symbols ----
+.global_pass:
+    xor     r14, r14
+.global_loop:
+    cmp     r14d, ebx
     jge     .done
+    
+    lea     r10, [r15 + r14 * SYMBOL_SIZE]
+    IF byte [r10 + SYMBOL_vis], ne, VIS_LOCAL
+        call    .write_one_sym
+        check_err
+    ENDIF
+    inc     r14
+    jmp     .global_loop
 
-    lea     rdi, [rbx + r15 * SYMBOL_SIZE]   // current SYMBOL*
+.done:
+    add     rsp, ELF64_SYM_SIZE
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    xor     rax, rax
+    epilogue
 
-    // Zero the Sym64 scratch
+// Helper: writes SYMBOL at R10 to FD R13D using scratch RSP
+.write_one_sym:
     push    rdi
+    push    rsi
+    push    rdx
+    
     mov     rdi, rsp
-    add     rdi, 8
+    add     rdi, 24                // back to scratch
     mov     rsi, ELF64_SYM_SIZE
     call    mem_zero
-    pop     rdi
-
-    // st_name: index into .strtab
-    mov     eax, [rdi + SYMBOL_name_idx]
-    mov     dword [rsp + SYM64_NAME], eax
-
-    // st_info: STB_GLOBAL | STT_FUNC for labels, STB_LOCAL for the rest
-    mov     al, [rdi + SYMBOL_kind]
-    cmp     al, SYM_LABEL
-    je      .func_sym
-    // default: local data object
-    mov     byte [rsp + SYM64_INFO], (STB_LOCAL << 4) | STT_NOTYPE
-    jmp     .write_sym
-.func_sym:
-    mov     byte [rsp + SYM64_INFO], (STB_GLOBAL << 4) | STT_FUNC
-
-.write_sym:
-    mov     al, [rdi + SYMBOL_vis]
-    mov     byte [rsp + SYM64_OTHER], al
-
-    // st_shndx: section index — assume .text (1) for labels
-    mov     word [rsp + SYM64_SHNDX], 1
-
-    // st_value: symbol address
-    mov     rax, [rdi + SYMBOL_value]
-    mov     qword [rsp + SYM64_VALUE], rax
-
-    // st_size: symbol size
-    mov     rax, [rdi + SYMBOL_size]
-    mov     qword [rsp + SYM64_SIZE], rax
-
+    
+    // st_name
+    mov     eax, [r10 + SYMBOL_name_idx]
+    mov     [rsp + 24 + SYM64_NAME], eax
+    
+    // st_info: (bind << 4) | (kind == LABEL ? FUNC : OBJECT)
+    movzx   eax, byte [r10 + SYMBOL_vis]   // VIS_LOCAL=0, VIS_GLOBAL=1, VIS_WEAK=2
+    shl     al, 4
+    mov     cl, [r10 + SYMBOL_kind]
+    IF cl, e, SYM_LABEL
+        or      al, STT_FUNC
+    ELSE
+        or      al, STT_OBJECT
+    ENDIF
+    mov     [rsp + 24 + SYM64_INFO], al
+    
+    // st_other: STV_DEFAULT (0)
+    mov     byte [rsp + 24 + SYM64_OTHER], 0
+    
+    // st_shndx
+    movzx   eax, word [r10 + SYMBOL_section]
+    mov     [rsp + 24 + SYM64_SHNDX], ax
+    
+    // st_value
+    mov     rax, [r10 + SYMBOL_value]
+    mov     [rsp + 24 + SYM64_VALUE], rax
+    
+    // st_size
+    mov     rax, [r10 + SYMBOL_size]
+    mov     [rsp + 24 + SYM64_SIZE], rax
+    
     mov     rdi, r13d
-    mov     rsi, rsp
+    lea     rsi, [rsp + 24]
+    mov     rdx, ELF64_SYM_SIZE
+    call    io_write
+    
+    pop     rdx
+    pop     rsi
+    pop     rdi
     mov     rdx, ELF64_SYM_SIZE
     call    io_write
     check_err
