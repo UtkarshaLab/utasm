@@ -50,6 +50,13 @@ elf64_emit:
     mov     r12, rdi               // r12 = AsmCtx
     mov     r13d, esi              // r13d = fd
 
+    // ---- 0. Resolve Entry Point (Standalone only) ----
+    IF byte [r12 + ASMCTX_standalone], e, 1
+        mov     rdi, r12
+        call    elf64_resolve_entry
+        check_err
+    ENDIF
+
     // ---- 1. Write ELF Header ----
     mov     rdi, [r12 + ASMCTX_arena]
     mov     rsi, ELF64_EHDR_SIZE
@@ -197,6 +204,50 @@ elf64_write_debug_abbrev:
 
 // ============================================================================
 // elf64_write_ehdr
+// ============================================================================
+/*
+ elf64_resolve_entry
+ Finds the _start symbol and computes its absolute virtual address.
+ Input  : rdi = AsmCtx
+ Output : rax = EXIT_OK or EXIT_UNDEF_SYMBOL
+*/
+elf64_resolve_entry:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    
+    mov     r12, rdi // AsmCtx
+    
+    mov     rdi, [r12 + ASMCTX_symtab]
+    lea     rsi, [rel .str_start]
+    extern  symbol_find
+    call    symbol_find
+    IF rax, e, EXIT_OK
+        mov     r10, rdx // SYMBOL*
+        mov     rax, [r10 + SYMBOL_value]
+        
+        // Add section base address
+        mov     r11d, dword [r10 + SYMBOL_section]
+        mov     r14, [r12 + ASMCTX_sections]
+        mov     r13, [r14 + r11 * 8] // SECTION*
+        add     rax, [r13 + SECTION_addr]
+        
+        mov     [r12 + ASMCTX_entry_point], rax
+        xor     rax, rax
+    ELSE
+        mov     rax, EXIT_UNDEF_REF
+    ENDIF
+    
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
+.str_start: db "_start", 0
+
 // ============================================================================
 /*
  elf64_write_ehdr
