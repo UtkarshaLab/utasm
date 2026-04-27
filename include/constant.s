@@ -568,3 +568,10 @@
 %def REG_RBP                5
 %def REG_RSI                6
 %def REG_RDI                7
+%def R_AARCH64_ABS64         257
+%def R_AARCH64_ADR_PREL_LO21 274
+%def R_AARCH64_ADR_PREL_PG_HI21 275
+%def R_AARCH64_ADD_ABS_LO12_NC 277
+%def R_AARCH64_LDST64_ABS_LO12_NC 286
+%def R_AARCH64_CALL26        283
+%def R_AARCH64_JUMP26        282
