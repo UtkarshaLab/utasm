@@ -324,3 +324,62 @@ asm_ctx_emit_string:
     pop     r12
     pop     rbx
     epilogue
+
+/**
+ * [asmctx_find_section]
+ * Purpose: Finds a section by name string.
+ * Input:
+ *   RDI: Pointer to AsmCtx
+ *   RSI: Section Name String
+ * Output:
+ *   RAX: EXIT_OK (found) or EXIT_ERROR
+ *   RDX: Pointer to SECTION
+ */
+global asmctx_find_section
+asmctx_find_section:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi
+    mov     r12, rsi
+    
+    mov     r13, [rbx + ASMCTX_sections]
+    movzx   ecx, word [rbx + ASMCTX_seccount]
+    xor     rax, rax
+    
+.loop:
+    test    ecx, ecx
+    jz      .not_found
+    
+    mov     r8, [r13 + rax*8]      // R8 = SECTION*
+    push    rax
+    push    rcx
+    mov     rdi, [r8 + SECTION_name]
+    mov     rsi, r12
+    extern  str_cmp
+    call    str_cmp
+    pop     rcx
+    pop     rax
+    test    rax, rax
+    jz      .found
+    
+    inc     rax
+    dec     ecx
+    jmp     .loop
+    
+.found:
+    mov     rdx, r8
+    xor     rax, rax
+    jmp     .done_find
+    
+.not_found:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+
+.done_find:
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
