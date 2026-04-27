@@ -117,6 +117,36 @@ amd64_encode_instruction:
         mov     r14, 1 | call amd64_encode_unary
     ELSEIF ax, e, 1439             // NEG
         mov     r14, 3 | call amd64_encode_unary
+    ELSEIF ax, e, 1059             // CALL
+        call    amd64_encode_call
+    ELSEIF ax, e, 1298             // JMP
+        call    amd64_encode_jmp
+    ELSEIF ax, ge, 3000            // Jcc
+        IF ax, le, 3029
+            call    amd64_encode_jcc
+        ENDIF
+    ELSEIF ax, e, 1611             // RET
+        call    amd64_encode_ret
+    ELSEIF ax, e, 1583             // PUSH
+        mov     r13, 0x50 | mov r14, 0x35 | mov r15, 6 | call amd64_encode_push_pop
+    ELSEIF ax, e, 1534             // POP
+        mov     r13, 0x58 | mov r14, 0x8F | mov r15, 0 | call amd64_encode_push_pop
+    ELSEIF ax, e, 1647             // SHL
+        mov     r14, 4 | call amd64_encode_shift
+    ELSEIF ax, e, 1650             // SHR
+        mov     r14, 5 | call amd64_encode_shift
+    ELSEIF ax, e, 1625             // SAR
+        mov     r14, 7 | call amd64_encode_shift
+    ELSEIF ax, e, 1612             // ROL
+        mov     r14, 0 | call amd64_encode_shift
+    ELSEIF ax, e, 1613             // ROR
+        mov     r14, 1 | call amd64_encode_shift
+    ELSEIF ax, e, 1432             // MUL
+        mov     r14, 4 | call amd64_encode_unary
+    ELSEIF ax, e, 1275             // IDIV
+        mov     r14, 7 | call amd64_encode_unary
+    ELSEIF ax, e, 1276             // IMUL
+        call    amd64_encode_imul
     ELSEIF ax, ge, 1418            // MOVS - MOVSW
         IF ax, le, 1425
             mov r13, 0xA4 | call amd64_encode_string
@@ -138,7 +168,7 @@ amd64_encode_instruction:
             mov r13, 0xA6 | call amd64_encode_string
         ENDIF
     ELSEIF ax, e, 1119             // DIV
-        mov     r14, 3 | call amd64_encode_unary
+        mov     r14, 6 | call amd64_encode_unary
     ELSEIF ax, e, 1441             // NOT
         mov     r14, 2 | call amd64_encode_unary
     ELSEIF ax, e, 1419             // MOVSB
@@ -2272,6 +2302,169 @@ amd64_emit_dword:
     pop     rcx
     pop     rax
     ret
+
+/**
+ * [amd64_encode_jmp]
+ */
+amd64_encode_jmp:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        mov     al, 0xE9 | call amd64_emit_byte
+        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+        xor     rax, rax | call amd64_emit_dword
+    ELSE
+        mov     r13, 0xFF | mov r14, 4 | call amd64_encode_unary
+    ENDIF
+    epilogue
+
+/**
+ * [amd64_encode_call]
+ */
+amd64_encode_call:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        mov     al, 0xE8 | call amd64_emit_byte
+        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+        xor     rax, rax | call amd64_emit_dword
+    ELSE
+        mov     r13, 0xFF | mov r14, 2 | call amd64_encode_unary
+    ENDIF
+    epilogue
+
+/**
+ * [amd64_encode_jcc]
+ */
+amd64_encode_jcc:
+    prologue
+    // Simplified Jcc handler (assumes long Jcc for now: 0x0F 0x8X)
+    // The exact condition code needs to be extracted from ID
+    mov     ax, [r12 + INST_op_id]
+    sub     ax, 3000
+    // Very crude mapping for proof of concept. In production, 
+    // a proper ID -> Cond table is required.
+    mov     r15b, al
+    and     r15b, 0x0F  
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x80
+    add     al, r15b
+    call    amd64_emit_byte
+    lea     r10, [r12 + INST_op0]
+    mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
+    xor     rax, rax | call amd64_emit_dword
+    epilogue
+
+/**
+ * [amd64_encode_ret]
+ */
+amd64_encode_ret:
+    prologue
+    IF byte [r12 + INST_nops], e, 0
+        mov     al, 0xC3 | call amd64_emit_byte
+    ELSE
+        mov     al, 0xC2 | call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov     rdi, [r10 + OPERAND_imm]
+        call    amd64_emit_word
+    ENDIF
+    epilogue
+
+/**
+ * [amd64_encode_push_pop]
+ * r13 = base opcode (0x50 for PUSH, 0x58 for POP)
+ * r14 = extended opcode (0xFF /6 for PUSH, 0x8F /0 for POP)
+ * r15 = reg field for ModRM
+ */
+amd64_encode_push_pop:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    IF byte [r10 + OPERAND_kind], e, OP_REG
+        mov     al, [r10 + OPERAND_reg]
+        mov     cl, al
+        and     cl, 7
+        mov     dl, r13b
+        add     dl, cl
+        mov     al, [r10 + OPERAND_size]
+        IF al, e, 16
+            mov al, 0x66 | call amd64_emit_byte
+        ENDIF
+        // REX prefix if reg >= 8
+        mov     al, [r10 + OPERAND_reg]
+        IF al, ge, 8
+            mov al, 0x41 | call amd64_emit_byte
+        ENDIF
+        mov     al, dl | call amd64_emit_byte
+    ELSE
+        // MEM
+        mov     al, [r10 + OPERAND_size]
+        IF al, e, 16
+            mov al, 0x66 | call amd64_emit_byte
+        ENDIF
+        mov     al, 0 | mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
+        mov     al, r14b | call amd64_emit_byte
+        mov     al, r15b | mov rdi, r10 | call amd64_emit_modrm_sib
+    ENDIF
+    epilogue
+
+/**
+ * [amd64_encode_shift]
+ * r14 = extension (4 for SHL, 5 for SHR, 7 for SAR)
+ */
+amd64_encode_shift:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    // Size check
+    mov     al, [r10 + OPERAND_size]
+    IF al, e, 8
+        mov r13b, 0xD0
+    ELSE
+        mov r13b, 0xD1
+    ENDIF
+    
+    IF byte [r11 + OPERAND_kind], e, OP_REG
+        // Must be CL
+        add r13b, 2
+        mov al, [r10 + OPERAND_size]
+        mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
+        mov al, r13b | call amd64_emit_byte
+        mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
+    ELSE
+        // Immediate
+        mov rcx, [r11 + OPERAND_imm]
+        IF cx, e, 1
+            mov al, [r10 + OPERAND_size]
+            mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
+            mov al, r13b | call amd64_emit_byte
+            mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
+        ELSE
+            add r13b, 0x00 // actually D0 -> C0, D1 -> C1
+            sub r13b, 0x10
+            mov al, [r10 + OPERAND_size]
+            mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
+            mov al, r13b | call amd64_emit_byte
+            mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
+            mov al, cl | call amd64_emit_byte
+        ENDIF
+    ENDIF
+    epilogue
+
+/**
+ * [amd64_encode_imul]
+ */
+amd64_encode_imul:
+    prologue
+    // Fallback stub for IMUL
+    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0xAF | call amd64_emit_byte
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    epilogue
 
 /**
  * [amd64_emit_nop]
