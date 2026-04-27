@@ -397,9 +397,63 @@ parser_evaluate_factor:
         mov     rdx, r13
         xor     rax, rax
         epilogue
+    ELSEIF al, e, TOK_COLON
+        call    parser_handle_reloc_modifier
+        check_err
+        // parser_handle_reloc_modifier should have parsed the symbol too
+        epilogue
     ENDIF
     
     mov     rax, EXIT_INVALID_EXPR
+    epilogue
+
+/**
+ * [parser_handle_reloc_modifier]
+ */
+parser_handle_reloc_modifier:
+    prologue
+    push    rbx
+    push    r12
+    
+    call    preprocessor_next_token
+    check_err
+    mov     r12, rdx
+    IF byte [r12 + TOKEN_kind], ne, TOK_IDENT
+        mov rax, EXIT_UNEXPECTED_TOKEN
+        jmp .error
+    ENDIF
+    
+    mov     rdi, [r12 + TOKEN_value]
+    xor     r14, r14
+    
+    // Simple check for :lo12: and :pg_hi21:
+    mov     eax, [rdi]
+    IF eax, e, 'lo12'
+        mov r14d, 1 // Placeholder for RELOC_AARCH64_LO12
+    ELSEIF eax, e, 'pg_h'
+        mov r14d, 2 // Placeholder for RELOC_AARCH64_PG_HI21
+    ENDIF
+    
+    call    preprocessor_next_token
+    IF byte [rdx + TOKEN_kind], ne, TOK_COLON
+        mov rax, EXIT_UNEXPECTED_TOKEN
+        jmp .error
+    ENDIF
+    
+    call    parser_evaluate_factor
+    check_err
+    
+    mov     rcx, r14
+    xor     rax, rax
+    jmp     .done
+
+.error:
+    pop     r12
+    pop     rbx
+    epilogue
+.done:
+    pop     r12
+    pop     rbx
     epilogue
 
 .success:

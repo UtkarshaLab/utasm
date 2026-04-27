@@ -227,6 +227,7 @@ struc OPERAND
     field is_high,  1       // 1 if AH/CH/DH/BH
     field mask,     1       // AVX-512 k-register mask (0-7)
     field ctrl,     1       // AVX-512 rounding/broadcast control
+    field reloc,    4       // relocation type (e.g. :lo12:)
     field imm,      8       // immediate or displacement
     field base,     1       // base register
     field index,    1       // index register
