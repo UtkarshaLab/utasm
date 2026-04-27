@@ -853,6 +853,12 @@ parser_concat_local_name:
     push    r12
     push    r13
     
+    // We need PrepState in RBX for the arena_alloc call
+    // Assuming the caller is parser_handle_line which keeps PrepState in RBX
+    // but we'll be safer and ensure it's valid if possible, 
+    // or just assume caller convention and document it.
+    // Actually, in our current arch, RBX IS the PrepState throughout the parser loop.
+    
     mov     r12, r14               // global
     mov     r13, rsi               // local
     
@@ -1109,10 +1115,11 @@ parser_handle_section_directive:
         mov     r13, rdx
     ENDIF
 
+    // 2. Reset last_global on section change
     mov     rdi, [rbx + PREP_ctx]
-    mov     [rdi + ASMCTX_curr_sec], r13
-
-    // 2. Check for attributes (comma + string)
+    mov     qword [rdi + ASMCTX_last_global], 0
+    
+    // 3. Check for attributes (comma + string)
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
