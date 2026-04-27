@@ -39,6 +39,7 @@
 %def EXIT_INVALID_ADDR      24  // addressing mode expression is malformed
 %def EXIT_UNEXPECTED_TOKEN  25  // token encountered where none was expected
 %def EXIT_UNEXPECTED_EOF    26  // end of input reached before construct completed
+%def EXIT_EXPR_TOO_DEEP     27  // expression recursion depth exceeded limit
 
 %def EXIT_ENCODE_FAIL       30  // instruction encoding could not be generated
 %def EXIT_IMM_RANGE         31  // immediate value exceeds allowed bit width
