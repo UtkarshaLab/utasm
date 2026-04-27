@@ -992,8 +992,22 @@ aarch64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- 32-bit Special Registers ----
-    compile_time_hash "wzr", H_WZR
-    dq H_WZR, (4 << 8) | 31
+    // ---- SIMD/FP Vector Registers (V0-V31) ----
+    %assign i 0
+    %rep 32
+        compile_time_hash "v%[i]", H_V%[i]
+        dq H_V%[i], (16 << 8) | i
+        compile_time_hash "q%[i]", H_Q%[i]
+        dq H_Q%[i], (16 << 8) | i
+        compile_time_hash "d%[i]", H_D%[i]
+        dq H_D%[i], (8 << 8) | i
+        compile_time_hash "s%[i]", H_S%[i]
+        dq H_S%[i], (4 << 8) | i
+        compile_time_hash "h%[i]", H_H%[i]
+        dq H_H%[i], (2 << 8) | i
+        compile_time_hash "b%[i]", H_B%[i]
+        dq H_B%[i], (1 << 8) | i
+        %assign i i+1
+    %endrep
 
     dq 0 ; Sentinel
