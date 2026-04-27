@@ -722,13 +722,25 @@ elf64_write_rela:
     mov     qword [rsp + RELA_OFFSET], rax
 
     // r_info: (sym_index << 32) | reloc_type
-    mov     rax, [rdi + RELOC_sym]
-    shl     rax, 32
+    mov     rsi, [rdi + RELOC_sym] // symbol name ptr
+    mov     rdi, [r12 + ASMCTX_symtab]
+    extern  symbol_find
+    call    symbol_find
+    IF rax, e, EXIT_OK
+        mov     eax, [rdx + SYMBOL_elf_idx]
+    ELSE
+        // If symbol is truly missing, this should have been caught in Pass 2.
+        // For now, use 0 (Null symbol) as fallback.
+        xor     eax, eax
+    ENDIF
+    
+    mov     r11, rax
+    shl     r11, 32
     
     // ---- FIX: ARCH-SPECIFIC RELOC TYPE ----
     movzx   edx, dword [rdi + RELOC_type]
-    or      rax, rdx
-    mov     qword [rsp + RELA_INFO], rax
+    or      r11, rdx
+    mov     qword [rsp + RELA_INFO], r11
 
     // r_addend
     mov     rax, [rdi + RELOC_addend]
