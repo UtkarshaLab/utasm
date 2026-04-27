@@ -76,7 +76,11 @@ elf64_emit:
     call    elf64_write_data_section
     check_err
 
-    // ---- 5. Write .symtab ----
+    // ---- 5. Prepare .strtab indices ----
+    call    elf64_prepare_strtab
+    check_err
+
+    // ---- 6. Write .symtab ----
     call    elf64_write_symtab
     check_err
 
@@ -223,6 +227,52 @@ elf64_write_data_section:
     epilogue
 
 // ============================================================================
+// elf64_prepare_strtab
+// ============================================================================
+elf64_prepare_strtab:
+    prologue
+    push    rbx
+    push    r14
+    push    r15
+    
+    mov     rbx, [r12 + ASMCTX_symtab]
+    mov     r14d, [r12 + ASMCTX_symcount]
+    
+    // Start at index 1 (0 is null byte)
+    mov     r15, 1
+    xor     ecx, ecx
+    
+.loop:
+    cmp     ecx, r14d
+    jge     .done
+    
+    lea     rdi, [rbx + rcx * SYMBOL_SIZE]
+    mov     rsi, [rdi + SYMBOL_name]
+    test    rsi, rsi
+    jz      .next
+    
+    // Store current offset
+    mov     [rdi + SYMBOL_name_idx], r15d
+    
+    // Advance offset by string length + 1 (null)
+    mov     rdi, rsi
+    extern  str_len
+    call    str_len
+    add     r15, rax
+    inc     r15
+    
+.next:
+    inc     ecx
+    jmp     .loop
+    
+.done:
+    pop     r15
+    pop     r14
+    pop     rbx
+    xor     rax, rax
+    epilogue
+
+// ============================================================================
 // elf64_write_symtab
 // ============================================================================
 /*
@@ -268,9 +318,8 @@ elf64_write_symtab:
     call    mem_zero
     pop     rdi
 
-    // st_name: index into .strtab — stored in SYMBOL_value for labels
-    // (strtab builder must be run first; here we write the value as-is)
-    mov     eax, [rdi + SYMBOL_value]
+    // st_name: index into .strtab
+    mov     eax, [rdi + SYMBOL_name_idx]
     mov     dword [rsp + SYM64_NAME], eax
 
     // st_info: STB_GLOBAL | STT_FUNC for labels, STB_LOCAL for the rest

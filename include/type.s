@@ -54,6 +54,7 @@ struc SYMBOL
     field value,    8       // address or constant value
     field size,     8       // size in bytes
     field section,  4       // section index
+    field name_idx, 4       // index into .strtab
     field line,     4       // definition line
     field file,     8       // definition filename
 endstruc
