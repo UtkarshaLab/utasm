@@ -259,6 +259,20 @@ aarch64_encode_branch:
     sar     edi, 2
     and     edi, 0x03FFFFFF
     or      eax, edi
+    
+    // If operand is a symbol, record relocation
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        mov     rdi, rbx               // AsmCtx
+        mov     rsi, [r12 + INST_offset] // current instr offset
+        mov     rdx, [r10 + OPERAND_value] // sym name
+        xor     rcx, rcx               // addend
+        mov     r8, R_AARCH64_JMP26
+        extern  reloc_record
+        call    reloc_record
+        pop     rax
+    ENDIF
+    
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue
@@ -272,6 +286,18 @@ aarch64_encode_branch_link:
     sar     edi, 2
     and     edi, 0x03FFFFFF
     or      eax, edi
+    
+    IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        mov     rdi, rbx               // AsmCtx
+        mov     rsi, [r12 + INST_offset] // offset
+        mov     rdx, [r10 + OPERAND_value] // sym name
+        xor     rcx, rcx               // addend
+        mov     r8, R_AARCH64_CALL26
+        call    reloc_record
+        pop     rax
+    ENDIF
+    
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue

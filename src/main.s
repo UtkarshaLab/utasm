@@ -16,6 +16,19 @@
 extern arena_init
 extern cli_parse
 extern str_len
+extern io_open
+extern io_file_size
+extern io_mmap
+extern lexer_init
+extern prep_init
+extern parser_parse_instruction
+extern amd64_encode_instruction
+extern aarch64_encode_instruction
+extern riscv64_encode_instruction
+extern elf64_emit
+extern binary_emit
+extern reloc_init
+extern reloc_resolve_all
 
 [SECTION .data]
     // Professional banner for the assembler
@@ -74,12 +87,107 @@ _start:
     cmp     qword [global_ctx + ASMCTX_input], 0
     je      .show_usage
 
-    // 6. TODO: Compilation Pipeline
-    // call lexer_init
-    // call preprocessor_run
-    // call parser_run
-    // call encoder_run
-    // call linker_run
+    // 6. Compilation Pipeline
+    
+    // 6.1 Initialize Relocation Engine
+    mov     rdi, global_ctx
+    call    reloc_init
+    check_err
+
+    // 6.2 Open and Map Input File
+    mov     rdi, [global_ctx + ASMCTX_input] // Filename from CLI
+    mov     rsi, AMD64_O_RDONLY
+    xor     rdx, rdx
+    call    io_open
+    test    rax, rax
+    jnz     .exit_io_error
+    mov     r12, rdx                         // r12 = fd
+    
+    mov     rdi, r12
+    call    io_file_size
+    mov     r13, rdx                         // r13 = size
+    
+    xor     rdi, rdi
+    mov     rsi, r13
+    mov     rdx, PROT_READ
+    mov     rcx, MAP_PRIVATE
+    mov     r8, r12
+    xor     r9, r9
+    call    io_mmap
+    test    rax, rax
+    jnz     .exit_io_error
+    mov     r14, rdx                         // r14 = buffer
+    
+    // 6.3 Initialize Pipeline Components
+    // Lexer
+    sub     rsp, LEXER_SIZE
+    mov     rbx, rsp                         // rbx = LexerState
+    mov     rdi, rbx
+    mov     rsi, r14                         // buffer
+    mov     rdx, r13                         // size
+    mov     rcx, [global_ctx + ASMCTX_input] // filename
+    mov     r9, global_ctx
+    mov     r10, global_arena
+    call    lexer_init
+    
+    // Preprocessor
+    sub     rsp, PREP_SIZE
+    mov     r15, rsp                         // r15 = PrepState
+    mov     rdi, r15
+    mov     rsi, rbx                         // LexerState
+    mov     rdx, global_ctx
+    mov     rcx, global_arena
+    call    prep_init
+    
+    // 6.4 Main Assembly Loop
+.assembly_loop:
+    mov     rdi, r15                         // PrepState
+    call    parser_parse_instruction
+    test    rax, rax
+    jnz     .loop_check                      // If error, check if EOF or real error
+    
+    // Parser returns INST* in rdx
+    mov     rsi, rdx                         // rsi = INST*
+    mov     rdi, global_ctx
+    
+    // Dispatch to arch-specific encoder
+    movzx   eax, byte [global_ctx + ASMCTX_arch]
+    IF eax, e, ARCH_AMD64
+        call    amd64_encode_instruction
+    ELSEIF eax, e, ARCH_AARCH64
+        call    aarch64_encode_instruction
+    ELSEIF eax, e, ARCH_RISCV64
+        call    riscv64_encode_instruction
+    ENDIF
+    check_err
+    
+    jmp     .assembly_loop
+
+.loop_check:
+    cmp     rax, EXIT_OK
+    je      .emission
+    // If it's EOF, we proceed to emission
+    // (Assuming parser returns specific code for EOF, or check Lexer)
+    // For now, assume any non-zero RAX is "Done" or "Error"
+    
+.emission:
+    // 6.5 Emission Phase
+    // Resolve Relocations
+    mov     rdi, global_ctx
+    xor     rsi, rsi                         // buffer (emitters will handle)
+    xor     rdx, rdx                         // base
+    call    reloc_resolve_all
+    
+    // Emit Output
+    movzx   eax, byte [global_ctx + ASMCTX_format]
+    IF eax, e, FORMAT_ELF64
+        mov     rdi, global_ctx
+        call    elf64_emit
+    ELSE
+        mov     rdi, global_ctx
+        call    binary_emit
+    ENDIF
+    check_err
 
     // 7. Normal Exit
     mov     rax, AMD64_SYS_EXIT
@@ -100,6 +208,11 @@ _start:
 .exit_oom:
     mov     rax, AMD64_SYS_EXIT
     mov     rdi, EXIT_OOM
+    syscall
+
+.exit_io_error:
+    mov     rax, AMD64_SYS_EXIT
+    mov     rdi, EXIT_FILE_NOT_FOUND
     syscall
 
 // Helper: print_str (null-terminated)

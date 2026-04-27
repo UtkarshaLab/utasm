@@ -324,6 +324,32 @@
 %def R_X86_64_GOTPCRELX     41          // Relaxable GOTPCREL
 %def R_X86_64_REX_GOTPCRELX 42          // Relaxable GOTPCREL (REX)
 
+// ---- AArch64 Relocation Types -----------
+%def R_AARCH64_ABS64        257
+%def R_AARCH64_COPY         258
+%def R_AARCH64_GLOB_DAT     259
+%def R_AARCH64_JUMP_SLOT    260
+%def R_AARCH64_RELATIVE     261
+%def R_AARCH64_ADR_PREL_PG_HI21 275
+%def R_AARCH64_ADD_ABS_LO12_NC 277
+%def R_AARCH64_CALL26       283
+%def R_AARCH64_JMP26        282
+
+// ---- RISC-V Relocation Types -----------
+%def R_RISCV_64             2
+%def R_RISCV_RELATIVE       3
+%def R_RISCV_COPY           4
+%def R_RISCV_JUMP_SLOT      5
+%def R_RISCV_BRANCH         16
+%def R_RISCV_JAL            17
+%def R_RISCV_CALL           18
+%def R_RISCV_PCREL_HI20     26
+%def R_RISCV_PCREL_LO12_I   27
+%def R_RISCV_PCREL_LO12_S   28
+%def R_RISCV_HI20           29
+%def R_RISCV_LO12_I         30
+%def R_RISCV_LO12_S         31
+
 // ============================================================================
 // HELPER MACRO: ELF64_R_INFO — pack symbol index and reloc type
 // ============================================================================

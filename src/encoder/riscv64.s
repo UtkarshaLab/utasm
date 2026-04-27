@@ -332,6 +332,18 @@ riscv64_encode_b_type:
     shl     ecx, 19
     or      eax, ecx
     
+    IF byte [r9 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        mov     rdi, rbx
+        mov     rsi, [r12 + INST_offset]
+        mov     rdx, [r9 + OPERAND_value]
+        xor     rcx, rcx
+        mov     r8, R_RISCV_BRANCH
+        extern  reloc_record
+        call    reloc_record
+        pop     rax
+    ENDIF
+    
     mov     rdi, rax
     call    riscv64_emit_word
     epilogue
@@ -387,6 +399,17 @@ riscv64_encode_j_type:
     and     ecx, 0x100000          // imm[20]
     shl     ecx, 11
     or      eax, ecx
+    
+    IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        mov     rdi, rbx
+        mov     rsi, [r12 + INST_offset]
+        mov     rdx, [r11 + OPERAND_value]
+        xor     rcx, rcx
+        mov     r8, R_RISCV_JAL
+        call    reloc_record
+        pop     rax
+    ENDIF
     
     mov     rdi, rax
     call    riscv64_emit_word
