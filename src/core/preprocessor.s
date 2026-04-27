@@ -229,14 +229,21 @@ prep_internal_next:
     test    r9, r9
     jz      .done                  // real EOF (main file)
 
-    // pop include context
-    mov     r10, [r9 + INCLUDECTX_lexer]
-    mov     [rbx + PREP_lexer], r10    // restore previous lexer
+    // 1. Unmap the current file buffer
+    mov     rdi, [r9 + INCLUDECTX_buf]
+    mov     rsi, [r9 + INCLUDECTX_size]
+    extern  io_munmap
+    call    io_munmap
     
+    // 2. Restore previous lexer
+    mov     r10, [r9 + INCLUDECTX_lexer]
+    mov     [rbx + PREP_lexer], r10
+    
+    // 3. Pop include context
     mov     r11, [r9 + INCLUDECTX_parent]
-    mov     [r8 + ASMCTX_inc_ctx], r11 // restore parent in AsmCtx
-
-    // get next token from restored lexer
+    mov     [r8 + ASMCTX_inc_ctx], r11
+    
+    // 4. Try getting next token from parent
     jmp     .next
 
 .done:
@@ -694,7 +701,7 @@ prep_handle_inc:
     mov     r10, [rbx + PREP_arena]
     call    lexer_init
 
-    // 5. Save old lexer state in IncludeCtx
+    // 5. Save state in IncludeCtx
     mov     r12, [rbx + PREP_ctx]
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, INCLUDECTX_SIZE
@@ -707,6 +714,10 @@ prep_handle_inc:
     mov     r10, [r12 + ASMCTX_inc_ctx]
     mov     [r9 + INCLUDECTX_parent], r10 // link to previous
     mov     [r12 + ASMCTX_inc_ctx], r9    // update current in AsmCtx
+    
+    // Store current file info for unmapping later
+    mov     [r9 + INCLUDECTX_buf], r15
+    mov     [r9 + INCLUDECTX_size], r14
     
     // Save current lexer in the context so we can restore it
     mov     r11, [rbx + PREP_lexer]

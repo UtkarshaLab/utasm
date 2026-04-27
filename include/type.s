@@ -101,6 +101,7 @@ struc INCLUDECTX
     field file,     8       // filename pointer
     field parent,   8       // parent IncludeCtx
     field buf,      8       // file buffer
+    field size,     8       // file size (for munmap)
     field pos,      8       // read position
     field line,     4       // current line
     field pad1,     4       // alignment padding
