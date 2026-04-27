@@ -274,6 +274,18 @@ amd64_encode_instruction:
         mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFF | call amd64_emit_byte
     ELSEIF ax, e, 1199             // FINIT
         mov     al, 0xDB | call amd64_emit_byte | mov al, 0xE3 | call amd64_emit_byte
+    ELSEIF ax, e, 1179             // FCOM
+        mov     r13, 0xD8 | mov r14, 2 | call amd64_encode_fpu
+    ELSEIF ax, e, 1238             // FSTP
+        mov     r13, 0xD9 | mov r14, 3 | call amd64_encode_fpu
+    ELSEIF ax, e, 1234             // FSQRT
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFA | call amd64_emit_byte
+    ELSEIF ax, e, 1251             // FXAM
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xE5 | call amd64_emit_byte
+    ELSEIF ax, e, 1227             // FPTAN
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF2 | call amd64_emit_byte
+    ELSEIF ax, e, 1256             // FYL2X
+        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF1 | call amd64_emit_byte
     ELSEIF ax, e, 1395             // MOVAPS
         mov     r13, 0x28 | mov r14, 0 | call amd64_encode_sse
     ELSEIF ax, e, 1431             // MOVUPS
@@ -284,6 +296,36 @@ amd64_encode_instruction:
         mov     r13, 0x40 | mov r14, 2 | call amd64_encode_sse // 0x0F 0x38
     ELSEIF ax, e, 2160             // XORPS
         mov     r13, 0x57 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1008             // ADDPS
+        mov     r13, 0x58 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1010             // ADDSS
+        mov     r13, 0x58 | mov r14, 1 | call amd64_encode_sse
+    ELSEIF ax, e, 1678             // SUBPS
+        mov     r13, 0x5C | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1680             // SUBSS
+        mov     r13, 0x5C | mov r14, 1 | call amd64_encode_sse
+    ELSEIF ax, e, 1434             // MULPS
+        mov     r13, 0x59 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1436             // MULSS
+        mov     r13, 0x59 | mov r14, 1 | call amd64_encode_sse
+    ELSEIF ax, e, 1121             // DIVPS
+        mov     r13, 0x5E | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1123             // DIVSS
+        mov     r13, 0x5E | mov r14, 1 | call amd64_encode_sse
+    ELSEIF ax, e, 1660             // SQRTPS
+        mov     r13, 0x51 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1662             // SQRTSS
+        mov     r13, 0x51 | mov r14, 1 | call amd64_encode_sse
+    ELSEIF ax, e, 1033             // ANDPS
+        mov     r13, 0x54 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1031             // ANDNPS
+        mov     r13, 0x55 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1444             // ORPS
+        mov     r13, 0x56 | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1701             // UCOMISS
+        mov     r13, 0x2E | mov r14, 0 | call amd64_encode_sse
+    ELSEIF ax, e, 1700             // UCOMISD
+        mov     r13, 0x2E | mov r14, 1 | call amd64_encode_sse
     ELSEIF ax, e, 1739             // VADDPS
         mov     r13, 0x58 | mov r14, 1 | call amd64_encode_vex
     ELSEIF ax, e, 1933             // VMOVAPS
