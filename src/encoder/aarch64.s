@@ -631,20 +631,87 @@ aarch64_encode_ldst_pair:
 // ---- aarch64_encode_cmp / tst ----
 aarch64_encode_cmp:
     prologue
+    push    rbx
+    push    r12
+    push    r13
+    
     // CMP Xn, Xm => SUBS XZR, Xn, Xm
-    // CMP Xn, #imm => SUBS XZR, Xn, #imm
-    // We modify the INST struct in-place or simulate it
-    mov     byte [r12 + INST_op0 + OPERAND_reg], 31 // XZR
-    mov     r13d, 0x6B000000 // SUBS base
-    call    aarch64_encode_dp_reg
+    // Use r13d for temporary opcode construction
+    mov     r13d, 0x6B00001F       // SUBS (reg) base with Rd=31 (XZR)
+    
+    lea     r10, [r12 + INST_op0]  // Rn
+    lea     r11, [r12 + INST_op1]  // Rm
+    
+    // sf bit
+    IF byte [r10 + OPERAND_size], e, 8
+        or  r13d, 0x80000000
+    ENDIF
+    
+    // Rn (bits 9-5)
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 5
+    or      r13d, eax
+    
+    // Rm (bits 20-16) or Imm
+    IF byte [r11 + OPERAND_kind], e, OP_REG
+        movzx   eax, byte [r11 + OPERAND_reg]
+        shl     eax, 16
+        or      r13d, eax
+    ELSEIF byte [r11 + OPERAND_kind], e, OP_IMM
+        // SUBS (imm) base
+        and     r13d, 0x800003FF    // Keep sf and Rd=XZR
+        or      r13d, 0x71000000    // SUBS (imm) base
+        // Rn
+        movzx   eax, byte [r10 + OPERAND_reg]
+        shl     eax, 5
+        or      r13d, eax
+        // Imm12 (bits 21-10)
+        mov     rax, [r11 + OPERAND_imm]
+        and     eax, 0xFFF
+        shl     eax, 10
+        or      r13d, eax
+    ENDIF
+    
+    mov     rdi, r13
+    call    aarch64_emit_word
+    
+    pop     r13
+    pop     r12
+    pop     rbx
     epilogue
 
 aarch64_encode_tst:
     prologue
+    push    rbx
+    push    r12
+    push    r13
+    
     // TST Xn, Xm => ANDS XZR, Xn, Xm
-    mov     byte [r12 + INST_op0 + OPERAND_reg], 31 // XZR
-    mov     r13d, 0x6A000000 // ANDS base
-    call    aarch64_encode_dp_reg
+    mov     r13d, 0x6A00001F       // ANDS (reg) base with Rd=XZR
+    
+    lea     r10, [r12 + INST_op0]  // Rn
+    lea     r11, [r12 + INST_op1]  // Rm
+    
+    IF byte [r10 + OPERAND_size], e, 8
+        or  r13d, 0x80000000
+    ENDIF
+    
+    // Rn
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 5
+    or      r13d, eax
+    
+    // Rm
+    movzx   eax, byte [r11 + OPERAND_reg]
+    shl     eax, 16
+    or      r13d, eax
+    
+    mov     rdi, r13
+    call    aarch64_emit_word
+    
+    pop     r13
+    pop     r12
+    pop     rbx
     epilogue
 
 // ---- aarch64_encode_system_reg ----
