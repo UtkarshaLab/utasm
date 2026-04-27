@@ -161,6 +161,19 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1127             // ENCLS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
         mov     al, 0xCF | call amd64_emit_byte
+    ELSEIF ax, e, 1729             // VMCALL
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        mov     al, 0xC1 | call amd64_emit_byte
+    ELSEIF ax, e, 1731             // VMLAUNCH
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        mov     al, 0xC2 | call amd64_emit_byte
+    ELSEIF ax, e, 1735             // VMRESUME
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        mov     al, 0xC3 | call amd64_emit_byte
+    ELSEIF ax, e, 1733             // VMPTRLD
+        mov     r14, 6 | call amd64_encode_vm_m
+    ELSEIF ax, e, 1734             // VMPTRST
+        mov     r14, 7 | call amd64_encode_vm_m
     ELSEIF ax, e, 1534             // POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             // JMP
@@ -1074,6 +1087,24 @@ amd64_encode_sec_r:
     or      al, 0xC0           // Mod 11
     or      al, cl
     call    amd64_emit_byte
+    jmp     .done
+
+/**
+ * [amd64_encode_vm_m]
+ * VMPTRLD/VMPTRST
+ */
+amd64_encode_vm_m:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0xC7
+    call    amd64_emit_byte
+    
+    mov     al, r14b           // Digit 6 or 7
+    mov     rdi, r10           // Must be memory
+    call    amd64_emit_modrm_sib
     jmp     .done
 
 /**
