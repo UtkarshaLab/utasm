@@ -115,13 +115,16 @@ symbol_add:
     and     r10, (MAX_SYMBOL - 1)  // Table size MUST be power of 2
     
     mov     r11, [rbx + ASMCTX_symhash]
+    mov     rcx, MAX_SYMBOL
 .probe:
     lea     rdx, [r11 + r10 * 8]
     cmp     qword [rdx], 0
     je      .found_slot
     inc     r10
     and     r10, (MAX_SYMBOL - 1)
-    jmp     .probe
+    loop    .probe
+    mov     rax, EXIT_SYMBOL_RANGE
+    jmp     .done
 
 .found_slot:
     mov     [rdx], r13             // Store pointer to symbol in bucket
@@ -151,6 +154,7 @@ symbol_find:
     and     r10, (MAX_SYMBOL - 1)
     
     mov     r11, [rbx + ASMCTX_symhash]
+    mov     rcx, MAX_SYMBOL        // Safety counter
 .probe:
     mov     rdx, [r11 + r10 * 8]
     test    rdx, rdx
@@ -166,7 +170,8 @@ symbol_find:
     
     inc     r10
     and     r10, (MAX_SYMBOL - 1)
-    jmp     .probe
+    loop    .probe                 // decrement RCX and jump if non-zero
+    jmp     .not_found
 
 .found:
     // rdx already points to the symbol
