@@ -1003,14 +1003,16 @@ amd64_encode_mov:
 
         // Case 3: MOV REG, MEM
         IF byte [r14 + OPERAND_kind], e, OP_MEM
-            // Opcode 0x8B (Reg/Mem -> Reg)
-            mov     al, 0x48 // REX.W (Assume 64-bit for now)
-            call    amd64_emit_byte
-            mov     al, 0x8B
-            call    amd64_emit_byte
+            // Dynamic Prefixes
+            mov     rdi, r13
+            mov     rsi, r14
+            call    amd64_emit_prefixes
             
-            // Use amd64_emit_modrm_sib
+            mov     al, 0x8B | call amd64_emit_byte
+            
+            // ModRM/SIB
             mov     al, [r13 + OPERAND_reg]
+            and     al, 7            // Low 3 bits for ModRM
             mov     rdi, r14
             call    amd64_emit_modrm_sib
             jmp     .done
@@ -1020,13 +1022,15 @@ amd64_encode_mov:
     // Case 4: MOV MEM, REG
     IF byte [r13 + OPERAND_kind], e, OP_MEM
         IF byte [r14 + OPERAND_kind], e, OP_REG
-            mov     al, 0x48 // REX.W
-            call    amd64_emit_byte
-            mov     al, 0x89
-            call    amd64_emit_byte
+            // Dynamic Prefixes
+            mov     rdi, r14         // Reg is Src (Op1)
+            mov     rsi, r13         // Mem is Dest (Op0)
+            call    amd64_emit_prefixes
             
-            // Use amd64_emit_modrm_sib
+            mov     al, 0x89 | call amd64_emit_byte
+            
             mov     al, [r14 + OPERAND_reg]
+            and     al, 7
             mov     rdi, r13
             call    amd64_emit_modrm_sib
             jmp     .done
@@ -1034,16 +1038,20 @@ amd64_encode_mov:
         
         // Case 5: MOV MEM, IMM
         IF byte [r14 + OPERAND_kind], e, OP_IMM
-            mov     al, 0x48 // REX.W
-            call    amd64_emit_byte
-            mov     al, 0xC7
-            call    amd64_emit_byte
+            // Dynamic Prefixes (W bit depends on MEM size)
+            mov     rdi, r13
+            mov     rsi, r14
+            call    amd64_emit_prefixes
+            
+            mov     al, 0xC7 | call amd64_emit_byte
             
             xor     al, al   // Extension Digit 0
             mov     rdi, r13
             call    amd64_emit_modrm_sib
             
             mov     rdi, [r14 + OPERAND_imm]
+            // check size to emit dd or dq? 
+            // In x86_64, MOV [MEM], IMM32 is the standard even for 64-bit.
             call    amd64_emit_dword
             jmp     .done
         ENDIF
@@ -3179,3 +3187,53 @@ amd64_emit_vex3:
     call    amd64_emit_byte
     pop     rax
     ret
+
+/**
+ * [amd64_emit_prefixes]
+ * RDI = Op0 (Dest), RSI = Op1 (Src)
+ * Purpose: Emits 0x66 and/or REX based on sizes and register indices.
+ */
+amd64_emit_prefixes:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    mov     r12, rdi               // r12 = op0
+    mov     r13, rsi               // r13 = op1
+    
+    // 1. 16-bit prefix (0x66)
+    IF byte [r12 + OPERAND_size], e, 2
+        mov al, 0x66 | call amd64_emit_byte
+    ENDIF
+    
+    // 2. REX prefix (0x40 | W | R | X | B)
+    xor     bl, bl                 // bl = REX accumulator
+    
+    // REX.W (64-bit operand size)
+    IF byte [r12 + OPERAND_size], e, 8
+        or bl, 0x08
+    ENDIF
+    
+    // REX.R (Extension of ModRM reg field)
+    IF byte [r12 + OPERAND_kind], e, OP_REG
+        mov al, [r12 + OPERAND_reg]
+        IF al, ge, 8 | or bl, 0x04 | ENDIF
+    ENDIF
+    
+    // REX.B (Extension of ModRM r/m field, base field, or opcode reg field)
+    IF byte [r13 + OPERAND_kind], e, OP_REG
+        mov al, [r13 + OPERAND_reg]
+        IF al, ge, 8 | or bl, 0x01 | ENDIF
+    ELSEIF byte [r13 + OPERAND_kind], e, OP_MEM
+        mov al, [r13 + OPERAND_base]
+        IF al, ge, 8 | IF al, ne, REG_NONE | or bl, 0x01 | ENDIF | ENDIF
+        mov al, [r13 + OPERAND_index]
+        IF al, ge, 8 | IF al, ne, REG_NONE | or bl, 0x02 | ENDIF | ENDIF // REX.X
+    ENDIF
+
+    IF bl, ne, 0 | or bl, 0x40 | mov al, bl | call amd64_emit_byte | ENDIF
+    
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
