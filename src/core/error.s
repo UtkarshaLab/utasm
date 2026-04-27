@@ -129,6 +129,9 @@ error_emit:
     call    .print_severity_error
     call    .print_message
 
+    // print source line and caret
+    call    .print_caret_diagnostics
+
     // reset color
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
@@ -235,6 +238,9 @@ error_warn:
     call    .print_location
     call    .print_severity_warn
     call    .print_message
+    
+    // source line and caret
+    call    .print_caret_diagnostics
 
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
@@ -726,6 +732,125 @@ error_uint_to_str:
     mov     rdx, r8                 // pointer to string
     ret
 
+.print_caret_diagnostics:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    
+    // rbx = AsmCtx, r13 = line, r14 = col (from error_emit/warn)
+    test    r13, r13
+    jz      .pcd_done
+    test    r14, r14
+    jz      .pcd_done
+
+    mov     r12, [rbx + ASMCTX_inc_ctx]
+    test    r12, r12
+    jz      .pcd_done
+
+    mov     rsi, [r12 + INCLUDECTX_buf]
+    test    rsi, rsi
+    jz      .pcd_done
+
+    // 1. Find the start of line R13
+    mov     r8, rsi                // current ptr
+    mov     r9, [r12 + INCLUDECTX_size]
+    add     r9, rsi                // end ptr
+    
+    mov     rcx, r13               // count down
+    dec     rcx
+    jz      .pcd_line_found
+    
+.pcd_find_loop:
+    cmp     r8, r9
+    jae     .pcd_done
+    movzx   eax, byte [r8]
+    inc     r8
+    cmp     al, 10
+    jne     .pcd_find_loop
+    dec     rcx
+    jnz     .pcd_find_loop
+
+.pcd_line_found:
+    // r8 is the start of the line
+    // 2. Print the line itself
+    mov     r10, r8                // save start
+.pcd_scan_end:
+    cmp     r8, r9
+    jae     .pcd_print_line
+    movzx   eax, byte [r8]
+    cmp     al, 10
+    je      .pcd_print_line
+    cmp     al, 13
+    je      .pcd_print_line
+    inc     r8
+    jmp     .pcd_scan_end
+
+.pcd_print_line:
+    mov     rdx, r8
+    sub     rdx, r10               // length
+    
+    // indent for clarity
+    push    rdx
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_indent]
+    mov     rdx, 4
+    call    error_write_raw
+    pop     rdx
+
+    jz      .pcd_skip_line         // empty line? 
+    
+    mov     rdi, STDERR_FILENO
+    mov     rsi, r10
+    call    error_write_raw
+    
+.pcd_skip_line:
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_newline]
+    mov     rdx, 1
+    call    error_write_raw
+    
+    // 3. Print the caret
+    // Print indent
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_indent]
+    mov     rdx, 4
+    call    error_write_raw
+
+    // Print r14-1 spaces
+    mov     rcx, r14
+    dec     rcx
+    jz      .pcd_print_caret
+.pcd_space_loop:
+    push    rcx
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_space]
+    mov     rdx, 1
+    call    error_write_raw
+    pop     rcx
+    loop    .pcd_space_loop
+
+.pcd_print_caret:
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_caret]
+    mov     rdx, 1
+    call    error_write_raw
+    
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_newline]
+    mov     rdx, 1
+    call    error_write_raw
+
+.pcd_done:
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
 // ============================================================================
 // DATA
 // ============================================================================
@@ -807,6 +932,15 @@ msg_colon_space:
 
 msg_newline:
     db      10
+
+msg_space:
+    db      " "
+
+msg_caret:
+    db      "^"
+
+msg_indent:
+    db      "    "
 
 // ---- error_new_from_errno ----------------
 /*
