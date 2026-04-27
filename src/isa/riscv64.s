@@ -832,4 +832,26 @@ riscv64_register_table:
     compile_time_hash "a1", H_A1
     dq H_A1, (8 << 8) | 11
 
+    // ---- Floating Point Registers (f0-f31) ----
+    %assign i 0
+    %rep 32
+        compile_time_hash "f%[i]", H_F%[i]
+        dq H_F%[i], (8 << 8) | i
+        %assign i i+1
+    %endrep
+
+    // ---- FP ABI Aliases ----
+    %assign i 0
+    %rep 8
+        compile_time_hash "ft%[i]", H_FT%[i]
+        dq H_FT%[i], (8 << 8) | %[i]
+        %assign i i+1
+    %endrep
+    %assign i 0
+    %rep 8
+        compile_time_hash "fa%[i]", H_FA%[i]
+        dq H_FA%[i], (8 << 8) | (10 + %[i])
+        %assign i i+1
+    %endrep
+
     dq 0 ; Sentinel
