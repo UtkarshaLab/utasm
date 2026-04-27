@@ -416,6 +416,18 @@ riscv64_encode_u_type:
     
     mov     rdi, rax
     call    riscv64_emit_word
+    
+    IF r13d, e, 0x00000017         // AUIPC
+        IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+            mov     rdi, rbx
+            mov     rsi, [r12 + INST_offset]
+            mov     rdx, [r11 + OPERAND_value]
+            xor     rcx, rcx
+            mov     r8, R_RISCV_HI20
+            extern  reloc_record
+            call    reloc_record
+        ENDIF
+    ENDIF
     epilogue
 
 // ---- J-Type (JAL) ----
