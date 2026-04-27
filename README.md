@@ -23,11 +23,11 @@
 
 ## Supported Architectures
 
-| Architecture | Base ISA   | Extensions                       |
-|--------------|------------|----------------------------------|
-| x86-64       | RV64I-like | REX, VEX-3, AVX/AVX2, SSE       |
-| AArch64      | ARMv8-A    | NEON Advanced SIMD, SVE          |
-| RISC-V 64    | RV64GC     | M, A, F, D, V extensions        |
+| Architecture | Base ISA   | Extensions                |
+| ------------ | ---------- | ------------------------- |
+| x86-64       | RV64I-like | REX, VEX-3, AVX/AVX2, SSE |
+| AArch64      | ARMv8-A    | NEON Advanced SIMD, SVE   |
+| RISC-V 64    | RV64GC     | M, A, F, D, V extensions  |
 
 ---
 
@@ -110,18 +110,21 @@ utasm/
 `utasm` requires a Linux host with NASM and GNU `ld` available. The bootstrap script handles the full two-stage compilation.
 
 **Stage 1 — Build Gen0 compiler using NASM:**
+
 ```sh
 nasm -f elf64 src/main.s -o build/gen0/utasm.o
 ld -o build/gen0/utasm build/gen0/utasm.o
 ```
 
 **Stage 2 — Self-host: compile Gen1 using Gen0:**
+
 ```sh
 ./build/gen0/utasm -f elf64 src/main.s -o build/gen1/utasm.o
 ld -o build/gen1/utasm build/gen1/utasm.o
 ```
 
 Or run the full pipeline in one command:
+
 ```sh
 bash scripts/bootstrap.sh
 ```
@@ -144,12 +147,14 @@ Options:
 ```
 
 **Assemble a standalone AMD64 executable:**
+
 ```sh
 utasm -f elf64 --standalone tests/hello_amd64.s -o hello
 chmod +x hello && ./hello
 ```
 
 **Assemble a relocatable object:**
+
 ```sh
 utasm -f elf64 src/main.s -o build/main.o
 ```
@@ -159,12 +164,14 @@ utasm -f elf64 src/main.s -o build/main.o
 ## Running Tests
 
 The sovereign test harness requires the Gen1 binary to be built first:
+
 ```sh
 bash scripts/bootstrap.sh
 bash scripts/test.sh
 ```
 
 Expected output:
+
 ```
 [+] Initiating UtkarshaLab Sovereign Test Harness...
     [*] Assembling amd64_suite... OK
@@ -180,12 +187,12 @@ Expected output:
 
 ## Requirements
 
-| Dependency | Purpose                            | Required |
-|------------|------------------------------------|----------|
-| Linux      | Raw syscall ABI, ELF loader        | Yes      |
-| NASM       | Gen0 bootstrap compilation         | Yes      |
-| GNU ld     | Linking Gen0 and Gen1              | Yes      |
-| QEMU       | Cross-arch smoke test execution    | Optional |
+| Dependency | Purpose                         | Required |
+| ---------- | ------------------------------- | -------- |
+| Linux      | Raw syscall ABI, ELF loader     | Yes      |
+| NASM       | Gen0 bootstrap compilation      | Yes      |
+| GNU ld     | Linking Gen0 and Gen1           | Yes      |
+| QEMU       | Cross-arch smoke test execution | Optional |
 
 > **Note:** `utasm` uses raw Linux syscalls for all I/O. macOS and Windows are not supported as execution targets. Cross-compilation from a Windows host is possible; use WSL2 or a Linux CI runner for linking and execution.
 
@@ -203,4 +210,4 @@ The current release version is tracked in the [`VERSION`](VERSION) file. `utasm`
 
 ---
 
-*UtkarshaLab — Sovereign Intelligence, Zero Dependencies.*
+_UtkarshaLab — Engineering the Foundation of Tomorrow_
