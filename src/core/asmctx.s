@@ -167,3 +167,82 @@ asm_ctx_create_section:
     pop     r12
     pop     rbx
     epilogue
+
+/**
+ * [asm_ctx_emit_dword]
+ * Purpose: Appends 4 bytes to the active section's buffer.
+ */
+global asm_ctx_emit_dword
+asm_ctx_emit_dword:
+    prologue
+    push    rbx
+    push    r12
+    mov     rbx, rdi
+    mov     r12, rsi               // the dword
+    
+    // Emit 4 bytes
+    mov     rdi, rbx
+    mov     rsi, r12
+    call    asm_ctx_emit_byte
+    mov     rdi, rbx
+    mov     rsi, r12
+    shr     rsi, 8
+    call    asm_ctx_emit_byte
+    mov     rdi, rbx
+    mov     rsi, r12
+    shr     rsi, 16
+    call    asm_ctx_emit_byte
+    mov     rdi, rbx
+    mov     rsi, r12
+    shr     rsi, 24
+    call    asm_ctx_emit_byte
+    
+    pop     r12
+    pop     rbx
+    epilogue
+
+/**
+ * [asm_ctx_align]
+ * Purpose: Pads current section with zeros until requested alignment is met.
+ * Input:
+ *   RDI: Pointer to AsmCtx
+ *   RSI: Alignment boundary (e.g., 4, 8, 16)
+ */
+global asm_ctx_align
+asm_ctx_align:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi
+    mov     r12, rsi
+    
+    // Get current size
+    mov     r8, [rbx + ASMCTX_sections]
+    mov     r9, [r8]               // SECTION*
+    mov     rax, [r9 + SECTION_size]
+    
+    // Calculate padding: (align - (size % align)) % align
+    xor     rdx, rdx
+    div     r12                    // RDX = size % align
+    test    rdx, rdx
+    jz      .done_align                  // Already aligned
+    
+    mov     r13, r12
+    sub     r13, rdx               // R13 = padding needed
+    
+.pad_loop:
+    test    r13, r13
+    jz      .done_align
+    mov     rdi, rbx
+    xor     rsi, rsi
+    call    asm_ctx_emit_byte
+    dec     r13
+    jmp     .pad_loop
+
+.done_align:
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
