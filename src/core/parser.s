@@ -101,13 +101,25 @@ parser_parse_instruction:
     mov     rsi, r11                // Current Arch Mnemonic Table
     call    parser_lookup_mnemonic
     test    rax, rax
-    jz      .unknown_mnemonic
+    jz      .try_pseudo_op
     
     mov     [r15 + INST_op_id], ax
+    jmp     .operand_loop
+
+.try_pseudo_op:
+    // Check for db, dw, dd, dq, resb, etc.
+    mov     rsi, [r12 + TOKEN_value]
+    call    parser_handle_pseudo_op
+    test    rax, rax
+    jz      .unknown_mnemonic
     
+    // Pseudo-op handled internally, move to next instruction
+    xor     rax, rax
+    epilogue
+
     // 4. Operand Parsing Loop
-    xor     r14, r14
 .operand_loop:
+    xor     r14, r14
     call    parser_parse_operand
     test    rax, rax
     jnz     .error
@@ -708,6 +720,81 @@ error_struct_bounds:
     // Passes all three args straight through; error_emit formats the message
     call    error_emit
     mov     rax, EXIT_STRUCT_BOUNDS
+    epilogue
+
+/**
+ * [parser_handle_pseudo_op]
+ * Input: RSI = mnemonic string
+ * Output: RAX = 1 if handled, 0 if unknown
+ */
+parser_handle_pseudo_op:
+    prologue
+    push    rbx
+    push    rsi
+    
+    mov     rbx, rsi               // RBX = mnemonic
+    
+    IF rbx, e, "db"
+        call    parser_emit_data_8
+        mov     rax, 1
+    ELSEIF rbx, e, "dw"
+        call    parser_emit_data_16
+        mov     rax, 1
+    ELSEIF rbx, e, "dd"
+        call    parser_emit_data_32
+        mov     rax, 1
+    ELSEIF rbx, e, "dq"
+        call    parser_emit_data_64
+        mov     rax, 1
+    ELSE
+        xor     rax, rax
+    ENDIF
+    
+    pop     rsi
+    pop     rbx
+    epilogue
+
+parser_emit_data_8:
+    prologue
+.loop:
+    call    preprocessor_next_token
+    mov     r12, rdx
+    mov     al, [r12 + TOKEN_kind]
+    
+    IF al, e, TOK_NUMBER
+        mov     rsi, [r12 + TOKEN_value]
+        call    str_to_int
+        mov     rsi, rax
+        mov     rdi, [global_ctx]
+        extern  asm_ctx_emit_byte
+        call    asm_ctx_emit_byte
+    ELSEIF al, e, TOK_STRING
+        mov     rsi, [r12 + TOKEN_value]
+        mov     rdi, [global_ctx]
+        extern  asm_ctx_emit_string
+        call    asm_ctx_emit_string
+    ENDIF
+    
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        jmp     .loop
+    ENDIF
+    epilogue
+
+parser_emit_data_16:
+    prologue
+    // Implementation for dw...
+    epilogue
+
+parser_emit_data_32:
+    prologue
+    // Implementation for dd...
+    epilogue
+
+parser_emit_data_64:
+    prologue
+    // Implementation for dq...
     epilogue
 
 [SECTION .rodata]
