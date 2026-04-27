@@ -579,6 +579,12 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1070             // CLRSSBSY
         mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xE9 | call amd64_emit_byte
 
+    // ----Intel MPX (Memory Protection Extensions) ----
+    ELSEIF ax, ge, 1043            // BNDCL - BNDSTX
+        IF ax, le, 1049
+            call amd64_encode_mpx
+        ENDIF
+
     ELSEIF ax, e, 1680             // SWAPGS
         mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
         mov     al, 0xF8 | call amd64_emit_byte
@@ -2661,6 +2667,46 @@ amd64_encode_setcc:
     mov     al, 0x0F | call amd64_emit_byte
     mov     al, r13b | call amd64_emit_byte
     mov     al, 0 | mov rdi, r10 | call amd64_emit_modrm_sib
+    epilogue
+
+/**
+ * [amd64_encode_mpx]
+ * Handles BNDMK, BNDCL, BNDCU, BNDCN, BNDMOV, BNDLDX, BNDSTX
+ */
+amd64_encode_mpx:
+    prologue
+    mov     ax, [r12 + INST_op_id]
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    IF ax, e, 1047 // BNDMK: F3 0F 1B /r
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1B | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1043 // BNDCL: F3 0F 1A /r
+        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1A | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1045 // BNDCU: F2 0F 1A /r
+        mov     al, 0xF2 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1A | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1044 // BNDCN: F2 0F 1B /r
+        mov     al, 0xF2 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1B | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1048 // BNDMOV
+        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
+        IF byte [r10 + OPERAND_kind], e, OP_MEM
+            mov al, 0x1B | call amd64_emit_byte
+            mov al, [r11 + OPERAND_reg] | mov rdi, r10 | call amd64_emit_modrm_sib
+        ELSE
+            mov al, 0x1A | call amd64_emit_byte
+            mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        ENDIF
+    ELSEIF ax, e, 1046 // BNDLDX: 0F 1A /r
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x1A | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    ELSEIF ax, e, 1049 // BNDSTX: 0F 1B /r
+        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x1B | call amd64_emit_byte
+        mov     al, [r11 + OPERAND_reg] | mov rdi, r10 | call amd64_emit_modrm_sib
+    ENDIF
     epilogue
 
 /**
