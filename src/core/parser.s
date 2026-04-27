@@ -1012,12 +1012,12 @@ parser_handle_pseudo_op:
         jmp     .done
     ENDIF
 
-    // 4. Visibility Directives (global, weak)
+    // 4. Visibility Directives (global, weak, local)
     mov     rdi, rbx
     lea     rsi, [str_global]
     call    str_cmp
     IF rax, e, 0
-        mov     rsi, SYM_GLOBAL
+        mov     rsi, VIS_GLOBAL
         call    parser_handle_visibility
         mov     rax, OK
         jmp     .done
@@ -1027,7 +1027,17 @@ parser_handle_pseudo_op:
     lea     rsi, [str_weak]
     call    str_cmp
     IF rax, e, 0
-        mov     rsi, SYM_WEAK
+        mov     rsi, VIS_WEAK
+        call    parser_handle_visibility
+        mov     rax, OK
+        jmp     .done
+    ENDIF
+
+    mov     rdi, rbx
+    lea     rsi, [str_local]
+    call    str_cmp
+    IF rax, e, 0
+        mov     rsi, VIS_LOCAL
         call    parser_handle_visibility
         mov     rax, OK
         jmp     .done
@@ -1289,7 +1299,7 @@ parser_handle_visibility:
     
     IF rax, e, OK
         // Symbol exists, update visibility
-        mov     byte [rdx + SYMBOL_kind], r12b
+        mov     byte [rdx + SYMBOL_vis], r12b
     ELSE
         // Symbol doesn't exist, create it as UNDEFINED for now
         mov     rdi, [rbx + PREP_ctx]
@@ -1309,6 +1319,7 @@ parser_handle_visibility:
 [SECTION .rodata]
 str_global:    db "global", 0
 str_weak:      db "weak", 0
+str_local:     db "local", 0
 str_align:     db "align", 0
 str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
