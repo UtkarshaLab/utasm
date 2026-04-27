@@ -35,6 +35,8 @@ amd64_encode_instruction:
     // Dispatch based on Mnemonic ID
     IF ax, e, 1391                 // MOV
         call    amd64_encode_mov
+    ELSEIF ax, e, 1682             // SYSCALL
+        call    amd64_encode_syscall
     ELSEIF ax, e, 1440             // NOP
         mov     al, 0x90
         call    amd64_emit_byte
@@ -143,12 +145,55 @@ amd64_encode_mov:
             call    amd64_emit_dword
             jmp     .done
         ENDIF
+
+        // Case 3: MOV REG, MEM
+        IF byte [r14 + OPERAND_kind], e, OP_MEM
+            // Opcode 0x8B (Reg/Mem -> Reg)
+            mov     al, 0x48 // REX.W (Assume 64-bit for now)
+            call    amd64_emit_byte
+            mov     al, 0x8B
+            call    amd64_emit_byte
+            
+            // ModR/M: 00 (no disp) or 10 (32-bit disp)
+            // For [rax], it's 0x00
+            mov     al, [r13 + OPERAND_reg]
+            shl     al, 3
+            or      al, [r14 + OPERAND_base]
+            call    amd64_emit_byte
+            jmp     .done
+        ENDIF
+    ENDIF
+
+    // Case 4: MOV MEM, REG
+    IF byte [r13 + OPERAND_kind], e, OP_MEM
+        IF byte [r14 + OPERAND_kind], e, OP_REG
+            mov     al, 0x48 // REX.W
+            call    amd64_emit_byte
+            mov     al, 0x89
+            call    amd64_emit_byte
+            
+            mov     al, [r14 + OPERAND_reg]
+            shl     al, 3
+            or      al, [r13 + OPERAND_base]
+            call    amd64_emit_byte
+            jmp     .done
+        ENDIF
     ENDIF
     
 .error:
     mov     rax, EXIT_ENCODE_FAIL
 .done:
     epilogue
+
+/**
+ * [amd64_encode_syscall]
+ */
+amd64_encode_syscall:
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    mov     al, 0x05
+    call    amd64_emit_byte
+    ret
 
 /**
  * [amd64_emit_byte]
