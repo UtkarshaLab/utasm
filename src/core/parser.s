@@ -252,10 +252,20 @@ parser_parse_reg_info:
 parser_evaluate_expression:
     prologue
     push    rbx
+    push    r12
+    
+    mov     rbx, rdi               // RBX = AsmCtx
+    
+    // 1. Check Recursion Depth
+    inc     dword [rbx + ASMCTX_expr_depth]
+    IF dword [rbx + ASMCTX_expr_depth], g, 64
+        mov rax, EXIT_EXPR_TOO_DEEP
+        jmp .done_err
+    ENDIF
     
     call    parser_evaluate_term
-    check_err
-    mov     rbx, rdx               // RBX = current running total
+    check_err_to .done_err
+    mov     r13, rdx               // R13 = current running total
     
 .loop:
     call    preprocessor_peek_token
@@ -265,19 +275,29 @@ parser_evaluate_expression:
     IF al, e, TOK_PLUS
         call    preprocessor_next_token
         call    parser_evaluate_term
-        check_err
-        add     rbx, rdx
+        check_err_to .done_err
+        add     r13, rdx
         jmp     .loop
     ELSEIF al, e, TOK_MINUS
         call    preprocessor_next_token
         call    parser_evaluate_term
-        check_err
-        sub     rbx, rdx
+        check_err_to .done_err
+        sub     r13, rdx
         jmp     .loop
     ENDIF
     
-    mov     rdx, rbx
+    mov     rdx, r13
     xor     rax, rax
+
+.done:
+    dec     dword [rbx + ASMCTX_expr_depth]
+    pop     r12
+    pop     rbx
+    epilogue
+
+.done_err:
+    dec     dword [rbx + ASMCTX_expr_depth]
+    pop     r12
     pop     rbx
     epilogue
 
