@@ -305,6 +305,18 @@ amd64_encode_instruction:
         mov     r13, 0xCA | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
     ELSEIF ax, e, 1643             // SHA1RNDS4
         mov     r13, 0xCC | mov r14, 3 | xor r15, r15 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1091             // CRC32
+        mov     r13, 0xF1
+        lea     r10, [r12 + INST_op1]
+        IF byte [r10 + OPERAND_size], e, 8 | mov r13, 0xF0 | ENDIF
+        mov     r14, 2 | mov r15, 0xF2 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1537             // POPCNT
+        mov     r13, 0xB8 | mov r14, 1 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+    ELSEIF ax, e, 1394             // MOVBE
+        mov     r13, 0xF0
+        lea     r10, [r12 + INST_op0]
+        IF byte [r10 + OPERAND_kind], e, OP_MEM | mov r13, 0xF1 | ENDIF
+        mov     r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
     ELSEIF ax, e, 1646             // SHA256RNDS2
         mov     r13, 0xCB | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
     ELSEIF ax, e, 1644             // SHA256MSG1
