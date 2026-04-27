@@ -536,12 +536,12 @@ riscv64_encode_csr:
     movzx   ecx, word [r12 + INST_op_id]
     
     // Funct3 mapping
-    IF ecx, e, 3091 | or eax, 0x00001000 | ENDIF // CSRRW
-    IF ecx, e, 3089 | or eax, 0x00002000 | ENDIF // CSRRS
-    IF ecx, e, 3087 | or eax, 0x00003000 | ENDIF // CSRRC
-    IF ecx, e, 3092 | or eax, 0x00005000 | ENDIF // CSRRWI
-    IF ecx, e, 3090 | or eax, 0x00006000 | ENDIF // CSRRSI
-    IF ecx, e, 3088 | or eax, 0x00007000 | ENDIF // CSRRCI
+    IF ecx, e, ID_RV_CSRRW | or eax, 0x00001000 | ENDIF
+    IF ecx, e, ID_RV_CSRRS | or eax, 0x00002000 | ENDIF
+    IF ecx, e, ID_RV_CSRRC | or eax, 0x00003000 | ENDIF
+    IF ecx, e, ID_RV_CSRRWI | or eax, 0x00005000 | ENDIF
+    IF ecx, e, ID_RV_CSRRSI | or eax, 0x00006000 | ENDIF
+    IF ecx, e, ID_RV_CSRRCI | or eax, 0x00007000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     shl     edi, 7
@@ -579,16 +579,16 @@ riscv64_encode_fp:
     movzx   ecx, word [r12 + INST_op_id]
     
     // Funct7 & Funct3 mapping
-    IF ecx, ge, 3128 | IF ecx, le, 3131 // FADD
+    IF ecx, ge, ID_RV_FADD_S | IF ecx, le, ID_RV_FADD_D // FADD
         or eax, 0x00000000
     ENDIF | ENDIF
-    IF ecx, ge, 3177 | IF ecx, le, 3180 // FSUB
+    IF ecx, ge, ID_RV_FSUB_S | IF ecx, le, ID_RV_FSUB_D // FSUB
         or eax, 0x08000000
     ENDIF | ENDIF
-    IF ecx, ge, 3161 | IF ecx, le, 3164 // FMUL
+    IF ecx, ge, ID_RV_FMUL_S | IF ecx, le, ID_RV_FMUL_D // FMUL
         or eax, 0x10000000
     ENDIF | ENDIF
-    IF ecx, ge, 3156 | IF ecx, le, 3159 // FDIV
+    IF ecx, ge, ID_RV_FDIV_S | IF ecx, le, ID_RV_FDIV_D // FDIV
         or eax, 0x18000000
     ENDIF | ENDIF
     
