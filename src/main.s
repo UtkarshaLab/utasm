@@ -156,10 +156,14 @@ _start:
     mov     r14, rdx                         // r14 = INST*
     movzx   eax, byte [global_ctx + ASMCTX_target]
     
-    // ---- 1. Alignment Guard (Non-x86) ----
-    IF eax, ne, TARGET_AMD64
+    // ---- 1. Alignment Guard (RISC / Fixed-width) ----
+    IF eax, e, TARGET_AARCH64
         mov     rdi, global_ctx
         mov     rsi, 4
+        call    asm_ctx_align
+    ELSEIF eax, e, TARGET_RISCV64
+        mov     rdi, global_ctx
+        mov     rsi, 2                 // Allow 2-byte (C-extension)
         call    asm_ctx_align
     ENDIF
 
