@@ -86,6 +86,27 @@ cli_parse:
     test    rax, rax
     jz      .handle_verbose
 
+    // check for --color
+    mov     rdi, r14
+    lea     rsi, [rel .flag_color]
+    call    str_cmp
+    test    rax, rax
+    jz      .handle_color
+
+    // check for -Werror
+    mov     rdi, r14
+    lea     rsi, [rel .flag_werror]
+    call    str_cmp
+    test    rax, rax
+    jz      .handle_werror
+
+    // check for --listing
+    mov     rdi, r14
+    lea     rsi, [rel .flag_listing]
+    call    str_cmp
+    test    rax, rax
+    jz      .handle_listing
+
     // If it starts with '-', it's an unknown flag
     cmp     byte [r14], '-'
     je      .unknown_flag
@@ -177,6 +198,18 @@ cli_parse:
     or      dword [rbx + ASMCTX_flags], CTX_FLAG_VERBOSE
     jmp     .next_arg
 
+.handle_color:
+    or      dword [rbx + ASMCTX_flags], CTX_FLAG_COLOR
+    jmp     .next_arg
+
+.handle_werror:
+    or      dword [rbx + ASMCTX_flags], CTX_FLAG_WERROR
+    jmp     .next_arg
+
+.handle_listing:
+    or      dword [rbx + ASMCTX_flags], CTX_FLAG_LISTING
+    jmp     .next_arg
+
 .next_arg:
     add     r13, 8
     dec     r12
@@ -210,3 +243,7 @@ cli_parse:
     .val_amd64    db "amd64", 0
     .val_aarch64  db "aarch64", 0
     .val_riscv64  db "riscv64", 0
+
+    .flag_color   db "--color", 0
+    .flag_werror  db "-Werror", 0
+    .flag_listing db "--listing", 0
