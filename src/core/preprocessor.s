@@ -321,8 +321,8 @@ prep_expand_start:
 .param_loop:
     movzx   rax, byte [r12 + MACRO_nparams]
     cmp     r15, rax
-    jge     .link_exp
-
+    jge     .check_trailing
+    
     // lex next token (must be comma if not first)
     test    r15, r15
     jz      .get_param
@@ -355,8 +355,33 @@ prep_expand_start:
     test    rax, rax
     jnz     .error
     
+    // Guard: check if we hit newline/EOF unexpectedly
+    mov     al, [rdx + TOKEN_kind]
+    cmp     al, TOK_NEWLINE
+    je      .error_too_few_args
+    cmp     al, TOK_EOF
+    je      .error_too_few_args
+
     inc     r15
     jmp     .param_loop
+
+.check_trailing:
+    // Check for too many arguments (is there a comma next?)
+    mov     rdi, [rbx + PREP_lexer]
+    extern  lexer_peek
+    sub     rsp, TOKEN_SIZE
+    mov     rsi, rsp
+    call    lexer_peek
+    mov     al, [rsp + TOKEN_kind]
+    add     rsp, TOKEN_SIZE
+    cmp     al, TOK_COMMA
+    je      .error_too_many_args
+    jmp     .link_exp
+
+.error_too_few_args:
+.error_too_many_args:
+    mov     rax, EXIT_MACRO_ARITY_FAIL
+    jmp     .error
 
 .link_exp:
     // 3. Link to previous
