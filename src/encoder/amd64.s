@@ -33,7 +33,7 @@ amd64_encode_instruction:
     // Reset length counter
     mov     dword [rbx + ASMCTX_inst_len], 0
     
-    // 0. VALIDATION: Check operand size consistency
+    // 0. Defensive Validation: Operand parity
     cmp     byte [r12 + INST_nops], 2
     jl      .no_size_check
     lea     r10, [r12 + INST_op0]
@@ -41,46 +41,36 @@ amd64_encode_instruction:
     mov     al, [r10 + OPERAND_size]
     mov     ah, [r11 + OPERAND_size]
     IF al, ne, ah
-        // Immediate and Symbol can have different sizes (resolved during emission)
-        IF byte [r11 + OPERAND_kind], ne, OP_IMM
-            IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
-                jmp .error
-            ENDIF
+        // GPR/Mem widths must match; Immediates/Symbols are handled during emission.
+        IF byte [r11 + OPERAND_kind], e, OP_REG
+            mov rax, EXIT_INVALID_OPERAND | jmp .done
+        ENDIF
+        IF byte [r11 + OPERAND_kind], e, OP_MEM
+            mov rax, EXIT_INVALID_OPERAND | jmp .done
         ENDIF
     ENDIF
 .no_size_check:
     
-    // 0.1 VALIDATION: REX vs Legacy 8-bit (AH, CH, DH, BH)
-    // These registers (indices 4-7 in 8-bit mode without REX)
-    // cannot be used if a REX prefix is present.
-    // ...
-    
-    // 1. Emit Prefix if present (REP/LOCK)
+    // 1. Mandatory Prefix Emission (REP/LOCK)
     mov     al, [r12 + INST_prefix]
     IF al, ne, 0
-        // VALIDATION: If LOCK (0xF0), ensure mnemonic allows it
-        IF al, e, 0xF0
+        IF al, e, 0xF0  // LOCK
             mov ax, [r12 + INST_id]
-            // Whitelist: ADD, OR, ADC, SBB, AND, SUB, XOR, INC, DEC, NOT, NEG, BTC, BTR, BTS, XADD, CMPXCHG
-            // For now, let's assume anything < 1500 is a standard logic/math op
-            // (In a production build, this would be a bitmask check)
             IF ax, ge, 1500
-                jmp .error
+                mov rax, EXIT_INVALID_OPERAND | jmp .done
             ENDIF
         ENDIF
         call    amd64_emit_byte
     ENDIF
     
-    // 2. Emit Segment Prefix if present in any operand
+    // 2. Segment Prefix Detection
     lea     rdi, [r12 + INST_op0]
     mov     al, [rdi + OPERAND_segment]
     IF al, e, 0
         lea rdi, [r12 + INST_op1]
         mov al, [rdi + OPERAND_segment]
     ENDIF
-    IF al, ne, 0
-        call    amd64_emit_byte
-    ENDIF
+    IF al, ne, 0 | call amd64_emit_byte | ENDIF
     
     // 2. Dispatch based on Mnemonic ID
     movzx   rax, word [r12 + INST_op_id]
@@ -1470,12 +1460,11 @@ amd64_emit_prefixes:
     
     IF r11, ne, 0
         // VALIDATION: REX vs High-Byte (AH/CH/DH/BH)
-        // Architectural constraint: Cannot use REX with legacy 8-bit high regs.
         IF rsi, ne, 0
-            IF byte [rsi + OPERAND_is_high], e, 1 | jmp .error | ENDIF
+            IF byte [rsi + OPERAND_is_high], e, 1 | mov rax, EXIT_INVALID_OPERAND | jmp .error | ENDIF
         ENDIF
         IF rdx, ne, 0
-            IF byte [rdx + OPERAND_is_high], e, 1 | jmp .error | ENDIF
+            IF byte [rdx + OPERAND_is_high], e, 1 | mov rax, EXIT_INVALID_OPERAND | jmp .error | ENDIF
         ENDIF
         
         mov     rax, r11
@@ -1528,7 +1517,7 @@ amd64_emit_modrm_sib:
     
     mov     cl, [r13 + OPERAND_index]
     IF cl, e, 4
-        jmp amd64_encode_instruction.error
+        mov rax, EXIT_INVALID_OPERAND | jmp .error_exit
     ENDIF
     
     xor     rdx, rdx            // Mod field
