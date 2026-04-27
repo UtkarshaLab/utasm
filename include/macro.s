@@ -21,13 +21,9 @@
 %macro prologue 0
     push    rbp
     mov     rbp, rsp
+    and     rsp, -16               // 16-byte alignment
 %endmacro
 
-/**
- * [epilogue]
- * Purpose: Teardown a standard AMD64 function stack frame and return.
- * Clobbers: RSP, RBP
- */
 %macro epilogue 0
     mov     rsp, rbp
     pop     rbp
