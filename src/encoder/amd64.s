@@ -150,8 +150,8 @@ amd64_encode_instruction:
         mov     r14, 4 | call amd64_encode_unary_math
     ELSEIF ax, e, 1119             // DIV
         mov     r14, 6 | call amd64_encode_unary_math
-    ELSEIF ax, e, 1276             // IMUL (1-op)
-        mov     r14, 5 | call amd64_encode_unary_math
+    ELSEIF ax, e, 1276             // IMUL
+        call    amd64_encode_imul
     ELSEIF ax, e, 1275             // IDIV
         mov     r14, 7 | call amd64_encode_unary_math
     ELSEIF ax, e, 1583             // PUSH
@@ -952,33 +952,72 @@ amd64_encode_shift:
     jmp     .done
 
 /**
+ * [amd64_encode_imul]
+ */
+amd64_encode_imul:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    lea     rdx, [r12 + INST_op2]
+    
+    // 1-Operand: IMUL r/m (F7 /5)
+    cmp     byte [r12 + INST_nops], 1
+    IF e
+        mov r14, 5 | jmp amd64_encode_unary_math
+    ENDIF
+    
+    // 2-Operand: IMUL reg, r/m (0F AF)
+    cmp     byte [r12 + INST_nops], 2
+    IF e
+        mov al, [r10 + OPERAND_size] | mov rsi, r10 | mov rdx, r11 | call amd64_emit_prefixes
+        mov al, 0x0F | call amd64_emit_byte
+        mov al, 0xAF | call amd64_emit_byte
+        mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        jmp .done
+    ENDIF
+    
+    // 3-Operand: IMUL reg, r/m, imm (69/6B)
+    mov al, [r10 + OPERAND_size] | mov rsi, r10 | mov rdx, r11 | call amd64_emit_prefixes
+    
+    mov rax, [rdx + OPERAND_imm]
+    IF rax, ge, -128
+        IF rax, le, 127
+            mov al, 0x6B | call amd64_emit_byte
+            mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+            mov rax, [rdx + OPERAND_imm] | call amd64_emit_byte
+            jmp .done
+        ENDIF
+    ENDIF
+    
+    mov al, 0x69 | call amd64_emit_byte
+    mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+    mov rdi, [rdx + OPERAND_imm] | call amd64_emit_dword
+    jmp .done
+
+/**
  * [amd64_encode_unary_math]
- * MUL/DIV/IDIV/IMUL
+ * MUL/DIV/IDIV/etc.
  */
 amd64_encode_unary_math:
     prologue
     lea     r10, [r12 + INST_op0]
     
-    xor     r15, r15
-    IF byte [r10 + OPERAND_size], e, 8
-        or  r15, 0x48
+    // Smart Prefixes
+    mov     al, [r10 + OPERAND_size]
+    xor     rsi, rsi
+    mov     rdx, r10
+    call    amd64_emit_prefixes
+    
+    // Opcode is 0xF6 (8-bit) or 0xF7 (16/32/64-bit)
+    mov     al, 0xF6
+    IF byte [r10 + OPERAND_size], ne, 8
+        inc al
     ENDIF
-    
-    test    r15, r15
-    jz      .no_rex
-    mov     rax, r15
-    call    amd64_emit_byte
-.no_rex:
-    mov     al, 0xF7       // Group 4 (MUL/DIV/etc)
     call    amd64_emit_byte
     
-    mov     al, r14b       // Digit
+    mov     al, r14b       // Digit (4=MUL, 6=DIV, 7=IDIV)
     mov     rdi, r10
     call    amd64_emit_modrm_sib
-    jmp     .done
-
-    xor     rdi, rdi
-    call    amd64_emit_dword
     jmp     .done
 
 /**
