@@ -68,6 +68,9 @@
 %def ID_AARCH64_ISB         2228
 %def ID_AARCH64_WFI         2617
 %def ID_AARCH64_HLT         2176
+%def ID_AARCH64_UBFM        2605
+%def ID_AARCH64_SBFM        2501
+%def ID_AARCH64_BFM         2074
 
 /**
  * [define_mnemonic]

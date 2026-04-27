@@ -100,6 +100,12 @@ aarch64_encode_instruction:
         mov     edi, 0xD503205F | call aarch64_emit_word
     ELSEIF eax, e, ID_AARCH64_HLT
         call    aarch64_encode_hlt
+    ELSEIF eax, e, ID_AARCH64_UBFM
+        mov     r13d, 0x53000000 | call aarch64_encode_bitfield
+    ELSEIF eax, e, ID_AARCH64_SBFM
+        mov     r13d, 0x13000000 | call aarch64_encode_bitfield
+    ELSEIF eax, e, ID_AARCH64_BFM
+        mov     r13d, 0x33000000 | call aarch64_encode_bitfield
 
     // ---- Floating Point (Basic) ----
     ELSEIF eax, ge, 2154            // FADD, FSUB, FMUL, FDIV
@@ -168,6 +174,53 @@ aarch64_encode_instruction:
     pop     r13
     pop     r12
     pop     rbx
+    xor     rax, rax
+    epilogue
+
+/**
+ * [aarch64_encode_bitfield]
+ */
+aarch64_encode_bitfield:
+    prologue
+    push    r13
+    mov     r13d, esi              // r13d = base opcode
+    
+    // Rd (op0)
+    lea     r10, [r12 + INST_op0]
+    movzx   eax, byte [r10 + OPERAND_reg]
+    or      r13d, eax
+    
+    // Set sf and N based on register size
+    movzx   eax, byte [r10 + OPERAND_size]
+    IF eax, e, 8
+        or      r13d, 0x80400000   // sf=1, N=1
+    ENDIF
+    
+    // Rn (op1)
+    lea     r10, [r12 + INST_op1]
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 5
+    or      r13d, eax
+    
+    // immr (op2)
+    lea     r10, [r12 + INST_op2]
+    mov     eax, [r10 + OPERAND_imm]
+    and     eax, 0x3F
+    shl     eax, 16
+    or      r13d, eax
+    
+    // imms (op3)
+    lea     r10, [r12 + INST_op3]
+    mov     eax, [r10 + OPERAND_imm]
+    and     eax, 0x3F
+    shl     eax, 10
+    or      r13d, eax
+    
+    mov     edi, r13d
+    call    aarch64_emit_word
+    
+    pop     r13
+    xor     rax, rax
     epilogue
 
 // ---- aarch64_encode_adr ----
