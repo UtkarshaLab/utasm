@@ -193,11 +193,11 @@ riscv64_encode_instruction:
         mov     edi, 0x0000100F | call riscv64_emit_word
 
     // ---- Atomic Memory Operations (AMO) ----
-    ELSEIF eax, ge, 3033            // AMOADD.W range
-        IF eax, le, 3083
-            call riscv64_encode_amo
+    ELSEIF eax, ge, ID_RV_AMOADD_W
+        IF eax, le, ID_RV_SC_D
+            call    riscv64_encode_atomic
         ENDIF
-
+    ENDIF
     // ---- Floating Point (Basic RV64F/D) ----
     ELSEIF eax, ge, 3128            // FADD.S range
         IF eax, le, 3180
@@ -762,56 +762,69 @@ riscv64_encode_rvc_addi:
  * Encodes Atomic Memory Operations (AMO).
  * Format: funct5(5) aq(1) rl(1) rs2(5) rs1(5) funct3(3) rd(5) 0101111
  */
-riscv64_encode_amo:
+riscv64_encode_atomic:
     prologue
-    push    rbx
-    push    r12
     push    r13
+    mov     r13d, 0x0000002F       // base opcode for AMO/LR/SC
     
-    mov     r13d, 0x0000002F       // Base opcode 0101111
+    // 1. Resolve rd
+    lea     r10, [r12 + INST_op0]
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 7
+    or      r13d, eax
     
-    // 1. Get RD (Op0)
-    lea     rax, [r12 + INST_op0]
-    movzx   ecx, byte [rax + OPERAND_reg]
-    shl     ecx, 7
-    or      r13d, ecx
+    // 2. Resolve rs1 (address)
+    lea     r10, [r12 + INST_op1]
+    movzx   eax, byte [r10 + OPERAND_reg]
+    shl     eax, 15
+    or      r13d, eax
     
-    // 2. Get RS2 (Op1)
-    lea     rax, [r12 + INST_op1]
-    movzx   ecx, byte [rax + OPERAND_reg]
-    shl     ecx, 20
-    or      r13d, ecx
-    
-    // 3. Get RS1 (Op2 - Memory [base])
-    lea     rax, [r12 + INST_op2]
-    movzx   ecx, byte [rax + OPERAND_reg] // Base reg from memory operand
-    shl     ecx, 15
-    or      r13d, ecx
-    
-    // 4. Resolve funct3 (width) and funct5 (op)
+    // 3. Resolve rs2 (value) - only for AMO and SC
     movzx   eax, word [r12 + INST_op_id]
+    IF eax, ne, ID_RV_LR_W
+        IF eax, ne, ID_RV_LR_D
+            lea     r10, [r12 + INST_op2]
+            movzx   eax, byte [r10 + OPERAND_reg]
+            shl     eax, 20
+            or      r13d, eax
+        ENDIF
+    ENDIF
     
-    // Width bit (bit 13)
-    // IDs for .D are usually higher. Logic: if ID is for .D, funct3 = 011 else 010
-    // (Assuming ID_RV_AMOADD_W = 3033, ID_RV_AMOADD_D = 3034 etc)
-    test    eax, 1                 // Check if it's an even/odd ID (odd=W, even=D usually)
-    IF z
-        or      r13d, 0x3000       // funct3 = 011 (.d)
+    // 4. Resolve funct3 (width)
+    movzx   eax, word [r12 + INST_op_id]
+    test    eax, 1                 // Check if it's .D (odd ID)
+    IF nz
+        or      r13d, 0x3000       // .d
     ELSE
-        or      r13d, 0x2000       // funct3 = 011 (.w)
+        or      r13d, 0x2000       // .w
     ENDIF
 
-    // Map funct5 based on operation
-    // (Simplified logic for audit - real mapping requires ID check)
-    // For now, assume AMOADD for testing
-    or      r13d, 0x00000000       // ADD = 00000
+    // 5. Map funct5
+    movzx   eax, word [r12 + INST_op_id]
+    
+    // Simplified mapping based on our ID order
+    // 3400: ADD.W, 3401: ADD.D
+    // 3402: SWAP.W, 3403: SWAP.D
+    // ...
+    sub     eax, 3400
+    shr     eax, 1                 // index (0=ADD, 1=SWAP, 2=AND, 3=OR, 4=XOR, 5=MAX, 6=MIN, 7=LR, 8=SC)
+    
+    // Jump table or nested IFs for funct5
+    IF eax, e, 0 | or r13d, (0x00 << 27) | ENDIF // ADD
+    IF eax, e, 1 | or r13d, (0x01 << 27) | ENDIF // SWAP
+    IF eax, e, 2 | or r13d, (0x0C << 27) | ENDIF // AND
+    IF eax, e, 3 | or r13d, (0x08 << 27) | ENDIF // OR
+    IF eax, e, 4 | or r13d, (0x04 << 27) | ENDIF // XOR
+    IF eax, e, 5 | or r13d, (0x14 << 27) | ENDIF // MAX
+    IF eax, e, 6 | or r13d, (0x10 << 27) | ENDIF // MIN
+    IF eax, e, 7 | or r13d, (0x02 << 27) | ENDIF // LR
+    IF eax, e, 8 | or r13d, (0x03 << 27) | ENDIF // SC
     
     mov     edi, r13d
     call    riscv64_emit_word
     
     pop     r13
-    pop     r12
-    pop     rbx
+    xor     rax, rax
     epilogue
 
 /**
