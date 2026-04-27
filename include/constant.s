@@ -44,6 +44,7 @@
 %def EXIT_OFFSET_RANGE      32  // branch or memory offset exceeds range
 %def EXIT_UNSUPPORTED_INSTR 33  // valid instruction not supported by target
 %def EXIT_ALIGN_ERROR       34  // alignment directive could not be satisfied
+%def EXIT_STRUCT_BOUNDS     35  // memory write size exceeds struct field byte width
 
 %def EXIT_UNDEF_SYMBOL      40  // referenced symbol has no definition
 %def EXIT_DUP_SYMBOL        41  // symbol defined more than once
@@ -183,6 +184,8 @@
  %def SYM_MACRO              0x04
  %def SYM_EXTERN             0x05
  %def SYM_SECTION            0x06
+ %def SYM_STRUCT             0x07  // a struc definition (name -> total_size)
+ %def SYM_STRUCT_FIELD       0x08  // a struct field   (name -> offset, size = field byte width)
  
  %def VIS_LOCAL              0x00
  %def VIS_GLOBAL             0x01
