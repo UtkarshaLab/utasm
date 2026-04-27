@@ -72,7 +72,7 @@ prep_next_token:
 .next:
     mov     rdi, [rbx + PREP_lexer]
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .done                  // lexer error
 
@@ -150,7 +150,7 @@ prep_handle_directive:
     sub     rsp, TOKEN_SIZE        // space for temp token
     mov     r12, rsp               // r12 = temp token dest
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -274,7 +274,7 @@ prep_handle_inc:
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -408,7 +408,7 @@ prep_handle_def:
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp               // r12 = name token
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -423,7 +423,7 @@ prep_handle_def:
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp               // r12 = value token
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -494,7 +494,7 @@ prep_handle_ifdef:
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -540,7 +540,7 @@ prep_handle_ifndef:
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -638,7 +638,7 @@ macro_handle_def:
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp               // r12 = name token
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
 
@@ -650,7 +650,7 @@ macro_handle_def:
     sub     rsp, TOKEN_SIZE
     mov     r13, rsp               // r13 = param count token
     mov     rsi, r13
-    call    lexer_next_token
+    call    lexer_next
     // ... logic for parsing param count ...
     
     // For now, let's just implement a stub that skips until %endmacro
@@ -659,7 +659,7 @@ macro_handle_def:
 .skip_loop:
     mov     rdi, [rbx + PREP_lexer]
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     test    rax, rax
     jnz     .error
     
@@ -672,7 +672,7 @@ macro_handle_def:
     // check if it is endmacro
     mov     rdi, [rbx + PREP_lexer]
     mov     rsi, r12
-    call    lexer_next_token
+    call    lexer_next
     // ... comparison logic ...
     
     xor     rax, rax
