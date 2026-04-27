@@ -484,6 +484,7 @@ lexer_next:
 .lex_number:
     call    .token_begin
     mov     r13, [rbx + LEXER_pos]     // start of number
+    xor     r14, r14                   // r14 = float flag (0=int, 1=float)
 
 .lex_number_loop:
     mov     r10, [rbx + LEXER_pos]
@@ -510,22 +511,30 @@ lexer_next:
     je      .lex_number_advance
     cmp     rdi, 'O'
     je      .lex_number_advance
+    
+    // Float markers
     cmp     rdi, '.'
-    je      .lex_number_advance
+    je      .is_float
     cmp     rdi, 'e'
-    je      .lex_number_advance
+    je      .is_float
     cmp     rdi, 'E'
-    je      .lex_number_advance
+    je      .is_float
     cmp     rdi, 'p'
-    je      .lex_number_advance
+    je      .is_float
     cmp     rdi, 'P'
-    je      .lex_number_advance
+    je      .is_float
+    
+    // signs can appear after e/p
     cmp     rdi, '+'
     je      .lex_number_advance
     cmp     rdi, '-'
     je      .lex_number_advance
     
     jmp     .lex_number_done
+
+.is_float:
+    mov     r14, 1
+    jmp     .lex_number_advance
 
 .lex_number_advance:
     inc     qword [rbx + LEXER_pos]
@@ -544,7 +553,13 @@ lexer_next:
     test    rax, rax
     jnz     .fail
 
+    // Set token kind based on float flag
     mov     byte [r12 + TOKEN_kind], TOK_NUMBER
+    test    r14, r14
+    jz      .set_val
+    mov     byte [r12 + TOKEN_kind], TOK_FLOAT
+
+.set_val:
     mov     [r12 + TOKEN_value], rdx
     mov     word [r12 + TOKEN_len], r10w
     xor     rax, rax

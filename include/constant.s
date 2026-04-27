@@ -173,6 +173,7 @@
  %def TOK_AT                 0x1E
  %def TOK_DIRECTIVE          0x1F
  %def TOK_COMMENT            0x20
+ %def TOK_FLOAT              0x21
  
  // ============================================================================
  // SYMBOL KINDS AND VISIBILITY
