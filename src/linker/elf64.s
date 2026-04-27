@@ -775,6 +775,11 @@ elf64_write_shdrs:
     mov     r15d, [rbx + ASMCTX_seccount]
     xor     ecx, ecx
     
+    // Initial file offset (after ELF header + Phdrs)
+    // For now, assume a fixed start or pass it in. 
+    // Actually, we should calculate this based on the previous sections.
+    mov     r11, 0x1000            // Initial page alignment for .text
+    
 .sec_loop:
     cmp     ecx, r15d
     jge     .sec_done
@@ -783,8 +788,7 @@ elf64_write_shdrs:
     
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
     
-    // Name (offset in shstrtab - need to implement shstrtab collection)
-    // For now, use a placeholder or handle later in Audit 57.
+    // Name index (placeholder)
     mov     dword [rsp + SHDR_NAME], 0 
     
     mov     eax, [r13 + SECTION_elf_type]
@@ -796,12 +800,35 @@ elf64_write_shdrs:
     mov     rax, [r13 + SECTION_addr]
     mov     qword [rsp + SHDR_ADDR], rax
     
+    // sh_offset: Align current r11 to section alignment
+    mov     rax, [r13 + SECTION_align]
+    test    rax, rax | jnz .use_align | mov rax, 1 | .use_align:
+    
+    // r11 = (r11 + rax - 1) & ~(rax - 1)
+    dec     rax
+    add     r11, rax
+    not     rax
+    and     r11, rax
+    
+    mov     qword [rsp + SHDR_OFFSET], r11
+    
     mov     rax, [r13 + SECTION_size]
     mov     qword [rsp + SHDR_SIZE], rax
     
-    mov     rax, [r13 + SECTION_align]
-    mov     qword [rsp + SHDR_ADDRALIGN], rax
+    // Update r11 for next section (unless it's NOBITS)
+    cmp     dword [r13 + SECTION_elf_type], 8 // SHT_NOBITS (.bss)
+    je      .no_offset_inc
+    add     r11, rax
+.no_offset_inc:
     
+    mov     rax, [r13 + SECTION_align]
+    test    rax, rax | jz .def_align
+    mov     qword [rsp + SHDR_ADDRALIGN], rax
+    jmp     .emit
+.def_align:
+    mov     qword [rsp + SHDR_ADDRALIGN], 1
+    
+.emit:
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
     
     inc     ecx
