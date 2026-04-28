@@ -737,7 +737,15 @@ prep_handle_inc:
     cmp     byte [r12 + TOKEN_kind], TOK_STRING
     jne     .expected_string
 
-    // 1. Open the file
+    // 1. Path traversal protection (Check for "..")
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [str_dotdot]
+    extern  str_find_str
+    call    str_find_str
+    test    rax, rax
+    jz      .path_traversal_error
+
+    // 2. Open the file
     mov     rdi, [r12 + TOKEN_value]
     mov     rsi, AMD64_O_RDONLY
     xor     rdx, rdx
@@ -832,6 +840,20 @@ prep_handle_inc:
     // rax already set
     jmp     .done
 
+.path_traversal_error:
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [rbx + PREP_lexer]
+    mov     rsi, [rsi + LEXER_file]
+    mov     edx, dword [rbx + PREP_lexer]
+    mov     edx, dword [rdx + LEXER_line]
+    movzx   rcx, word [rbx + PREP_lexer]
+    movzx   rcx, word [rcx + LEXER_col]
+    lea     r8,  [msg_path_traversal]
+    extern  error_emit
+    call    error_emit
+    mov     rax, EXIT_FILE_PERM
+    jmp     .done
+
 .done:
     add     rsp, TOKEN_SIZE
     pop     r15
@@ -855,6 +877,8 @@ dir_macro:  db "macro", 0
 dir_endm:   db "endmacro", 0
 dir_struc:  db "struc", 0
 dir_endstruc: db "endstruc", 0
+str_dotdot: db "..", 0
+msg_path_traversal: db "path traversal detected in %inc: usage of '..' is prohibited", 0
 
 // ---- prep_handle_struc ------------------
 /*

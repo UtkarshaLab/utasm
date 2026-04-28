@@ -1063,3 +1063,70 @@ str_concat:
     pop     rbx
     xor     rax, rax
     epilogue
+/**
+ * [str_find_str]
+ * Purpose: Finds a substring within a string.
+ * Input:
+ *   RDI: Haystack (null-terminated)
+ *   RSI: Needle (null-terminated)
+ * Output:
+ *   RAX: EXIT_OK if found, EXIT_ERROR if not
+ *   RDX: Pointer to start of needle in haystack
+ */
+global str_find_str
+str_find_str:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi               // Haystack
+    mov     r12, rsi               // Needle
+    
+    // handle empty needle
+    movzx   rax, byte [r12]
+    test    al, al
+    jz      .found_empty
+    
+.outer:
+    movzx   rax, byte [rbx]
+    test    al, al
+    jz      .not_found
+    
+    // check match at current position
+    mov     rdi, rbx
+    mov     rsi, r12
+.inner:
+    movzx   rax, byte [rdi]
+    movzx   rcx, byte [rsi]
+    test    cl, cl
+    jz      .found                 // reached end of needle
+    cmp     al, cl
+    jne     .next_outer
+    inc     rdi
+    inc     rsi
+    jmp     .inner
+
+.next_outer:
+    inc     rbx
+    jmp     .outer
+
+.found:
+    mov     rdx, rbx
+    xor     rax, rax
+    jmp     .done
+
+.found_empty:
+    mov     rdx, rbx
+    xor     rax, rax
+    jmp     .done
+
+.not_found:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+
+.done:
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
