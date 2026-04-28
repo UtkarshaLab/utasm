@@ -630,10 +630,13 @@ str_to_int:
     jge     .invalid
 
     // result = result * base + digit
-    imul    rbx, r12
-    jo      .overflow
-    add     rbx, rcx
-    jo      .overflow
+    mov     rax, rbx
+    mul     r12
+    test    rdx, rdx
+    jnz     .overflow
+    add     rax, rcx
+    jc      .overflow
+    mov     rbx, rax
     inc     rdi
     jmp     .parse_loop
 

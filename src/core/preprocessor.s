@@ -492,9 +492,20 @@ prep_expand_next:
     
     // CASE 1: %0 (Parameter Count)
     IF al, e, '0'
+        // Allocate space for the number string
+        mov     rdi, [rbx + PREP_arena]
+        mov     rsi, 32
+        call    arena_alloc
+        test    rax, rax
+        jnz     .expansion_end // or other error
+        
+        mov     rdi, rdx       // dst
+        movzx   rsi, byte [r13 + MACROEXP_nparams]
+        extern  str_int_to_str
+        call    str_int_to_str
+        
         mov     byte [r12 + TOKEN_kind], TOK_NUMBER
-        movzx   rax, byte [r13 + MACROEXP_nparams]
-        mov     [r12 + TOKEN_value], rax
+        mov     [r12 + TOKEN_value], rdx // pointer to formatted string
         jmp     .produced
     ENDIF
 
@@ -958,13 +969,68 @@ prep_capture_greedy:
     push    rbx
     push    r12
     push    r13
+    push    r14
     
+    mov     rbx, rdi               // rbx = PrepState
+    mov     r12, [rbx + PREP_lexer]
+    
+    // 1. Find the end of the line in the current lexer buffer
+    mov     r13, [r12 + LEXER_pos] // start
+    mov     r14, r13               // current
+.find_eol:
+    cmp     r14, [r12 + LEXER_end]
+    jge     .found_eol
+    movzx   rax, byte [r14]
+    cmp     al, 10                 // LF
+    je      .found_eol
+    inc     r14
+    jmp     .find_eol
+
+.found_eol:
+    // length = r14 - r13
+    mov     rdx, r14
+    sub     rdx, r13               // rdx = length
+    
+    // 2. Allocate and copy
     mov     rdi, [rbx + PREP_arena]
-    mov     rsi, 1024
+    mov     rsi, rdx
+    inc     rsi                    // +1 for null
     call    arena_alloc
     check_err
-    mov     r12, rdx
-    xor     r13, r13
+    mov     r10, rdx               // r10 = dst
+    
+    mov     rdi, r10
+    mov     rsi, r13
+    mov     rdx, r14
+    sub     rdx, r13               // length
+    mov     rcx, rdx
+    rep     movsb
+    mov     byte [rdi], 0          // null terminate
+    
+    // 3. Update lexer position (consume the text, but not the newline)
+    mov     [r12 + LEXER_pos], r14
+    
+    // 4. Create string token
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    mov     byte [rdx + TOKEN_kind], TOK_STRING
+    mov     [rdx + TOKEN_value], r10
+    
+    // 5. Store in macro params
+    mov     rax, [rbx + PREP_ctx]
+    mov     rax, [rax + ASMCTX_mac_exp]
+    mov     rcx, [rax + MACROEXP_params]
+    mov     [rcx + r15 * 8], rdx
+    
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    xor     rax, rax
+    epilogue
+
+    jmp     prep_handle_if // jump over the junk
     
 .loop:
     sub     rsp, TOKEN_SIZE

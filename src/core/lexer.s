@@ -798,7 +798,11 @@ lexer_next:
 .lex_char_escape:
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
+
     mov     r11, [rbx + LEXER_pos]
+    cmp     r11, [rbx + LEXER_end]
+    jge     .lex_char_unterminated
+
     movzx   rcx, byte [r11]
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
@@ -1035,45 +1039,7 @@ lexer_next:
     jmp     .skip_loop
 
 .skip_block_unterminated:
-    mov     rax, EXIT_UNEXPECTED_EOF
-    jmp     .skip_done
-    jge     .skip_block_eof
-
-    movzx   rcx, byte [r10]
-
-    // track newlines inside block comments
-    cmp     rcx, 10
-    jne     .skip_block_not_nl
-    inc     dword [rbx + LEXER_line]
-    mov     word  [rbx + LEXER_col], 1
-    inc     qword [rbx + LEXER_pos]
-    jmp     .skip_block_loop
-
-.skip_block_not_nl:
-    // check for */
-    cmp     rcx, '*'
-    jne     .skip_block_advance
-
-    mov     r11, r10
-    inc     r11
-    cmp     r11, [rbx + LEXER_end]
-    jge     .skip_block_eof
-    movzx   r11, byte [r11]
-    cmp     r11, '/'
-    jne     .skip_block_advance
-
-    // found */ — consume both chars
-    add     qword [rbx + LEXER_pos], 2
-    add     word  [rbx + LEXER_col],  2
-    jmp     .skip_loop
-
-.skip_block_advance:
-    inc     qword [rbx + LEXER_pos]
-    inc     word  [rbx + LEXER_col]
-    jmp     .skip_block_loop
-
-.skip_block_eof:
-    // unterminated block comment
+    // unterminated block comment — emit error
     mov     rdi, [rbx + LEXER_ctx]
     mov     rsi, [rbx + LEXER_file]
     mov     edx, dword [rbx + LEXER_line]
@@ -1081,7 +1047,7 @@ lexer_next:
     lea     r8,  [msg_unterminated_comment]
     call    error_emit
     mov     rax, EXIT_UNEXPECTED_EOF
-    ret
+    jmp     .skip_done
 
 .skip_ws:
     inc     qword [rbx + LEXER_pos]
