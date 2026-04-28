@@ -141,12 +141,27 @@ reloc_resolve_all:
     
     // sym_va = symbol.section.addr + symbol.value
     movzx   eax, word [r10 + SYMBOL_section] // section index
+    
+    // Check for special sections
+    IF ax, e, 0xFFFF // SHN_ABS
+        mov     rax, [r10 + SYMBOL_value]
+        jmp     .calc_patch_va
+    ENDIF
+    IF ax, ge, MAX_SECTIONS
+        mov     rax, EXIT_INVALID_SECTION
+        jmp     .ret
+    ENDIF
+
     mov     rdi, [rbx + ASMCTX_sections]
     mov     r8, [rdi + rax * 8]              // r8 = SECTION*
-    mov     r9, [r8 + SECTION_addr]          // r9 = section VA
+    test    r8, r8
+    jz      .undef
     
+    mov     r9, [r8 + SECTION_addr]          // r9 = section VA
     mov     rax, [r10 + SYMBOL_value]
     add     rax, r9                          // rax = sym_va
+
+.calc_patch_va:
     push    rax                              // Preserve sym_va
 
     // patch_offset = reloc.offset
@@ -222,8 +237,19 @@ reloc_apply_one:
     sub     rax, r10               // Adjust for PC (e.g. 4 for x86_64)
     mov     r10, [rbx + RELOC_addend]
     add     rax, r10
+    
+    // RANGE CHECK: Must fit in signed 32-bit
+    mov     rcx, rax
+    movsxd  rdx, eax
+    cmp     rcx, rdx
+    jne     .range_err
+    
     mov     [r8], eax
     jmp     .done_patch
+
+.range_err:
+    mov     rax, EXIT_OFFSET_RANGE
+    jmp     .ret
 
 .abs64:
     add     rax, r10

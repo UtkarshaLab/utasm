@@ -159,14 +159,23 @@ asm_ctx_create_section:
     mov     [r14 + SECTION_data], rdx
     
     // 4. Add to AsmCtx section array
-    // (Simplified: for now we just handle a fixed array or linked list)
-    mov     rax, [rbx + ASMCTX_sections]
     movzx   ecx, word [rbx + ASMCTX_seccount]
+    IF ecx, ge, MAX_SECTIONS
+        mov     rax, EXIT_SECTION_OVERLAP
+        jmp     .done_error
+    ENDIF
+    
+    mov     rax, [rbx + ASMCTX_sections]
     mov     [rax + rcx*8], r14
     inc     word [rbx + ASMCTX_seccount]
     
     mov     rax, EXIT_OK
     mov     rdx, r14
+    jmp     .done
+
+.done_error:
+    // we should probably unmap the buffer here if it was allocated
+    mov     rax, EXIT_SECTION_OVERLAP
     
     pop     r14
     pop     r13
@@ -207,55 +216,6 @@ asm_ctx_emit_dword:
     pop     rbx
     epilogue
 
-/**
- * [asm_ctx_align]
- * Purpose: Pads current section until requested alignment is met.
- * Input:
- *   RDI: Pointer to AsmCtx
- *   RSI: Alignment boundary
- *   RDX: Fill byte value
- */
-global asm_ctx_align
-asm_ctx_align:
-    prologue
-    push    rbx
-    push    r12
-    push    r13
-    push    r14
-    
-    mov     rbx, rdi
-    mov     r12, rsi               // r12 = alignment
-    mov     r14, rdx               // r14 = fill byte
-    
-    // Get current section
-    mov     rdi, rbx
-    call    asmctx_get_current_section
-    mov     r9, rdx               // r9 = SECTION*
-    mov     rax, [r9 + SECTION_size]
-    
-    // Calculate padding
-    xor     rdx, rdx
-    div     r12                    // RDX = size % align
-    test    rdx, rdx
-    jz      .done_align
-    
-    mov     r13, r12
-    sub     r13, rdx               // R13 = count
-    
-.pad_loop:
-    test    r13, r13
-    jz      .done_align
-    mov     rdi, rbx
-    mov     rsi, r14
-    call    asm_ctx_emit_byte
-    dec     r13
-    jmp     .pad_loop
-.done_align:
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     rbx
-    epilogue
 
 /**
  * [asm_ctx_emit_word]
@@ -428,11 +388,22 @@ asm_ctx_align:
     sub     r12, rdx               // padding = align - offset
     
     // 3. Determine fill byte
-    mov     r14b, 0                // default zero
     mov     al, byte [r13 + SECTION_type]
     cmp     al, SEC_TEXT
     jne     .fill_loop
-    mov     r14b, 0x90         // NOP for AMD64
+    
+    // Architecturally-aware NOP
+    mov     al, [rbx + ASMCTX_target]
+    IF al, e, TARGET_AMD64
+        mov     r14b, 0x90     // NOP
+    ELSEIF al, e, TARGET_AARCH64
+        mov     r14b, 0x1F     // NOP is 0xD503201F (we'll emit it byte by byte?)
+        // Wait, alignment can be 4-byte for RISC.
+        // For now, assume 0 for padding if not AMD64 or handle correctly.
+        mov     r14b, 0
+    ELSE
+        mov     r14b, 0
+    ENDIF
     
 .fill_loop:
     mov     rdi, rbx

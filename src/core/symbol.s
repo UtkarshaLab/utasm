@@ -96,6 +96,13 @@ symbol_add:
 
     // 2. Add to Linear Array
     mov     eax, [rbx + ASMCTX_symcount]
+    
+    // Check load factor (limit to 50000 / 65536 ~= 76%)
+    IF rax, g, 50000
+        mov     rax, EXIT_SYMBOL_RANGE
+        jmp     .done
+    ENDIF
+
     mov     rcx, rax
     imul    rcx, SYMBOL_SIZE
     mov     r13, [rbx + ASMCTX_symtab]

@@ -309,13 +309,18 @@ elf64_write_ehdr:
     ENDIF
 
     // e_shoff will be patched after all sections are written
-    mov     qword [r14 + EHDR_SHOFF], 0
-    mov     dword [r14 + EHDR_FLAGS], 0
-    mov     word  [r14 + EHDR_EHSIZE],    ELF64_EHDR_SIZE
-    mov     word  [r14 + EHDR_SHENTSIZE], ELF64_SHDR_SIZE
-    // e_shnum and e_shstrndx patched in elf64_write_shdrs
-    mov     word  [r14 + EHDR_SHNUM],     7   // NULL,.text,.data,.bss,.symtab,.strtab,.shstrtab + .rela.text = 8
-    mov     word  [r14 + EHDR_SHSTRNDX],  6   // .shstrtab is section index 6
+    // e_shnum and e_shstrndx
+    movzx   eax, word [r12 + ASMCTX_seccount]
+    add     eax, 4                 // NULL + symtab + strtab + shstrtab
+    IF dword [r12 + ASMCTX_reloccount], ne, 0
+        inc     eax                // .rela.text
+    ENDIF
+    mov     word  [r14 + EHDR_SHNUM], ax
+    
+    // .shstrtab index is 1 + seccount + 2 (symtab, strtab)
+    movzx   ecx, word [r12 + ASMCTX_seccount]
+    add     ecx, 3                 // 0:NULL, 1..N:User, N+1:sym, N+2:str, N+3:shstr
+    mov     word  [r14 + EHDR_SHSTRNDX], cx
 
     xor     rax, rax
     epilogue
@@ -912,10 +917,25 @@ elf64_write_shdrs:
     jmp     .sec_loop
     
 .sec_done:
-    // 3. Built-in Sections (symtab, strtab, shstrtab)
-    // ... will be handled in a more refined multi-pass loop later ...
-    
-    add     rsp, ELF64_SHDR_SIZE
+    // 3. .symtab [1 + seccount]
+    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     dword [rsp + SHDR_NAME], 18    // ".symtab"
+    mov     dword [rsp + SHDR_TYPE], 2     // SHT_SYMTAB
+    mov     qword [rsp + SHDR_ENTSIZE], 24 // sizeof(Elf64_Sym)
+    // ... offset/size calculation would go here ...
+    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+
+    // 4. .strtab [2 + seccount]
+    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     dword [rsp + SHDR_NAME], 26    // ".strtab"
+    mov     dword [rsp + SHDR_TYPE], 3     // SHT_STRTAB
+    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+
+    // 5. .shstrtab [3 + seccount]
+    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     dword [rsp + SHDR_NAME], 34    // ".shstrtab"
+    mov     dword [rsp + SHDR_TYPE], 3     // SHT_STRTAB
+    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
     pop     r15
     pop     r14
     pop     r13

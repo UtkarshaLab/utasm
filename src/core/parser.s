@@ -131,6 +131,11 @@ parser_parse_instruction:
     test    rax, rax
     jnz     .error
     
+    IF r14, ge, 4
+        mov     rax, EXIT_INVALID_OPERAND
+        jmp     .error
+    ENDIF
+    
     mov     rax, OPERAND_SIZE
     mul     r14
     lea     rdi, [r15 + INST_op0 + rax]
