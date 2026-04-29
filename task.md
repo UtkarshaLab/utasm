@@ -85,8 +85,8 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
 - [x] A06: Preprocessor - Token Expansion Atomicity.
 - [x] A07: Preprocessor - Symbol Table Load Factor Safety (50k limit).
 - [x] A08: Preprocessor - Variadic Argument Edge Cases (Greedy capture fix).
-- [>] A09: Preprocessor - Context Switching Stability. (IN PROGRESS)
-- [ ] A10: Arena Memory - Fragmentation & Leak Audit.
+- [x] A09: Preprocessor - Context Switching Stability.
+- [x] A10: Arena Memory - Fragmentation & Leak Audit.
 
 ### Phase 21-40: Syntax Parsing & ISA Dispatch
 - [x] A24: Parser - Operand Overflow Protection (4-op limit).
