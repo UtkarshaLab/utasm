@@ -294,29 +294,53 @@
 ; * Purpose: Structured conditional branching using NASM context stack.
 ; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
 ; ;
-%macro IF 3
+%macro IF 3-4
     %push   if
     %assign %$if_depth 1
-    cmp     %1, %3
-    jn%2    %$else_label
+    %if %0 == 4
+        cmp     %1, %4
+        %define %%cond %2
+    %else
+        cmp     %1, %3
+        %define %%cond %2
+    %endif
+    %if %%cond == == || %%cond == =
+        jne %$else_label
+    %elif %%cond == != || %%cond == <>
+        je  %$else_label
+    %else
+        jn%+%%cond %$else_label
+    %endif
 %endmacro
 
-%macro ELSEIF 3
+%macro ELSEIF 3-4
     %ifctx if
         jmp     %$endif_label
-    %$else_label:
-    %rep 1
-    %assign %%old_depth %$if_depth
-    %define %%old_endif %$endif_label
-    %pop    if
-    %push   if
-    %assign %$if_depth %%old_depth
-    %define %$endif_label %%old_endif
-    %endrep
-        cmp     %1, %3
-        jn%2    %$else_label
+        %$else_label:
+        %rep 1
+            %assign %%old_depth %$if_depth
+            %define %%old_endif %$endif_label
+            %pop    if
+            %push   if
+            %assign %$if_depth %%old_depth
+            %define %$endif_label %%old_endif
+        %endrep
+        %if %0 == 4
+            cmp     %1, %4
+            %define %%cond %2
+        %else
+            cmp     %1, %3
+            %define %%cond %2
+        %endif
+        %if %%cond == == || %%cond == =
+            jne %$else_label
+        %elif %%cond == != || %%cond == <>
+            je  %$else_label
+        %else
+            jn%+%%cond %$else_label
+        %endif
     %else
-    %error "ELSEIF without IF"
+        %error "ELSEIF without IF"
     %endif
 %endmacro
 
@@ -348,11 +372,23 @@
 ; * Purpose: Structured loop control.
 ; * Usage: WHILE rcx, ne, 0 ... ENDWHILE
 ; ;
-%macro WHILE 3
+%macro WHILE 3-4
     %push   while
     %$loop_start:
-    cmp     %1, %3
-    jn%2    %$loop_end
+    %if %0 == 4
+        cmp     %1, %4
+        %define %%cond %2
+    %else
+        cmp     %1, %3
+        %define %%cond %2
+    %endif
+    %if %%cond == == || %%cond == =
+        jne %$loop_end
+    %elif %%cond == != || %%cond == <>
+        je  %$loop_end
+    %else
+        jn%+%%cond %$loop_end
+    %endif
 %endmacro
 
 %macro ENDWHILE 0
