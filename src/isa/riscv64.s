@@ -853,4 +853,12 @@ riscv64_register_table:
         %assign i i+1
     %endrep
 
+    // ---- Vector Registers (v0-v31) ----
+    %assign i 0
+    %rep 32
+        compile_time_hash "v%[i]", H_V%[i]
+        dq H_V%[i], (16 << 8) | %[i]  ; Size=16 (typical minimum VLEN), ID=0-31
+        %assign i i+1
+    %endrep
+
     dq 0 ; Sentinel
