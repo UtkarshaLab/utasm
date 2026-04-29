@@ -1098,6 +1098,7 @@ prep_handle_inc:
     jmp     .done
 
 .path_traversal_error:
+    pop     rax                    // A100.3: Restore stack hygiene (depth counter)
     mov     rdi, [rbx + PREP_ctx]
     mov     rsi, [rbx + PREP_lexer]
     mov     rsi, [rsi + LEXER_file]
