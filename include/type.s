@@ -1,3 +1,6 @@
+%ifndef TYPE_S
+%define TYPE_S
+
 ;
 ; ============================================
 ; File     : include/type.s
@@ -301,3 +304,5 @@ struc PHDR
     field memsz,    8       ; size in memory
     field align,    8       ; alignment
 endstruc
+
+%endif

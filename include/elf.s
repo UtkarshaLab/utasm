@@ -1,3 +1,6 @@
+%ifndef ELF_S
+%define ELF_S
+
 ;
 ; ============================================================================
 ; File        : include/elf.s
@@ -407,3 +410,5 @@
 %define DT_VERDEFNUM           0x6FFFFFFD  ; Count of verdef entries
 %define DT_VERNEED             0x6FFFFFFE  ; Version requirement table
 %define DT_VERNEEDNUM          0x6FFFFFFF  ; Count of verneed entries
+
+%endif

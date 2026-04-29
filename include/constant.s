@@ -1,3 +1,6 @@
+%ifndef CONSTANT_S
+%define CONSTANT_S
+
 ;
 ; ============================================
 ; File     : include/constant.s
@@ -595,3 +598,5 @@
 %define CHAR_IS_IDENT_PART     0x04
 %define CHAR_IS_WHITESPACE     0x08
 %define CHAR_IS_HEX            0x10
+
+%endif

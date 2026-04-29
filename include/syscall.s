@@ -1,3 +1,6 @@
+%ifndef SYSCALL_S
+%define SYSCALL_S
+
 ;
 ; ============================================================================
 ; File        : include/syscall.s
@@ -430,3 +433,5 @@
     mov     rdx, %4
     syscall
 %endmacro
+
+%endif

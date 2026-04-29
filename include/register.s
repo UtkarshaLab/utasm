@@ -1,3 +1,6 @@
+%ifndef REGISTER_S
+%define REGISTER_S
+
 ;
 ; ============================================================================
 ; File        : include/register.s
@@ -248,3 +251,5 @@
 %define MXCSR_RC_TRUNC          0x6000      ; Round toward zero
 %define MXCSR_FTZ              0x8000      ; Flush to Zero (denormals)
 %define MXCSR_DEFAULT          0x1F80      ; Recommended kernel default
+
+%endif

@@ -1,3 +1,6 @@
+%ifndef MACRO_S
+%define MACRO_S
+
 ;
 ; ============================================
 ; File     : include/macro.s
@@ -296,106 +299,99 @@
 ; ;
 %macro IF 3-4
     %push   if
-    %assign %$if_depth 1
     %if %0 == 4
         cmp     %1, %4
-        %define %%cond %2
     %else
         cmp     %1, %3
-        %define %%cond %2
     %endif
-    
-    %ifidn %%cond, ==
-        jne %$else_label
-    %elifidn %%cond, =
-        jne %$else_label
-    %elifidn %%cond, !=
-        je  %$else_label
-    %elifidn %%cond, <>
-        je  %$else_label
-    %elifidn %%cond, e
-        jne %$else_label
-    %elifidn %%cond, ne
-        je  %$else_label
-    %elifidn %%cond, g
-        jng %$else_label
-    %elifidn %%cond, ge
-        jnge %$else_label
-    %elifidn %%cond, l
-        jnl %$else_label
-    %elifidn %%cond, le
-        jnle %$else_label
-    %elifidn %%cond, a
-        jna %$else_label
-    %elifidn %%cond, ae
-        jnae %$else_label
-    %elifidn %%cond, b
-        jnb %$else_label
-    %elifidn %%cond, be
-        jnbe %$else_label
-    %elifidn %%cond, z
-        jnz %$else_label
-    %elifidn %%cond, nz
-        jz %$else_label
+
+    %ifidni %2, ==
+        jne %$else
+    %elifidni %2, =
+        jne %$else
+    %elifidni %2, !=
+        je  %$else
+    %elifidni %2, <>
+        je  %$else
+    %elifidni %2, e
+        jne %$else
+    %elifidni %2, ne
+        je  %$else
+    %elifidni %2, g
+        jng %$else
+    %elifidni %2, ge
+        jnge %$else
+    %elifidni %2, l
+        jnl %$else
+    %elifidni %2, le
+        jnle %$else
+    %elifidni %2, a
+        jna %$else
+    %elifidni %2, ae
+        jnae %$else
+    %elifidni %2, b
+        jnb %$else
+    %elifidni %2, be
+        jnbe %$else
+    %elifidni %2, z
+        jnz %$else
+    %elifidni %2, nz
+        jz %$else
     %else
-        jn%+%%cond %$else_label
+        jn%+ %2 %$else
     %endif
 %endmacro
 
 %macro ELSEIF 3-4
     %ifctx if
-        jmp     %$endif_label
-        %$else_label:
+        jmp     %$endif
+        %$else:
         %rep 1
             %assign %%old_depth %$if_depth
-            %define %%old_endif %$endif_label
             %pop    if
             %push   if
             %assign %$if_depth %%old_depth
-            %define %$endif_label %%old_endif
         %endrep
         %if %0 == 4
             cmp     %1, %4
-            %define %%cond %2
         %else
             cmp     %1, %3
-            %define %%cond %2
         %endif
-
-        %ifidn %%cond, ==
-            jne %$else_label
-        %elifidn %%cond, =
-            jne %$else_label
-        %elifidn %%cond, !=
-            je  %$else_label
-        %elifidn %%cond, <>
-            je  %$else_label
-        %elifidn %%cond, e
-            jne %$else_label
-        %elifidn %%cond, ne
-            je  %$else_label
-        %elifidn %%cond, g
-            jng %$else_label
-        %elifidn %%cond, ge
-            jnge %$else_label
-        %elifidn %%cond, l
-            jnl %$else_label
-        %elifidn %%cond, le
-            jnle %$else_label
-        %elifidn %%cond, a
-            jna %$else_label
-        %elifidn %%cond, ae
-            jnae %$else_label
-        %elifidn %%cond, b
-            jnb %$else_label
-        %elifidn %%cond, be
-            jnbe %$else_label
-        %elifidn %%cond, z
-            jnz %$else_label
-        %elifidn %%cond, nz
-            jz %$else_label
+        
+        %ifidni %2, ==
+            jne %$else
+        %elifidni %2, =
+            jne %$else
+        %elifidni %2, !=
+            je  %$else
+        %elifidni %2, <>
+            je  %$else
+        %elifidni %2, e
+            jne %$else
+        %elifidni %2, ne
+            je  %$else
+        %elifidni %2, g
+            jng %$else
+        %elifidni %2, ge
+            jnge %$else
+        %elifidni %2, l
+            jnl %$else
+        %elifidni %2, le
+            jnle %$else
+        %elifidni %2, a
+            jna %$else
+        %elifidni %2, ae
+            jnae %$else
+        %elifidni %2, b
+            jnb %$else
+        %elifidni %2, be
+            jnbe %$else
+        %elifidni %2, z
+            jnz %$else
+        %elifidni %2, nz
+            jz %$else
         %else
-            jn%+%%cond %$else_label
+            jn%+ %2 %$else
         %endif
     %else
         %error "ELSEIF without IF"
@@ -404,24 +400,25 @@
 
 %macro ELSE 0
     %ifctx if
-    %push   else
-        jmp     %$endif_label
-    %$else_label:
+        %push   else
+        jmp     %$endif
+        %$else:
     %else
-    %error "ELSE without IF"
+        %error "ELSE without IF"
     %endif
 %endmacro
 
 %macro ENDIF 0
     %ifctx else
-    %$endif_label:
-    %pop    else
-    %pop    if
+        %$endif:
+        %pop    else
+        %pop    if
     %elifctx if
-    %$else_label:
-    %pop    if
+        %$else:
+        %$endif:
+        %pop    if
     %else
-    %error "ENDIF without IF"
+        %error "ENDIF without IF"
     %endif
 %endmacro
 
@@ -432,59 +429,57 @@
 ; ;
 %macro WHILE 3-4
     %push   while
-    %$loop_start:
+    %$loop:
     %if %0 == 4
         cmp     %1, %4
-        %define %%cond %2
     %else
         cmp     %1, %3
-        %define %%cond %2
     %endif
 
-    %ifidn %%cond, ==
-        jne %$loop_end
-    %elifidn %%cond, =
-        jne %$loop_end
-    %elifidn %%cond, !=
-        je  %$loop_end
-    %elifidn %%cond, <>
-        je  %$loop_end
-    %elifidn %%cond, e
-        jne %$loop_end
-    %elifidn %%cond, ne
-        je  %$loop_end
-    %elifidn %%cond, g
-        jng %$loop_end
-    %elifidn %%cond, ge
-        jnge %$loop_end
-    %elifidn %%cond, l
-        jnl %$loop_end
-    %elifidn %%cond, le
-        jnle %$loop_end
-    %elifidn %%cond, a
-        jna %$loop_end
-    %elifidn %%cond, ae
-        jnae %$loop_end
-    %elifidn %%cond, b
-        jnb %$loop_end
-    %elifidn %%cond, be
-        jnbe %$loop_end
-    %elifidn %%cond, z
-        jnz %$loop_end
-    %elifidn %%cond, nz
-        jz %$loop_end
+    %ifidni %2, ==
+        jne %$end
+    %elifidni %2, =
+        jne %$end
+    %elifidni %2, !=
+        je  %$end
+    %elifidni %2, <>
+        je  %$end
+    %elifidni %2, e
+        jne %$end
+    %elifidni %2, ne
+        je  %$end
+    %elifidni %2, g
+        jng %$end
+    %elifidni %2, ge
+        jnge %$end
+    %elifidni %2, l
+        jnl %$end
+    %elifidni %2, le
+        jnle %$end
+    %elifidni %2, a
+        jna %$end
+    %elifidni %2, ae
+        jnae %$end
+    %elifidni %2, b
+        jnb %$end
+    %elifidni %2, be
+        jnbe %$end
+    %elifidni %2, z
+        jnz %$end
+    %elifidni %2, nz
+        jz %$end
     %else
-        jn%+%%cond %$loop_end
+        jn%+ %2 %$end
     %endif
 %endmacro
 
 %macro ENDWHILE 0
     %ifctx while
-        jmp     %$loop_start
-    %$loop_end:
-    %pop    while
+        jmp     %$loop
+        %$end:
+        %pop    while
     %else
-    %error "ENDWHILE without WHILE"
+        %error "ENDWHILE without WHILE"
     %endif
 %endmacro
 
@@ -1445,3 +1440,5 @@
 %macro code_signature 1
     db      "UTASM_SIG:", %1, 0
 %endmacro
+
+%endif

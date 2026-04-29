@@ -1,3 +1,6 @@
+%ifndef URING_S
+%define URING_S
+
 ;
 ; ============================================================================
 ; File        : include/uring.s
@@ -110,3 +113,5 @@
 %define IORING_OFF_SQ_RING      0
 %define IORING_OFF_CQ_RING      0x8000000
 %define IORING_OFF_SQES         0x10000000
+
+%endif

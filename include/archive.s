@@ -1,3 +1,6 @@
+%ifndef ARCHIVE_S
+%define ARCHIVE_S
+
 ;
 ; ============================================================================
 ; File        : include/archive.s
@@ -31,5 +34,7 @@ endstruc
 ; ---- Special Member Names ----------------
 %define AR_SYM_TABLE       "/"     ; System V symbol table
 %define AR_LONG_NAMES      ";"    ; Long filename table
+
+%endif
 
 %endif
