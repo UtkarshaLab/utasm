@@ -292,19 +292,14 @@
 ; 3. FLOW CONTROL (STRUCTURED)
 ; ============================================================================
 
-%assign %%utasm_if_uid 0
-
 ;*
 ; * [IF] / [ELSE] / [ENDIF]
 ; * Purpose: Structured conditional branching using NASM context stack.
 ; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
 ; ;
 %macro IF 3-4
-    %assign %%utasm_if_uid %%utasm_if_uid + 1
     %push   if
-    %assign %$uid %%utasm_if_uid
-    %assign %$else_count 0
-    
+    %assign %$else_defined 0
     %if %0 == 4
         cmp     %1, %4
     %else
@@ -312,48 +307,48 @@
     %endif
 
     %ifidni %2, ==
-        jne ..@if_%+$uid_else_%+$else_count
+        jne %$else
     %elifidni %2, =
-        jne ..@if_%+$uid_else_%+$else_count
+        jne %$else
     %elifidni %2, !=
-        je  ..@if_%+$uid_else_%+$else_count
+        je  %$else
     %elifidni %2, <>
-        je  ..@if_%+$uid_else_%+$else_count
+        je  %$else
     %elifidni %2, e
-        jne ..@if_%+$uid_else_%+$else_count
+        jne %$else
     %elifidni %2, ne
-        je  ..@if_%+$uid_else_%+$else_count
+        je  %$else
     %elifidni %2, g
-        jng ..@if_%+$uid_else_%+$else_count
+        jng %$else
     %elifidni %2, ge
-        jnge ..@if_%+$uid_else_%+$else_count
+        jnge %$else
     %elifidni %2, l
-        jnl ..@if_%+$uid_else_%+$else_count
+        jnl %$else
     %elifidni %2, le
-        jnle ..@if_%+$uid_else_%+$else_count
+        jnle %$else
     %elifidni %2, a
-        jna ..@if_%+$uid_else_%+$else_count
+        jna %$else
     %elifidni %2, ae
-        jnae ..@if_%+$uid_else_%+$else_count
+        jnae %$else
     %elifidni %2, b
-        jnb ..@if_%+$uid_else_%+$else_count
+        jnb %$else
     %elifidni %2, be
-        jnbe ..@if_%+$uid_else_%+$else_count
+        jnbe %$else
     %elifidni %2, z
-        jnz ..@if_%+$uid_else_%+$else_count
+        jnz %$else
     %elifidni %2, nz
-        jz ..@if_%+$uid_else_%+$else_count
+        jz %$else
     %else
-        jn%+ %2 ..@if_%+$uid_else_%+$else_count
+        jn%+ %2 %$else
     %endif
 %endmacro
 
 %macro ELSEIF 3-4
-    %ifctx if
-        jmp ..@if_%+$uid_endif
-        ..@if_%+$uid_else_%+$else_count:
-        %assign %$else_count %$else_count + 1
-        
+    %ifctx if, elseif
+        jmp %$endif
+        %$else:
+        %push   elseif
+        %assign %$else_defined 0
         %if %0 == 4
             cmp     %1, %4
         %else
@@ -361,39 +356,39 @@
         %endif
         
         %ifidni %2, ==
-            jne ..@if_%+$uid_else_%+$else_count
+            jne %$else
         %elifidni %2, =
-            jne ..@if_%+$uid_else_%+$else_count
+            jne %$else
         %elifidni %2, !=
-            je  ..@if_%+$uid_else_%+$else_count
+            je  %$else
         %elifidni %2, <>
-            je  ..@if_%+$uid_else_%+$else_count
+            je  %$else
         %elifidni %2, e
-            jne ..@if_%+$uid_else_%+$else_count
+            jne %$else
         %elifidni %2, ne
-            je  ..@if_%+$uid_else_%+$else_count
+            je  %$else
         %elifidni %2, g
-            jng ..@if_%+$uid_else_%+$else_count
+            jng %$else
         %elifidni %2, ge
-            jnge ..@if_%+$uid_else_%+$else_count
+            jnge %$else
         %elifidni %2, l
-            jnl ..@if_%+$uid_else_%+$else_count
+            jnl %$else
         %elifidni %2, le
-            jnle ..@if_%+$uid_else_%+$else_count
+            jnle %$else
         %elifidni %2, a
-            jna ..@if_%+$uid_else_%+$else_count
+            jna %$else
         %elifidni %2, ae
-            jnae ..@if_%+$uid_else_%+$else_count
+            jnae %$else
         %elifidni %2, b
-            jnb ..@if_%+$uid_else_%+$else_count
+            jnb %$else
         %elifidni %2, be
-            jnbe ..@if_%+$uid_else_%+$else_count
+            jnbe %$else
         %elifidni %2, z
-            jnz ..@if_%+$uid_else_%+$else_count
+            jnz %$else
         %elifidni %2, nz
-            jz ..@if_%+$uid_else_%+$else_count
+            jz %$else
         %else
-            jn%+ %2 ..@if_%+$uid_else_%+$else_count
+            jn%+ %2 %$else
         %endif
     %else
         %error "ELSEIF without IF"
@@ -401,20 +396,29 @@
 %endmacro
 
 %macro ELSE 0
-    %ifctx if
-        jmp ..@if_%+$uid_endif
-        ..@if_%+$uid_else_%+$else_count:
-        %assign %$else_count %$else_count + 1
+    %ifctx if, elseif
+        jmp %$endif
+        %$else:
+        %push   else
     %else
         %error "ELSE without IF"
     %endif
 %endmacro
 
 %macro ENDIF 0
+    %rep 128
+        %ifctx elseif, else
+            %$else:
+            %pop
+        %else
+            %exitrep
+        %endif
+    %endrep
+    
     %ifctx if
-        ..@if_%+$uid_else_%+$else_count:
-        ..@if_%+$uid_endif:
-        %pop    if
+        %$else:
+        %$endif:
+        %pop
     %else
         %error "ENDIF without IF"
     %endif
