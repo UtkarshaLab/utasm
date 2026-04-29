@@ -71,12 +71,25 @@ cli_parse:
     test    rax, rax
     jz      .handle_format
 
-    // check for -a
+    // check for -a / --arch
     mov     rdi, r14
     lea     rsi, [rel .flag_arch]
     call    str_cmp
     test    rax, rax
     jz      .handle_arch
+
+    mov     rdi, r14
+    lea     rsi, [rel .flag_arch_long]
+    call    str_cmp
+    test    rax, rax
+    jz      .handle_arch
+
+    // check for --standalone
+    mov     rdi, r14
+    lea     rsi, [rel .flag_standalone]
+    call    str_cmp
+    test    rax, rax
+    jz      .handle_standalone
 
     // check for -v
     mov     rdi, r14
@@ -205,6 +218,10 @@ cli_parse:
     or      dword [rbx + ASMCTX_flags], CTX_FLAG_WERROR
     jmp     .next_arg
 
+.handle_standalone:
+    mov     byte [rbx + ASMCTX_standalone], 1
+    jmp     .next_arg
+
 .handle_listing:
     or      dword [rbx + ASMCTX_flags], CTX_FLAG_LISTING
     jmp     .next_arg
@@ -236,6 +253,8 @@ cli_parse:
     .flag_output  db "-o", 0
     .flag_format  db "-f", 0
     .flag_arch    db "-a", 0
+    .flag_arch_long db "--arch", 0
+    .flag_standalone db "--standalone", 0
     .flag_verbose db "-v", 0
     .val_elf64    db "elf64", 0
     .val_bin      db "bin", 0
