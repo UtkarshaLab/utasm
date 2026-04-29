@@ -138,8 +138,8 @@ _start:
     mov     rsi, r14                         // buffer
     mov     rdx, r13                         // size
     mov     rcx, [global_ctx + ASMCTX_input] // filename
-    mov     r9, global_ctx
-    mov     r10, global_arena
+    mov     r8, global_ctx
+    mov     r9, global_arena
     call    lexer_init
     
     // Preprocessor
@@ -163,7 +163,10 @@ _start:
     mov     rdi, r15                 // PrepState
     call    parser_parse_instruction
     test    rax, rax
-    jnz     .error_in_parser
+    jz      .no_parser_err
+    pop_alloc                        // A100.7: Clean up stack before error exit
+    jmp     .error_in_parser
+.no_parser_err:
     
     // Check for EOF (RAX=0, RDX=0)
     test    rdx, rdx

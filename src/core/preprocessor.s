@@ -1148,7 +1148,8 @@ prep_handle_struc:
 
     // 1. Lex the struct name
     call    preprocessor_next_token
-    check_err
+    test    rax, rax
+    jnz     .error
     
     // 2. Dispatch to parser
     mov     rdi, rbx               // rdi = PrepState
@@ -1156,6 +1157,7 @@ prep_handle_struc:
     extern  parser_parse_struc
     call    parser_parse_struc
     
+.error:
     pop     rbx
     ret
 // ---- prep_handle_def --------------------
@@ -1441,14 +1443,10 @@ prep_handle_ifdef:
     mov     rsi, [r12 + TOKEN_value]
     call    symbol_find
     test    rax, rax
-    jz      .found
-
+    jz      .done                  // found -> condition true -> don't skip
+    
     // not found -> start skipping
-    mov     al, [rbx + PREP_depth]
-    mov     [rbx + PREP_skip_depth], al
-
-.found:
-    xor     rax, rax
+    inc     byte [rbx + PREP_skip_depth]
 
 .done:
     add     rsp, TOKEN_SIZE
@@ -1486,14 +1484,10 @@ prep_handle_ifndef:
     mov     rsi, [r12 + TOKEN_value]
     call    symbol_find
     test    rax, rax
-    jnz     .not_found             // not zero means error -> NOT found
+    jnz     .done                  // not found -> condition true -> don't skip
 
     // found -> start skipping (since it's ifndef)
-    mov     al, [rbx + PREP_depth]
-    mov     [rbx + PREP_skip_depth], al
-
-.not_found:
-    xor     rax, rax
+    inc     byte [rbx + PREP_skip_depth]
 
 .done:
     add     rsp, TOKEN_SIZE
@@ -1515,19 +1509,24 @@ prep_handle_else:
     test    al, al
     jz      .error                 // %else without %if
 
-    // 1. If we are currently skipping at THIS depth, we stop skipping.
-    cmp     al, [rbx + PREP_skip_depth]
-    je      .stop_skipping
+    // 1. If we are currently skipping at THIS depth ONLY, we toggle.
+    // If skip_depth == 1, it means the current level is the only one skipping.
+    // If skip_depth > 1, an outer level is skipping, so %else doesn't matter.
+    // If skip_depth == 0, the current level was taken, so now we skip.
+    
+    mov     al, [rbx + PREP_skip_depth]
+    cmp     al, 0
+    je      .was_taken
+    cmp     al, 1
+    je      .was_skipped
+    jmp     .done                  // skip_depth > 1, keep skipping
 
-    // 2. If we are NOT skipping at any depth, we START skipping (because the %if was taken)
-    cmp     byte [rbx + PREP_skip_depth], 0
-    jne     .done                  // we are skipping at a higher level, do nothing
-
-    mov     [rbx + PREP_skip_depth], al
+.was_taken:
+    inc     byte [rbx + PREP_skip_depth]
     jmp     .done
 
-.stop_skipping:
-    mov     byte [rbx + PREP_skip_depth], 0
+.was_skipped:
+    dec     byte [rbx + PREP_skip_depth]
 
 .done:
     xor     rax, rax
@@ -1544,16 +1543,22 @@ prep_handle_endif:
     push    rbx
     mov     rbx, rdi
 
-    mov     al, [rbx + PREP_depth]
-    test    al, al
-    jz      .error_no_if           // %endif without %if
+    // 1. If we are skipping, decrement skip depth
+    cmp     byte [rbx + PREP_skip_depth], 0
+    je      .not_skipping
+    dec     byte [rbx + PREP_skip_depth]
 
-    // check if we were skipping at this depth
-    cmp     al, [rbx + PREP_skip_depth]
-    jne     .not_our_skip
+.not_skipping:
+    // 2. Always decrement total depth
+    dec     byte [rbx + PREP_depth]
+    xor     rax, rax
+    pop     rbx
+    ret
 
-    // we were skipping and now we reached the matching %endif
-    mov     byte [rbx + PREP_skip_depth], 0
+.error_no_if:
+    mov     rax, EXIT_ERROR
+    pop     rbx
+    ret
 // ---- macro_handle_def -------------------
 /*
  macro_handle_def
@@ -1785,7 +1790,8 @@ prep_handle_rep:
     mov     rsi, rsp
     call    lexer_next
     IF byte [rsp + TOKEN_kind], ne, TOK_NUMBER
-        mov rax, EXIT_ERROR | jmp .error
+        mov     rax, EXIT_ERROR
+        jmp     .error
     ENDIF
     mov     rdi, [rsp + TOKEN_value]
     call    str_to_int
@@ -1793,7 +1799,8 @@ prep_handle_rep:
     add     rsp, TOKEN_SIZE
 
     IF r14, g, MAX_REP_COUNT
-        mov rax, EXIT_ERROR | jmp .error
+        mov     rax, EXIT_ERROR
+        jmp     .error
     ENDIF
 
     // 2. Allocate anonymous MACRO struct
@@ -1906,33 +1913,20 @@ prep_handle_rep:
 
 .error_eof_pop:
     add     rsp, 8
-    jmp     .error_eof
-
-.done:
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     rbx
-    ret
-
-.error:
-    jmp .done
-
-.error_expected_ident:
 .error_eof:
     mov     rax, EXIT_ERROR
     jmp     .error
 
-.not_our_skip:
-    dec     byte [rbx + PREP_depth]
-    xor     rax, rax
+.error:
+    // rbx, r12, etc will be popped in .done
     jmp     .done
 
-.error_no_if:
+.error_expected_ident:
     mov     rax, EXIT_ERROR
+    jmp     .error
 
 .done:
+    pop     r15
     pop     r14
     pop     r13
     pop     r12

@@ -910,7 +910,7 @@ parser_parse_struc:
         mov     rax, EXIT_UNEXPECTED_TOKEN
         jmp     .error
     ENDIF
-    mov     rbx, [rdx + TOKEN_value]   // rbx = field name ptr
+    mov     r12, [rdx + TOKEN_value]   // r12 = field name ptr
     
     // Consume comma
     call    preprocessor_next_token
@@ -956,23 +956,21 @@ parser_parse_struc:
     and     rax, r10                   // rax = aligned offset
     mov     r14, rax
     
-    // Build fully-qualified name "StructName.FieldName" in arena
-    mov     rdi, [rbx + PREP_arena]
-    lea     rsi, [r13]             // struct name
-    lea     rdx, [rbx]             // field name
-    // (In a full implementation this calls a str_concat helper)
-    // For now we store field name directly and rely on dot-notation lookup
-    
     // Register SYMBOL: kind=SYM_STRUCT_FIELD, value=offset, size=field_size
-    mov     rdi, [rbx + PREP_ctx]
     sub     rsp, SYMBOL_SIZE
+    mov     rdi, rsp
+    // Zero the symbol
+    xor     rax, rax
+    mov     rcx, 6                     // SYMBOL_SIZE / 8
+    rep stosq
+    mov     rdi, [rbx + PREP_ctx]
     mov     rsi, rsp
     mov     byte [rsi + SYMBOL_tag],  TAG_SYMBOL
     mov     byte [rsi + SYMBOL_kind], SYM_STRUCT_FIELD
     mov     byte [rsi + SYMBOL_vis],  VIS_LOCAL
-    mov     [rsi + SYMBOL_name],  rbx      // field name ptr
+    mov     [rsi + SYMBOL_name],  r12      // field name ptr
     mov     [rsi + SYMBOL_value], r14      // byte offset
-    mov     [rsi + SYMBOL_size],  r11      // field byte width  <-- THE KEY
+    mov     [rsi + SYMBOL_size],  r11      // field byte width
     call    symbol_add
     add     rsp, SYMBOL_SIZE
     
@@ -982,8 +980,12 @@ parser_parse_struc:
     
 .register_struct:
     // Register the struct itself: kind=SYM_STRUCT, size=total
-    mov     rdi, [rbx + PREP_ctx]
     sub     rsp, SYMBOL_SIZE
+    mov     rdi, rsp
+    xor     rax, rax
+    mov     rcx, 6
+    rep stosq
+    mov     rdi, [rbx + PREP_ctx]
     mov     rsi, rsp
     mov     byte [rsi + SYMBOL_tag],  TAG_SYMBOL
     mov     byte [rsi + SYMBOL_kind], SYM_STRUCT
@@ -1026,6 +1028,9 @@ parser_define_label:
     // Create Symbol struct
     sub     rsp, SYMBOL_SIZE
     mov     rdi, rsp
+    xor     rax, rax
+    mov     rcx, 6
+    rep stosq
     mov     byte [rdi + SYMBOL_tag], TAG_SYMBOL
     mov     byte [rdi + SYMBOL_kind], SYM_LABEL
     mov     [rdi + SYMBOL_name], rsi
@@ -1519,14 +1524,16 @@ parser_handle_section_directive:
             mov     edx, eax
             and     edx, ecx
             IF edx, e, ecx
-                mov rax, EXIT_INVALID_SECTION_FLAGS | jmp .done
+                mov     rax, EXIT_INVALID_SECTION_FLAGS
+                jmp     .done
             ENDIF
             
             // A92: Validate flag consistency for duplicate declarations
             movzx   ecx, word [r13 + SECTION_flags]
             IF ecx, ne, 0
                 IF ecx, ne, eax
-                    mov rax, EXIT_INVALID_SECTION_FLAGS | jmp .done
+                    mov     rax, EXIT_INVALID_SECTION_FLAGS
+                    jmp     .done
                 ENDIF
             ELSE
                 mov     [r13 + SECTION_flags], ax
@@ -1539,11 +1546,13 @@ parser_handle_section_directive:
             // Expect comma, then signature name
             call    preprocessor_next_token
             IF byte [rdx + TOKEN_kind], ne, TOK_COMMA
-                mov rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+                mov     rax, EXIT_UNEXPECTED_TOKEN
+                jmp     .done
             ENDIF
             call    preprocessor_next_token
             IF byte [rdx + TOKEN_kind], ne, TOK_IDENT
-                mov rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+                mov     rax, EXIT_UNEXPECTED_TOKEN
+                jmp     .done
             ENDIF
             
             mov     r14, rdx               // r14 = signature token
@@ -1553,12 +1562,21 @@ parser_handle_section_directive:
             call    symbol_find
             IF rax, ne, OK
                 // Create UNDEF symbol as signature
+                sub     rsp, SYMBOL_SIZE
+                mov     rdi, rsp
+                xor     rax, rax
+                mov     rcx, 6
+                rep stosq
                 mov     rdi, [rbx + PREP_ctx]
-                mov     rsi, [r14 + TOKEN_value]
-                xor     rdx, rdx
-                mov     cl, VIS_GLOBAL
-                extern  symbol_add
+                mov     rsi, rsp
+                mov     byte [rsi + SYMBOL_tag], TAG_SYMBOL
+                mov     [rsi + SYMBOL_name], r12 // use r12 from caller context or r14? 
+                // Wait, r14 holds signature token
+                mov     rax, [r14 + TOKEN_value]
+                mov     [rsi + SYMBOL_name], rax
+                mov     byte [rsi + SYMBOL_vis], VIS_GLOBAL
                 call    symbol_add
+                add     rsp, SYMBOL_SIZE
             ENDIF
             mov     [r13 + SECTION_group_sig], rdx
             
@@ -1650,19 +1668,27 @@ parser_handle_visibility:
             IF al, e, VIS_GLOBAL | OR al, e, VIS_WEAK
                 IF r12b, e, VIS_LOCAL
                     // Symbol is already visible to the linker; demotion is unsafe
-                    mov rax, EXIT_VISIBILITY_CONFLICT | jmp .done
+                    mov     rax, EXIT_VISIBILITY_CONFLICT
+                    jmp     .done
                 ENDIF
             ENDIF
         ENDIF
         mov     byte [rdx + SYMBOL_vis], r12b
     ELSE
         // Symbol doesn't exist, create it as UNDEFINED for now
+        sub     rsp, SYMBOL_SIZE
+        mov     rdi, rsp
+        xor     rax, rax
+        mov     rcx, 6
+        rep stosq
         mov     rdi, [rbx + PREP_ctx]
-        mov     rsi, [r11 + TOKEN_value]
-        xor     rdx, rdx           // value = 0
-        mov     cl, r12b           // visibility
-        extern  symbol_add
+        mov     rsi, rsp
+        mov     byte [rsi + SYMBOL_tag], TAG_SYMBOL
+        mov     rax, [r11 + TOKEN_value]
+        mov     [rsi + SYMBOL_name], rax
+        mov     byte [rsi + SYMBOL_vis], r12b
         call    symbol_add
+        add     rsp, SYMBOL_SIZE
     ENDIF
     
     mov     rax, OK
@@ -1704,8 +1730,9 @@ parser_handle_comm:
     call    preprocessor_next_token
     check_err
     mov     r11, rdx
-    IF byte [r11 + TOKEN_kind], ne, TOK_INT
-        mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+    IF byte [r11 + TOKEN_kind], ne, TOK_NUMBER
+        mov     rax, EXIT_UNEXPECTED_TOKEN
+        jmp     .done
     ENDIF
     mov     r13, [r11 + TOKEN_value]
     
@@ -1746,13 +1773,19 @@ parser_handle_comm:
     IF rax, e, OK
         mov     r11, rdx
     ELSE
+        sub     rsp, SYMBOL_SIZE
+        mov     rdi, rsp
+        xor     rax, rax
+        mov     rcx, 6
+        rep stosq
         mov     rdi, [rbx + PREP_ctx]
-        mov     rsi, r12
-        xor     rdx, rdx
-        mov     cl, VIS_GLOBAL
-        extern  symbol_add
+        mov     rsi, rsp
+        mov     byte [rsi + SYMBOL_tag], TAG_SYMBOL
+        mov     [rsi + SYMBOL_name], r12
+        mov     byte [rsi + SYMBOL_vis], VIS_GLOBAL
         call    symbol_add
         mov     r11, rdx
+        add     rsp, SYMBOL_SIZE
     ENDIF
     
     // Hardening for SHN_COMMON

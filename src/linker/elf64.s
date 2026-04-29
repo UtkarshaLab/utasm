@@ -244,7 +244,7 @@ elf64_resolve_entry:
         mov     rax, [r10 + SYMBOL_value]
         
         // Add section base address
-        mov     r11d, dword [r10 + SYMBOL_section]
+        movzx   r11, word [r10 + SYMBOL_section]
         mov     r14, [r12 + ASMCTX_sections]
         mov     r13, [r14 + r11 * 8] // SECTION*
         add     rax, [r13 + SECTION_addr]
@@ -314,7 +314,7 @@ elf64_write_ehdr:
     IF al, e, TARGET_AARCH64
         mov     word [r14 + EHDR_MACHINE], EM_AARCH64
     ELSEIF al, e, TARGET_RISCV64
-        mov     word [r14 + EHDR_MACHINE], EM_RISCV64
+        mov     word [r14 + EHDR_MACHINE], EM_RISCV
     ELSE
         mov     word [r14 + EHDR_MACHINE], EM_X86_64
     ENDIF
@@ -724,7 +724,7 @@ elf64_write_symtab:
     pop     rdi
     ret
 
-.done:
+.write_one_sym_done:
     add     rsp, ELF64_SYM_SIZE
     xor     rax, rax
     pop     r15
@@ -741,6 +741,7 @@ elf64_write_symtab:
 */
 elf64_write_strtab:
     prologue
+    push    rbx
     push    r14
     push    r15
 
