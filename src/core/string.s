@@ -1111,6 +1111,20 @@ str_find_str:
     inc     rbx
     jmp     .outer
 
+.found_empty:
+    mov     rdx, rbx
+    xor     rax, rax
+    jmp     .done
+
+.found:
+    mov     rdx, rbx
+    xor     rax, rax
+    jmp     .done
+
+.not_found:
+    mov     rax, EXIT_ERROR
+    // fall through to .done
+
 .done:
     pop     r13
     pop     r12
