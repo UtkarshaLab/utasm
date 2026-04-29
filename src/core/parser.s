@@ -333,12 +333,14 @@ parser_evaluate_expression:
         call    parser_evaluate_term
         check_err_to .done_err
         add     r13, rdx
+        jo      .overflow
         jmp     .loop
     ELSEIF al, e, TOK_MINUS
         call    preprocessor_next_token
         call    parser_evaluate_term
         check_err_to .done_err
         sub     r13, rdx
+        jo      .overflow
         jmp     .loop
     ENDIF
     
@@ -346,6 +348,13 @@ parser_evaluate_expression:
     xor     rax, rax
 
 .done:
+    dec     dword [rbx + ASMCTX_expr_depth]
+    pop     r12
+    pop     rbx
+    epilogue
+
+.overflow:
+    mov     rax, EXIT_INVALID_IMM
     dec     dword [rbx + ASMCTX_expr_depth]
     pop     r12
     pop     rbx
@@ -379,6 +388,7 @@ parser_evaluate_term:
         call    parser_evaluate_factor
         check_err
         imul    rbx, rdx
+        jo      .overflow
         jmp     .loop
     ELSEIF al, e, TOK_SLASH
         call    preprocessor_next_token
