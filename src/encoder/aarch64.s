@@ -299,8 +299,19 @@ aarch64_encode_dp_reg:
     mov     eax, r13d              // base opcode
 
     // sf bit (64-bit vs 32-bit)
-    IF byte [r10 + OPERAND_size], e, 8
+    mov     al, [r10 + OPERAND_size]
+    IF al, e, 8
         or      eax, 0x80000000
+    ENDIF
+
+    // VALIDATION: All GPR operands must match Rd size
+    IF byte [r11 + OPERAND_size], ne, al
+        mov rax, EXIT_INVALID_OPERAND | jmp .ret
+    ENDIF
+    IF byte [r9 + OPERAND_kind], e, OP_REG
+        IF byte [r9 + OPERAND_size], ne, al
+            mov rax, EXIT_INVALID_OPERAND | jmp .ret
+        ENDIF
     ENDIF
 
     movzx   edi, byte [r10 + OPERAND_reg]   // Rd
@@ -793,6 +804,9 @@ aarch64_encode_fp_bin:
     or      eax, edi
     
     mov     edi, [r9 + OPERAND_imm]        // Shift amount (0-63)
+    IF edi, g, 63
+        mov rax, EXIT_IMM_RANGE | jmp .ret
+    ENDIF
     and     edi, 0x3F
     shl     edi, 10
     or      eax, edi
