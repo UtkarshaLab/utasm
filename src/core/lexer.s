@@ -378,6 +378,27 @@ lexer_next:
 
 .emit_single_hash:
     call    .token_begin
+    // Check for ## (A68)
+    mov     r13, [rbx + LEXER_pos]
+    mov     r10, [rbx + LEXER_end]
+    dec     r10                    // r10 = end - 1
+    cmp     r13, r10
+    jge     .emit_just_hash
+    
+    movzx   rcx, byte [r13 + 1]
+    cmp     rcx, '#'
+    jne     .emit_just_hash
+    
+    // It's ##
+    mov     byte [r12 + TOKEN_kind], TOK_CONCAT
+    add     qword [rbx + LEXER_pos], 2
+    add     word  [rbx + LEXER_col], 2
+    mov     word  [r12 + TOKEN_len], 2
+    xor     rax, rax
+    mov     rdx, r12
+    jmp     .done
+
+.emit_just_hash:
     mov     byte [r12 + TOKEN_kind], TOK_HASH
     jmp     .advance_single
 

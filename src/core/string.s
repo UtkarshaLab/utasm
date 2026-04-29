@@ -1380,3 +1380,86 @@ str_utf8_decode:
     mov     rdx, rax
     mov     rax, 4
     ret
+// ---- str_copy ---------------------------
+/*
+ str_copy
+ Copies a null-terminated string to destination.
+ Input    : rdi = destination pointer
+            rsi = source pointer
+ Output   : rax = EXIT_OK or EXIT_ERROR
+             rdx = destination pointer
+ Clobbers : rcx, r8
+*/
+global str_copy
+str_copy:
+    test    rdi, rdi
+    jz      .null_ptr_copy
+    test    rsi, rsi
+    jz      .null_ptr_copy
+
+    push    rdi
+.loop_copy:
+    mov     al, [rsi]
+    mov     [rdi], al
+    test    al, al
+    jz      .done_copy
+    inc     rdi
+    inc     rsi
+    jmp     .loop_copy
+
+.done_copy:
+    pop     rdx
+    xor     rax, rax
+    ret
+
+.null_ptr_copy:
+    mov     rax, 1
+    xor     rdx, rdx
+    ret
+
+// ---- str_concat -------------------------
+/*
+ str_concat
+ Concatenates two null-terminated strings.
+ Input    : rdi = destination buffer (must have enough space)
+            rsi = first string
+            rdx = second string
+ Output   : rax = EXIT_OK or EXIT_ERROR
+             rdx = destination buffer
+ Clobbers : r8, r9, r10, r11
+*/
+global str_concat
+str_concat:
+    test    rdi, rdi
+    jz      .null_ptr_concat
+    test    rsi, rsi
+    jz      .null_ptr_concat
+    test    rdx, rdx
+    jz      .null_ptr_concat
+
+    push    rdi
+    push    rdx
+
+    // 1. Copy first string
+    call    str_copy
+    
+    // 2. Find end of first string in dst
+    mov     rdi, rdx
+.find_end_concat:
+    cmp     byte [rdi], 0
+    je      .copy_second_concat
+    inc     rdi
+    jmp     .find_end_concat
+
+.copy_second_concat:
+    pop     rsi
+    call    str_copy
+
+    pop     rdx
+    xor     rax, rax
+    ret
+
+.null_ptr_concat:
+    mov     rax, 1
+    xor     rdx, rdx
+    ret

@@ -578,6 +578,65 @@ prep_expand_next:
     ENDIF
 
 .produced:
+    // ---- A68: Token Concatenation (##) ----
+.check_concat:
+    mov     r8, [rbx + PREP_ctx]
+    mov     r13, [r8 + ASMCTX_mac_exp]
+    test    r13, r13
+    jz      .done_concat
+
+    mov     rax, [r13 + MACROEXP_body]
+    mov     r9, [r13 + MACROEXP_macro]
+    cmp     eax, [r9 + MACRO_ntokens]
+    jge     .done_concat
+    
+    // Peek at next token
+    mov     r10, [r9 + MACRO_tokens]
+    imul    rax, TOKEN_SIZE
+    add     r10, rax               // r10 = next token in body
+    
+    IF byte [r10 + TOKEN_kind], e, TOK_CONCAT
+        // 1. Consume ##
+        inc     qword [r13 + MACROEXP_body]
+        
+        // 2. Get the NEXT operand (A ## B)
+        // We need to produce the next token into a temp buffer
+        sub     rsp, TOKEN_SIZE
+        mov     rdi, rbx
+        mov     rsi, rsp
+        call    prep_expand_next
+        IF rax, ne, 0
+            // Error or expansion end (unexpected)
+            add     rsp, TOKEN_SIZE
+            jmp     .done_concat
+        ENDIF
+        
+        // 3. Concatenate r12 (merged so far) and rsp (next token)
+        // Allocate space for combined string
+        mov     rdi, [rbx + PREP_arena]
+        mov     rsi, MAX_TOKEN
+        extern  arena_alloc
+        call    arena_alloc
+        test    rax, rax
+        jnz     .done_concat           // OOM or error
+        
+        mov     r14, rdx               // r14 = concat buffer
+        
+        mov     rdi, r14
+        mov     rsi, [r12 + TOKEN_value]
+        mov     rdx, [rsp + TOKEN_value]
+        extern  str_concat
+        call    str_concat
+        
+        // 4. Update r12 to be the merged IDENT
+        mov     byte [r12 + TOKEN_kind], TOK_IDENT
+        mov     [r12 + TOKEN_value], r14
+        
+        add     rsp, TOKEN_SIZE
+        jmp     .check_concat          // Chain: allow A ## B ## C
+    ENDIF
+
+.done_concat:
     xor     rax, rax
     jmp     .done
 

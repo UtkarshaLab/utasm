@@ -170,10 +170,11 @@
  %def TOK_LSHIFT             0x1B
  %def TOK_RSHIFT             0x1C
  %def TOK_HASH               0x1D
- %def TOK_AT                 0x1E
- %def TOK_DIRECTIVE          0x1F
- %def TOK_COMMENT            0x20
- %def TOK_FLOAT              0x21
+ %def TOK_CONCAT             0x1E
+ %def TOK_AT                 0x1F
+ %def TOK_DIRECTIVE          0x20
+ %def TOK_COMMENT            0x21
+ %def TOK_FLOAT              0x22
  
  // ============================================================================
  // SYMBOL KINDS AND VISIBILITY
