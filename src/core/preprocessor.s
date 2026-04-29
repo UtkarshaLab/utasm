@@ -268,9 +268,9 @@ prep_expand_start:
     mov     rbx, rdi               // rbx = PrepState
     mov     r12, rsi               // r12 = MACRO struct
 
-    // 0. Check recursion depth (A83: Optimized O(1) check)
+    // 0. Check recursion depth (A99)
     inc     byte [rbx + PREP_mac_depth]
-    IF byte [rbx + PREP_mac_depth], g, MAX_MACRO_RECURSION
+    IF byte [rbx + PREP_mac_depth], g, MAX_MACRO_DEPTH
         mov rax, EXIT_MACRO_RECURSION
         jmp .error_recursion
     ENDIF
@@ -420,6 +420,7 @@ prep_expand_start:
     mov     [r8 + ASMCTX_mac_exp], r13
     
     xor     rax, rax
+    mov     rdx, r13               // Return expansion struct in RDX (A99)
     jmp     .done
 
 .error_pop_token:
@@ -1834,6 +1835,7 @@ prep_handle_rep:
     mov     rdi, rbx
     mov     rsi, r15
     call    prep_expand_start
+    check_err
     mov     [rdx + MACROEXP_rep_count], r14 // set the actual count
     
     xor     rax, rax
