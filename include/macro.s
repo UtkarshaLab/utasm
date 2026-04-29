@@ -299,7 +299,7 @@
 ; ;
 %macro IF 3-4
     %push   if
-    %assign %$else_idx 0
+    %define %$block_exit %$endif
     %if %0 == 4
         cmp     %1, %4
     %else
@@ -307,47 +307,55 @@
     %endif
 
     %ifidni %2, ==
-        jne ..@if_%[__LINE__]_else_%+$else_idx
+        jne %$else
     %elifidni %2, =
-        jne ..@if_%[__LINE__]_else_%+$else_idx
+        jne %$else
     %elifidni %2, !=
-        je  ..@if_%[__LINE__]_else_%+$else_idx
+        je  %$else
     %elifidni %2, <>
-        je  ..@if_%[__LINE__]_else_%+$else_idx
+        je  %$else
     %elifidni %2, e
-        jne ..@if_%[__LINE__]_else_%+$else_idx
+        jne %$else
     %elifidni %2, ne
-        je  ..@if_%[__LINE__]_else_%+$else_idx
+        je  %$else
     %elifidni %2, g
-        jng ..@if_%[__LINE__]_else_%+$else_idx
+        jng %$else
     %elifidni %2, ge
-        jnge ..@if_%[__LINE__]_else_%+$else_idx
+        jnge %$else
     %elifidni %2, l
-        jnl ..@if_%[__LINE__]_else_%+$else_idx
+        jnl %$else
     %elifidni %2, le
-        jnle ..@if_%[__LINE__]_else_%+$else_idx
+        jnle %$else
     %elifidni %2, a
-        jna ..@if_%[__LINE__]_else_%+$else_idx
+        jna %$else
     %elifidni %2, ae
-        jnae ..@if_%[__LINE__]_else_%+$else_idx
+        jnae %$else
     %elifidni %2, b
-        jnb ..@if_%[__LINE__]_else_%+$else_idx
+        jnb %$else
     %elifidni %2, be
-        jnbe ..@if_%[__LINE__]_else_%+$else_idx
+        jnbe %$else
     %elifidni %2, z
-        jnz ..@if_%[__LINE__]_else_%+$else_idx
+        jnz %$else
     %elifidni %2, nz
-        jz ..@if_%[__LINE__]_else_%+$else_idx
+        jz %$else
     %else
-        jn%+ %2 ..@if_%[__LINE__]_else_%+$else_idx
+        jn%+ %2 %$else
     %endif
 %endmacro
 
 %macro ELSEIF 3-4
+    %assign %%ok 0
     %ifctx if
-        jmp ..@if_%[__LINE__]_endif
-        ..@if_%[__LINE__]_else_%+$else_idx:
-        %assign %$else_idx %$else_idx + 1
+        %assign %%ok 1
+    %elifctx elseif
+        %assign %%ok 1
+    %endif
+    
+    %if %%ok
+        jmp %$block_exit
+        %$else:
+        %push   elseif
+        %define %$block_exit %$block_exit
         %if %0 == 4
             cmp     %1, %4
         %else
@@ -355,39 +363,39 @@
         %endif
         
         %ifidni %2, ==
-            jne ..@if_%[__LINE__]_else_%+$else_idx
+            jne %$else
         %elifidni %2, =
-            jne ..@if_%[__LINE__]_else_%+$else_idx
+            jne %$else
         %elifidni %2, !=
-            je  ..@if_%[__LINE__]_else_%+$else_idx
+            je  %$else
         %elifidni %2, <>
-            je  ..@if_%[__LINE__]_else_%+$else_idx
+            je  %$else
         %elifidni %2, e
-            jne ..@if_%[__LINE__]_else_%+$else_idx
+            jne %$else
         %elifidni %2, ne
-            je  ..@if_%[__LINE__]_else_%+$else_idx
+            je  %$else
         %elifidni %2, g
-            jng ..@if_%[__LINE__]_else_%+$else_idx
+            jng %$else
         %elifidni %2, ge
-            jnge ..@if_%[__LINE__]_else_%+$else_idx
+            jnge %$else
         %elifidni %2, l
-            jnl ..@if_%[__LINE__]_else_%+$else_idx
+            jnl %$else
         %elifidni %2, le
-            jnle ..@if_%[__LINE__]_else_%+$else_idx
+            jnle %$else
         %elifidni %2, a
-            jna ..@if_%[__LINE__]_else_%+$else_idx
+            jna %$else
         %elifidni %2, ae
-            jnae ..@if_%[__LINE__]_else_%+$else_idx
+            jnae %$else
         %elifidni %2, b
-            jnb ..@if_%[__LINE__]_else_%+$else_idx
+            jnb %$else
         %elifidni %2, be
-            jnbe ..@if_%[__LINE__]_else_%+$else_idx
+            jnbe %$else
         %elifidni %2, z
-            jnz ..@if_%[__LINE__]_else_%+$else_idx
+            jnz %$else
         %elifidni %2, nz
-            jz ..@if_%[__LINE__]_else_%+$else_idx
+            jz %$else
         %else
-            jn%+ %2 ..@if_%[__LINE__]_else_%+$else_idx
+            jn%+ %2 %$else
         %endif
     %else
         %error "ELSEIF without IF"
@@ -395,20 +403,39 @@
 %endmacro
 
 %macro ELSE 0
+    %assign %%ok 0
     %ifctx if
-        jmp ..@if_%[__LINE__]_endif
-        ..@if_%[__LINE__]_else_%+$else_idx:
-        %assign %$else_idx %$else_idx + 1
+        %assign %%ok 1
+    %elifctx elseif
+        %assign %%ok 1
+    %endif
+    
+    %if %%ok
+        jmp %$block_exit
+        %$else:
+        %push   else
+        %define %$block_exit %$block_exit
     %else
         %error "ELSE without IF"
     %endif
 %endmacro
 
 %macro ENDIF 0
+    %rep 128
+        %ifctx elseif
+            %$else:
+            %pop
+        %elifctx else
+            %pop
+        %else
+            %exitrep
+        %endif
+    %endrep
+    
     %ifctx if
-        ..@if_%[__LINE__]_else_%+$else_idx:
-        ..@if_%[__LINE__]_endif:
-        %pop    if
+        %$else:
+        %$endif:
+        %pop
     %else
         %error "ENDIF without IF"
     %endif
