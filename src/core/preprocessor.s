@@ -270,16 +270,16 @@ prep_expand_start:
 
     // 0. Check recursion depth (A99)
     inc     byte [rbx + PREP_mac_depth]
-    IF byte [rbx + PREP_mac_depth], g, MAX_MACRO_DEPTH
-        mov rax, EXIT_MACRO_RECURSION
-        jmp .error_recursion
-    ENDIF
+    cmp     byte [rbx + PREP_mac_depth], MAX_MACRO_DEPTH
+    jle     .depth_ok
+    
+    mov rax, EXIT_MACRO_RECURSION
+    jmp .error
+
+.depth_ok:
     // Increment global expansion ID (A70)
     mov     r8, [rbx + PREP_ctx]
     inc     dword [r8 + ASMCTX_mac_exp_id]
-
-.error_recursion:
-    jmp     .error
 
     // 1. Allocate MACROEXP struct
     mov     rdi, [rbx + PREP_arena]
