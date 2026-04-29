@@ -654,18 +654,20 @@ parser_parse_mem_operand:
             jmp     .check_scale
         .set_index:
             mov     [r12 + OPERAND_index], al
-        .check_scale:
+            // Check for scale [base + index * scale]
             call    preprocessor_peek_token
             IF byte [rdx + TOKEN_kind], e, TOK_STAR
-                call    preprocessor_next_token // *
-                call    preprocessor_next_token // scale
-                mov     rsi, [rdx + TOKEN_value]
-                call    str_to_int
+                call    preprocessor_next_token // consume '*'
+                call    parser_evaluate_expression
+                check_err
+                mov     rax, rdx               // evaluated scale value
+                
                 // Validate Scale: 1, 2, 4, 8
                 IF rax, e, 1 | jmp .scale_ok | ENDIF
                 IF rax, e, 2 | jmp .scale_ok | ENDIF
                 IF rax, e, 4 | jmp .scale_ok | ENDIF
                 IF rax, e, 8 | jmp .scale_ok | ENDIF
+                
                 mov     rax, EXIT_INVALID_OPERAND
                 jmp     .error
             .scale_ok:
