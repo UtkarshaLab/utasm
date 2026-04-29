@@ -158,5 +158,83 @@ archive_get_member_size:
     pop     r12
     epilogue
 
+/**
+ * [archive_resolve_symbol]
+ * Purpose: Finds a symbol in the archive's internal index (the '/' member).
+ * Input:
+ *   RBX: [in] Pointer to ARCHIVE struct
+ *   RSI: [in] Pointer to symbol name string (null-terminated)
+ * Output:
+ *   RAX: File offset to the member containing the symbol, or 0 if not found.
+ */
+global archive_resolve_symbol
+archive_resolve_symbol:
+    prologue
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    
+    mov     r12, [rbx + ARCHIVE_symtab]
+    test    r12, r12
+    jz      .not_found
+    
+    // r12 points to the ARHDR of the '/' member
+    // Member data starts at ARHDR + 60
+    lea     r13, [r12 + AR_HDR_SIZE] // r13 = data start
+    
+    // 1. Get Number of Symbols (4-byte Big-Endian)
+    mov     eax, [r13]
+    bswap   eax                    // Convert from Big-Endian to host
+    mov     r14d, eax               // r14 = num_symbols
+    
+    // 2. Points to the start of the string table
+    // String table starts after the num_symbols (4) and the offsets array (4 * num_symbols)
+    lea     r15, [r13 + 4]
+    mov     rax, r14
+    shl     rax, 2                 // rax = num_symbols * 4
+    add     r15, rax               // r15 = string_table pointer
+    
+    // 3. Scan strings for a match
+    xor     rcx, rcx               // i = 0
+.lookup_loop:
+    cmp     ecx, r14d
+    jge     .not_found
+    
+    mov     rdi, r15               // Current string in archive
+    push    rcx
+    push    rsi
+    extern  str_compare
+    call    str_compare
+    pop     rsi
+    pop     rcx
+    
+    IF rax, e, 0
+        // Match found! Get offset i from the offsets array
+        lea     rax, [r13 + 4]
+        mov     eax, [rax + rcx * 4]
+        bswap   eax                // Convert offset to host endianness
+        jmp     .done
+    ENDIF
+    
+    // Advance to next string (null-terminated)
+    mov     rdi, r15
+    extern  str_len
+    call    str_len
+    add     r15, rax
+    inc     r15                    // Skip null terminator
+    
+    inc     ecx
+    jmp     .lookup_loop
+
+.not_found:
+    xor     rax, rax
+.done:
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    epilogue
+
 [SECTION .rodata]
 str_ar_mag:     db "!<arch>", 10
