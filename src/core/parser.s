@@ -345,6 +345,7 @@ parser_evaluate_term:
         call    parser_evaluate_factor
         check_err
         mov     rcx, rdx
+        and     cl, 0x3F           // Safety Mask: shift count 0-63
         shl     rbx, cl
         jmp     .loop
     ELSEIF al, e, TOK_RSHIFT
@@ -352,6 +353,7 @@ parser_evaluate_term:
         call    parser_evaluate_factor
         check_err
         mov     rcx, rdx
+        and     cl, 0x3F           // Safety Mask: shift count 0-63
         shr     rbx, cl
         jmp     .loop
     ELSEIF al, e, TOK_AMPERSAND
