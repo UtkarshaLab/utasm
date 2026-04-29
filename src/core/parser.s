@@ -688,10 +688,10 @@ parser_parse_mem_operand:
                 mov     rax, rdx               ; evaluated scale value
                 
                 ; Validate Scale: 1, 2, 4, 8
-                IF rax, e, 1 | jmp .scale_ok | ENDIF
-                IF rax, e, 2 | jmp .scale_ok | ENDIF
-                IF rax, e, 4 | jmp .scale_ok | ENDIF
-                IF rax, e, 8 | jmp .scale_ok | ENDIF
+                IF rax, e, 1                     jmp .scale_ok                 ENDIF 
+                IF rax, e, 2                     jmp .scale_ok                 ENDIF 
+                IF rax, e, 4                     jmp .scale_ok                 ENDIF 
+                IF rax, e, 8                     jmp .scale_ok                 ENDIF 
                 
                 mov     rax, EXIT_INVALID_OPERAND
                 jmp     .error
@@ -1576,12 +1576,12 @@ parser_handle_section_directive:
             mov     cl, [rsi]
             test    cl, cl
             jz      .flag_done
-            IF cl, e, 'a' | or ax, SHF_ALLOC | ENDIF
-            IF cl, e, 'w' | or ax, SHF_WRITE | ENDIF
-            IF cl, e, 'x' | or ax, SHF_EXECINSTR | ENDIF
-            IF cl, e, 'M' | or ax, SHF_MERGE | ENDIF
-            IF cl, e, 'S' | or ax, SHF_STRINGS | ENDIF
-            IF cl, e, 'G' | or ax, SHF_GROUP | ENDIF
+            IF cl, e, 'a'                 or ax, SHF_ALLOC             ENDIF 
+            IF cl, e, 'w'                 or ax, SHF_WRITE             ENDIF 
+            IF cl, e, 'x'                 or ax, SHF_EXECINSTR             ENDIF 
+            IF cl, e, 'M'                 or ax, SHF_MERGE             ENDIF 
+            IF cl, e, 'S'                 or ax, SHF_STRINGS             ENDIF 
+            IF cl, e, 'G'                 or ax, SHF_GROUP             ENDIF 
             inc     rsi
             jmp     .flag_loop
         .flag_done:

@@ -23,10 +23,10 @@
 ;   file.s:line:col: note: message
 ;
 ; Color output (when CTX_FLAG_COLOR is set):
-;   error   → bold red
-;   warning → bold yellow
-;   note    → bold cyan
-;   info    → bold white
+;   error   â†’ bold red
+;   warning â†’ bold yellow
+;   note    â†’ bold cyan
+;   info    â†’ bold white
 ;
 ; All errors increment AsmCtx.err_count.
 ; All warnings increment AsmCtx.warn_count.
@@ -76,7 +76,7 @@ error_init:
 ; Emits a formatted error message to stderr.
 ; Increments AsmCtx.err_count.
 ; If err_count >= MAX_ERRORS, calls error_fatal.
-; If CTX_FLAG_WERROR is set, warnings become errors — but
+; If CTX_FLAG_WERROR is set, warnings become errors â€” but
 ; this function always treats its input as a hard error.
 ; Input    : rdi = pointer to AsmCtx
             rsi = pointer to filename string (or NULL)
@@ -147,7 +147,7 @@ error_emit:
     cmp     rax, MAX_ERRORS
     jl      .done
 
-    ; too many errors — fatal
+    ; too many errors â€” fatal
     mov     rdi, rbx
     lea     rsi, [msg_too_many_errors]
     call    error_fatal
@@ -203,7 +203,7 @@ error_warn:
     cmp     byte [rbx + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    ; if WERROR flag set — treat as error
+    ; if WERROR flag set â€” treat as error
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_WERROR
     jz      .emit_warn
@@ -223,7 +223,7 @@ error_warn:
     inc     rax
     mov     word [rbx + ASMCTX_warn_count], ax
 
-    ; color — bold yellow
+    ; color â€” bold yellow
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_warn
@@ -300,7 +300,7 @@ error_note:
     cmp     byte [rbx + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    ; color — bold cyan
+    ; color â€” bold cyan
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_note
@@ -346,7 +346,7 @@ error_note:
 ;
 ; error_info
 ; Emits a plain informational message to stderr.
-; Used for verbose/debug output — not a diagnostic.
+; Used for verbose/debug output â€” not a diagnostic.
 ; Only emits if CTX_FLAG_VERBOSE is set.
 ; Input    : rdi = pointer to AsmCtx
             rsi = pointer to message string
@@ -370,7 +370,7 @@ error_info:
     mov     rbx, rdi
     mov     r12, rsi
 
-    ; color — bold white
+    ; color â€” bold white
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_info
 
@@ -697,7 +697,7 @@ error_write_str:
 ;
 ; error_uint_to_str
 ; Converts an unsigned integer to a decimal string.
-; Uses an internal static buffer — not reentrant.
+; Uses an internal static buffer â€” not reentrant.
 ; Input    : rdi = unsigned integer value
 ; Output   : rax = EXIT_OK
              rdx = pointer to null-terminated decimal string
@@ -915,7 +915,7 @@ msg_summary_warnings_label_len equ $ - msg_summary_warnings_label - 1
 ; ---- misc --------------------------------
 
 msg_too_many_errors:
-    db      "too many errors — stopping.", 0
+    db      "too many errors â€” stopping.", 0
 
 msg_system_error:
     db      "system error (errno ", 0

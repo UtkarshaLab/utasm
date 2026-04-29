@@ -88,7 +88,7 @@ elf64_emit:
     mov     rsi, SEC_DATA
     call    asmctx_get_section
     mov     rsi, [rdx + SECTION_align]
-    IF rsi, e, 0 | mov rsi, 8 | ENDIF ; Default 8-byte
+    IF rsi, e, 0         mov rsi, 8     ENDIF ; Default 8-byte
     mov     rdi, r13d
     call    elf64_align_file
     check_err
@@ -736,7 +736,7 @@ elf64_write_symtab:
 ; elf64_write_strtab
 ; ============================================================================
 ;
-; Writes the .strtab section — a sequence of null-terminated symbol names.
+; Writes the .strtab section â€” a sequence of null-terminated symbol names.
 ; The null symbol at index 0 is the first byte (\0).
 ;
 elf64_write_strtab:
@@ -916,7 +916,7 @@ elf64_write_groups:
 ; elf64_write_shstrtab
 ; ============================================================================
 ;
-; Writes .shstrtab — section name string table.
+; Writes .shstrtab â€” section name string table.
 ; Fixed set of names for the standard sections we emit.
 ;
 elf64_write_shstrtab:
@@ -937,7 +937,7 @@ elf64_write_shstrtab:
 ; elf64_write_rela
 ; ============================================================================
 ;
-; Writes .rela.text — relocation entries for unresolved symbols in .text.
+; Writes .rela.text â€” relocation entries for unresolved symbols in .text.
 ; Walks the RELOC table stored in AsmCtx.
 ;
 elf64_write_rela:

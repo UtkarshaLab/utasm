@@ -46,7 +46,7 @@ archive_gen_header:
     extern  str_len
     call    str_len
     mov     rcx, rax
-    IF rcx, g, 15 | mov rcx, 15 | ENDIF
+    IF rcx, g, 15         mov rcx, 15     ENDIF 
     
     mov     rdi, rbx
     mov     rsi, r12

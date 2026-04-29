@@ -18,12 +18,12 @@
 ; One LexerState per source file. Nested includes get their own LexerState.
 ;
 ; Token stream flow:
-;   lexer_init → lexer_next (repeated) → lexer_peek → lexer_destroy
+;   lexer_init â†’ lexer_next (repeated) â†’ lexer_peek â†’ lexer_destroy
 ;
 ; Character classification:
-;   whitespace     space, tab, CR — skipped silently
-;   newline        LF — emitted as TOK_NEWLINE
-;   comments       ; and ; ; — discarded entirely
+;   whitespace     space, tab, CR â€” skipped silently
+;   newline        LF â€” emitted as TOK_NEWLINE
+;   comments       ; and ; ; â€” discarded entirely
 ;   identifiers    [a-zA-Z_.][a-zA-Z0-9_.]*
 ;   labels         identifier followed immediately by :
 ;   local labels   identifier starting with .
@@ -31,11 +31,11 @@
 ;   strings        "..." with escape sequences
 ;   chars          '.' single character literal
 ;   directives     % followed by identifier
-;   registers      detected by parser — lexer emits as TOK_IDENT
+;   registers      detected by parser â€” lexer emits as TOK_IDENT
 ;
 ; Error handling:
-;   on unknown character → error_emit + skip + continue
-;   on unterminated string → error_emit + EXIT_UNEXPECTED_EOF
+;   on unknown character â†’ error_emit + skip + continue
+;   on unterminated string â†’ error_emit + EXIT_UNEXPECTED_EOF
 ;   all errors go through AsmCtx error reporter
 ;
 ; Calling convention (AMD64):
@@ -129,7 +129,7 @@ lexer_next:
     cmp     byte [rbx + LEXER_tag], TAG_LEXER
     jne     .bad_lexer
 
-    ; if peek slot is valid — return peek token
+    ; if peek slot is valid â€” return peek token
     cmp     byte [rbx + LEXER_has_peek], TRUE
     jne     .no_peek
 
@@ -234,7 +234,7 @@ lexer_next:
     cmp     rcx, '$'
     je      .emit_single_dollar
 
-    ; unknown character — emit error and skip
+    ; unknown character â€” emit error and skip
     jmp     .unknown_char
 
 ; ---- UTF-8 Handling ---------------------
@@ -420,7 +420,7 @@ lexer_next:
 ; ---- << and >> --------------------------
 .lex_lshift:
     call    .token_begin
-    ; check next char — must have at least 2 bytes remaining (pos + 1 < end)
+    ; check next char â€” must have at least 2 bytes remaining (pos + 1 < end)
     mov     r13, [rbx + LEXER_pos]
     mov     r10, [rbx + LEXER_end]
     dec     r10                    ; r10 = end - 1
@@ -776,7 +776,7 @@ lexer_next:
     cmp     rcx, 'x'
     je      .esc_hex
 
-    ; unknown escape — store literally
+    ; unknown escape â€” store literally
     mov     byte [r13 + r10], cl
     inc     r10
     jmp     .lex_string_loop
@@ -794,7 +794,7 @@ lexer_next:
     inc     word  [rbx + LEXER_col]
     
     call    .hex_digit_to_val
-    IF rax, e, ERR | jmp .lex_string_loop | ENDIF
+    IF rax, e, ERR         jmp .lex_string_loop     ENDIF 
     shl     rax, 4
     mov     r14, rax
     
@@ -807,7 +807,7 @@ lexer_next:
     inc     word  [rbx + LEXER_col]
     
     call    .hex_digit_to_val
-    IF rax, e, ERR | jmp .lex_string_loop | ENDIF
+    IF rax, e, ERR         jmp .lex_string_loop     ENDIF 
     or      r14, rax
     
     mov     byte [r13 + r10], r14b
@@ -1006,7 +1006,7 @@ lexer_next:
 
 ; ---- directive --------------------------
 ;
-; Reads %identifier — preprocessor directive.
+; Reads %identifier â€” preprocessor directive.
 ; Emits TOK_DIRECTIVE with value pointing to
 ; the identifier string (without the % prefix).
 ;
@@ -1165,7 +1165,7 @@ lexer_next:
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
-    ; retry — tail call back to lexer_next
+    ; retry â€” tail call back to lexer_next
     mov     rdi, rbx
     mov     rsi, r12
     pop     r13
@@ -1237,7 +1237,7 @@ lexer_next:
     cmp     r10, [rbx + LEXER_end]
     jge     .skip_done
     movzx   rcx, byte [r10]
-    cmp     rcx, 10             ; LF — stop, don't consume
+    cmp     rcx, 10             ; LF â€” stop, don't consume
     je      .skip_loop
     inc     qword [rbx + LEXER_pos]
     jmp     .skip_line_loop
@@ -1292,7 +1292,7 @@ lexer_next:
     jmp     .skip_loop
 
 .skip_block_unterminated:
-    ; unterminated block comment — emit error
+    ; unterminated block comment â€” emit error
     mov     rdi, [rbx + LEXER_ctx]
     mov     rsi, [rbx + LEXER_file]
     mov     edx, dword [rbx + LEXER_line]
@@ -1350,7 +1350,7 @@ lexer_peek:
     mov     rbx, rdi
     mov     r12, rsi
 
-    ; if peek slot already valid — copy it out
+    ; if peek slot already valid â€” copy it out
     cmp     byte [rbx + LEXER_has_peek], TRUE
     jne     .do_peek
 
@@ -1428,7 +1428,7 @@ lexer_expect:
     cmp     rcx, r13
     je      .match
 
-    ; mismatch — emit error
+    ; mismatch â€” emit error
     mov     rbx, rdx               ; RBX = Token pointer
     mov     rdi, [r12 + LEXER_ctx]
     mov     rsi, [rbx + TOKEN_file]

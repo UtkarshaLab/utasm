@@ -73,7 +73,9 @@ asm_ctx_emit_byte:
     ; 1. Calculate new capacity (current * 2)
     mov     rax, [r12 + SECTION_cap]
     shl     rax, 1
-    IF rax, e, 0 | mov rax, 65536 | ENDIF ; Default 64KB
+    IF rax, e, 0
+        mov rax, 65536
+    ENDIF ; Default 64KB
     mov     r13, rax               ; r13 = new cap
     
     ; 2. Map new buffer
@@ -86,7 +88,7 @@ asm_ctx_emit_byte:
     xor     r9, r9
     call    io_mmap
     IF rax, ne, EXIT_OK
-        jmp .done
+        jmp .error
     ENDIF
     mov     r14, rdx               ; r14 = new buffer ptr
     
@@ -167,7 +169,7 @@ asm_ctx_create_section:
     movzx   ecx, word [rbx + ASMCTX_seccount]
     IF ecx, ge, MAX_SECTIONS
         mov     rax, EXIT_SECTION_OVERLAP
-        jmp     .done_error
+        jmp     .error
     ENDIF
     
     mov     rax, [rbx + ASMCTX_sections]

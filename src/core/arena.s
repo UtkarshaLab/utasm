@@ -21,7 +21,7 @@
 ; How it works:
 ;   - mmap reserves a large contiguous block of memory upfront
 ;   - every allocation just moves a pointer forward
-;   - no individual free — checkpoint/rollback mechanisms available
+;   - no individual free â€” checkpoint/rollback mechanisms available
 ;   - no fragmentation, no use-after-free, no double-free
 ;
 ; This is our Rust-style memory discipline in assembly.
@@ -30,7 +30,7 @@
 ; Allocation strategy:
 ;   - all allocations are aligned to 8 bytes
 ;   - if arena is full, utasm exits with EXIT_OOM
-;   - no growing — size is fixed at arena_init time
+;   - no growing â€” size is fixed at arena_init time
 ;
 ; Calling convention (AMD64):
 ;   args  : rdi, rsi, rdx, rcx, r8, r9
@@ -79,7 +79,7 @@ arena_init:
     mov     rax, AMD64_SYS_MMAP
     syscall
 
-    ; check mmap result — returns -1 to -4095 on failure
+    ; check mmap result â€” returns -1 to -4095 on failure
     mov     rcx, rax
     neg     rcx
     cmp     rcx, 4095

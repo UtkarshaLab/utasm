@@ -939,8 +939,8 @@ aarch64_encode_extend:
     lea     r11, [r12 + INST_op1]
     mov     eax, 0x13001C00        ; SXTB base (SBFM)
     movzx   ecx, word [r12 + INST_op_id]
-    IF ecx, e, ID_AARCH64_SXTH | or eax, 0x00002000 | ENDIF
-    IF ecx, e, ID_AARCH64_SXTW | or eax, 0x00007C00 | ENDIF
+    IF ecx, e, ID_AARCH64_SXTH         or eax, 0x00002000     ENDIF 
+    IF ecx, e, ID_AARCH64_SXTW         or eax, 0x00007C00     ENDIF 
     
     IF byte [r10 + OPERAND_size], e, 8
         or eax, 0x80000000

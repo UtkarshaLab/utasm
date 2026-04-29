@@ -95,11 +95,11 @@ reloc_record:
 ; it into the in-memory output buffer.
 
 ; Supports the following relocation types:
-;   R_X86_64_PC32    — 32-bit PC-relative (call/jmp to near symbols)
-;   R_X86_64_64      — 64-bit absolute address
-;   R_X86_64_32      — 32-bit zero-extended absolute
-;   R_X86_64_32S     — 32-bit sign-extended absolute
-;   R_X86_64_PLT32   — Same as PC32 for direct call resolution
+;   R_X86_64_PC32    â€” 32-bit PC-relative (call/jmp to near symbols)
+;   R_X86_64_64      â€” 64-bit absolute address
+;   R_X86_64_32      â€” 32-bit zero-extended absolute
+;   R_X86_64_32S     â€” 32-bit sign-extended absolute
+;   R_X86_64_PLT32   â€” Same as PC32 for direct call resolution
 
 ; Input  : rdi = AsmCtx*
            rsi = pointer to output buffer base (virtual address 0 = file offset 0)

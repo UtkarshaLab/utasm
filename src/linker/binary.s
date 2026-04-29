@@ -20,7 +20,7 @@
 ;
 ; binary_emit
 ; Writes assembled sections as a contiguous flat binary.
-; Section order: .text then .data (no .bss — zero-filled at runtime).
+; Section order: .text then .data (no .bss â€” zero-filled at runtime).
 ; The caller is responsible for setting the correct ORG address by passing
 ; it as base_addr; this only affects relocation patching, not the output.
 
@@ -195,7 +195,7 @@ binary_emit_bootloader:
     call    binary_emit
     check_err
 
-    ; Get .text size — must be <= 510 bytes for a valid MBR
+    ; Get .text size â€” must be <= 510 bytes for a valid MBR
     mov     rdi, r12
     mov     rsi, SEC_TEXT
     call    asmctx_get_section

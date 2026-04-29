@@ -38,7 +38,7 @@
 ; str_len
 ; Returns the length of a null-terminated string.
 ; Does not count the null terminator.
-; Cannot fail — returns length directly in rax.
+; Cannot fail â€” returns length directly in rax.
 ; Input    : rdi = pointer to null-terminated string
 ; Output   : rax = length in bytes
 ; Clobbers : rcx
@@ -89,7 +89,7 @@ str_cmp:
     cmp     cl, dl
     jl      .a_less
     jg      .a_greater
-    test    cl, cl                 ; both equal — check null
+    test    cl, cl                 ; both equal â€” check null
     jz      .equal                 ; both null = strings equal
     inc     rdi
     inc     rsi
@@ -177,7 +177,7 @@ str_cmp_n:
 ;
 ; str_copy
 ; Copies null-terminated string from src to dst.
-; Destination must be large enough — no bounds check.
+; Destination must be large enough â€” no bounds check.
 ; Input    : rdi = destination buffer pointer
             rsi = source string pointer
 ; Output   : rax = EXIT_OK or EXIT_ERROR
@@ -321,7 +321,7 @@ str_concat:
 ;
 ; mem_copy
 ; Copies n bytes from src to dst.
-; Regions must not overlap — use mem_move for overlapping regions.
+; Regions must not overlap â€” use mem_move for overlapping regions.
 ; Input    : rdi = destination pointer
             rsi = source pointer
             rdx = number of bytes to copy
