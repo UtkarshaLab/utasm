@@ -343,7 +343,13 @@
 %endmacro
 
 %macro ELSEIF 3-4
-    %ifctx if, elseif
+    %assign %%ok 0
+    %ifctx if
+        %assign %%ok 1
+    %elifctx elseif
+        %assign %%ok 1
+    %endif
+    %if %%ok
         jmp     %$$endif
         %$else:
         %push   elseif
@@ -394,7 +400,13 @@
 %endmacro
 
 %macro ELSE 0
-    %ifctx if, elseif
+    %assign %%ok 0
+    %ifctx if
+        %assign %%ok 1
+    %elifctx elseif
+        %assign %%ok 1
+    %endif
+    %if %%ok
         jmp     %$$endif
         %$else:
         %push   else
