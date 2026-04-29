@@ -1,52 +1,52 @@
-/*
+;
  ============================================
  File     : src/core/lexer.s
  Project  : utasm
  Author   : Utkarsha Lab
  License  : Apache-2.0
  ============================================
-*/
+;
 
-%inc "include/constant.s"
-%inc "include/type.s"
-%inc "include/macro.s"
+%include "include/constant.s"
+%include "include/type.s"
+%include "include/macro.s"
 
-// ============================================================================
-// LEXER
-// ============================================================================
-// Converts a raw source file buffer into a stream of Token structs.
-// One LexerState per source file. Nested includes get their own LexerState.
-//
-// Token stream flow:
-//   lexer_init → lexer_next (repeated) → lexer_peek → lexer_destroy
-//
-// Character classification:
-//   whitespace     space, tab, CR — skipped silently
-//   newline        LF — emitted as TOK_NEWLINE
-//   comments       // and /* */ — discarded entirely
-//   identifiers    [a-zA-Z_.][a-zA-Z0-9_.]*
-//   labels         identifier followed immediately by :
-//   local labels   identifier starting with .
-//   numbers        decimal, 0x hex, 0b binary, 0o octal
-//   strings        "..." with escape sequences
-//   chars          '.' single character literal
-//   directives     % followed by identifier
-//   registers      detected by parser — lexer emits as TOK_IDENT
-//
-// Error handling:
-//   on unknown character → error_emit + skip + continue
-//   on unterminated string → error_emit + EXIT_UNEXPECTED_EOF
-//   all errors go through AsmCtx error reporter
-//
-// Calling convention (AMD64):
-//   args  : rdi, rsi, rdx, rcx, r8, r9
-//   return: rax = error code, rdx = result
-//   callee saved: rbx, r12-r15, rbp
+; ============================================================================
+; LEXER
+; ============================================================================
+; Converts a raw source file buffer into a stream of Token structs.
+; One LexerState per source file. Nested includes get their own LexerState.
+;
+; Token stream flow:
+;   lexer_init → lexer_next (repeated) → lexer_peek → lexer_destroy
+;
+; Character classification:
+;   whitespace     space, tab, CR — skipped silently
+;   newline        LF — emitted as TOK_NEWLINE
+;   comments       ; and ; ; — discarded entirely
+;   identifiers    [a-zA-Z_.][a-zA-Z0-9_.]*
+;   labels         identifier followed immediately by :
+;   local labels   identifier starting with .
+;   numbers        decimal, 0x hex, 0b binary, 0o octal
+;   strings        "..." with escape sequences
+;   chars          '.' single character literal
+;   directives     % followed by identifier
+;   registers      detected by parser — lexer emits as TOK_IDENT
+;
+; Error handling:
+;   on unknown character → error_emit + skip + continue
+;   on unterminated string → error_emit + EXIT_UNEXPECTED_EOF
+;   all errors go through AsmCtx error reporter
+;
+; Calling convention (AMD64):
+;   args  : rdi, rsi, rdx, rcx, r8, r9
+;   return: rax = error code, rdx = result
+;   callee saved: rbx, r12-r15, rbp
 
 [SECTION .text]
 
-// ---- lexer_init -------------------------
-/*
+; ---- lexer_init -------------------------
+;
  lexer_init
  Initialises a LexerState for a source buffer.
  Must be called before any other lexer function.
@@ -58,10 +58,10 @@
             r9  = pointer to Arena
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : r10, r11
-*/
+;
 global lexer_init
 lexer_init:
-    // validate all pointers
+    ; validate all pointers
     test    rdi, rdi
     jz      .null_ptr
     test    rsi, rsi
@@ -71,29 +71,29 @@ lexer_init:
     test    r9, r9
     jz      .null_ptr
 
-    // write tag
+    ; write tag
     mov     byte [rdi + LEXER_tag], TAG_LEXER
 
-    // store buffer pointer and end pointer
+    ; store buffer pointer and end pointer
     mov     [rdi + LEXER_buf], rsi
-    mov     [rdi + LEXER_pos], rsi      // pos starts at buf start
+    mov     [rdi + LEXER_pos], rsi      ; pos starts at buf start
 
-    // end = buf + size
+    ; end = buf + size
     mov     r10, rsi
     add     r10, rdx
     mov     [rdi + LEXER_end], r10
 
-    // store filename
+    ; store filename
     mov     [rdi + LEXER_file], rcx
 
-    // line = 1, col = 1
+    ; line = 1, col = 1
     mov     dword [rdi + LEXER_line], 1
     mov     word  [rdi + LEXER_col],  1
 
-    // no peek yet
+    ; no peek yet
     mov     byte [rdi + LEXER_has_peek], FALSE
 
-    // store ctx and arena
+    ; store ctx and arena
     mov     [rdi + LEXER_ctx],   r8
     mov     [rdi + LEXER_arena], r9
 
@@ -104,8 +104,8 @@ lexer_init:
     mov     rax, EXIT_INTERNAL
     ret
 
-// ---- lexer_next -------------------------
-/*
+; ---- lexer_next -------------------------
+;
  lexer_next
  Reads and returns the next token from the source buffer.
  If a peeked token exists, returns and clears it instead.
@@ -115,25 +115,25 @@ lexer_init:
  Output   : rax = EXIT_OK or error code
              rdx = pointer to filled Token (same as rsi)
  Clobbers : rcx, r8, r9, r10, r11
-*/
+;
 global lexer_next
 lexer_next:
     push    rbx
     push    r12
     push    r13
 
-    mov     rbx, rdi               // save LexerState
-    mov     r12, rsi               // save Token output pointer
+    mov     rbx, rdi               ; save LexerState
+    mov     r12, rsi               ; save Token output pointer
 
-    // validate tag
+    ; validate tag
     cmp     byte [rbx + LEXER_tag], TAG_LEXER
     jne     .bad_lexer
 
-    // if peek slot is valid — return peek token
+    ; if peek slot is valid — return peek token
     cmp     byte [rbx + LEXER_has_peek], TRUE
     jne     .no_peek
 
-    // copy inline peek token to output
+    ; copy inline peek token to output
     lea     rsi, [rbx + LEXER_peek]
     mov     rdi, r12
     mov     rdx, TOKEN_SIZE
@@ -141,7 +141,7 @@ lexer_next:
     test    rax, rax
     jnz     .fail
 
-    // clear peek slot
+    ; clear peek slot
     mov     byte [rbx + LEXER_has_peek], FALSE
 
     xor     rax, rax
@@ -152,45 +152,45 @@ lexer_next:
     ret
 
 .no_peek:
-    // skip whitespace and comments
+    ; skip whitespace and comments
     call    .skip_ignored
     test    rax, rax
     jnz     .fail
 
-    // check for EOF
+    ; check for EOF
     mov     r13, [rbx + LEXER_pos]
     mov     r10, [rbx + LEXER_end]
     cmp     r13, r10
     jge     .emit_eof
 
-    // read current character
+    ; read current character
     movzx   rcx, byte [r13]
 
-    // check for UTF-8 (high bit set)
+    ; check for UTF-8 (high bit set)
     cmp     rcx, 128
     jae     .lex_utf8_start
 
-    // dispatch on character
-    cmp     rcx, 10                // LF newline
+    ; dispatch on character
+    cmp     rcx, 10                ; LF newline
     je      .emit_newline
 
-    cmp     rcx, '"'               // string literal
+    cmp     rcx, '"'               ; string literal
     je      .lex_string
 
-    cmp     rcx, 0x27              // ' char literal
+    cmp     rcx, 0x27              ; ' char literal
     je      .lex_char
 
-    cmp     rcx, '%'               // directive
+    cmp     rcx, '%'               ; directive
     je      .lex_directive
 
-    // identifier, label, or number
+    ; identifier, label, or number
     movzx   eax, byte [lexer_char_props + rcx]
     test    al, CHAR_IS_IDENT_START
     jnz     .lex_ident
     test    al, CHAR_IS_DIGIT
     jnz     .lex_number
 
-    // single character tokens
+    ; single character tokens
     cmp     rcx, ','
     je      .emit_single_comma
     cmp     rcx, ':'
@@ -234,10 +234,10 @@ lexer_next:
     cmp     rcx, '$'
     je      .emit_single_dollar
 
-    // unknown character — emit error and skip
+    ; unknown character — emit error and skip
     jmp     .unknown_char
 
-// ---- UTF-8 Handling ---------------------
+; ---- UTF-8 Handling ---------------------
 .lex_utf8_start:
     mov     rdi, [rbx + LEXER_pos]
     mov     rsi, [rbx + LEXER_end]
@@ -245,17 +245,17 @@ lexer_next:
     test    rax, rax
     jz      .malformed_utf8
 
-    // rdx = codepoint, rax = length
-    // Sanitization: block control characters and dangerous non-printables
+    ; rdx = codepoint, rax = length
+    ; Sanitization: block control characters and dangerous non-printables
     cmp     rdx, 0x20
     jbe     .unknown_char
     cmp     rdx, 0x7F
     je      .unknown_char
     cmp     rdx, 0x9F
-    jbe     .unknown_char          // Latin-1 control chars
+    jbe     .unknown_char          ; Latin-1 control chars
 
-    // Is it a valid identifier start?
-    // For now, we allow any non-control Unicode codepoint > 0x7F as an identifier start.
+    ; Is it a valid identifier start?
+    ; For now, we allow any non-control Unicode codepoint > 0x7F as an identifier start.
     jmp     .lex_ident
 
 .malformed_utf8:
@@ -266,7 +266,7 @@ lexer_next:
     lea     r8,  [msg_malformed_utf8]
     call    error_emit
     
-    // skip one byte and try again
+    ; skip one byte and try again
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
     mov     rdi, rbx
@@ -276,7 +276,7 @@ lexer_next:
     pop     rbx
     jmp     lexer_next
 
-// ---- EOF --------------------------------
+; ---- EOF --------------------------------
 .emit_eof:
     call    .token_begin
     mov     byte [r12 + TOKEN_kind], TOK_EOF
@@ -284,20 +284,20 @@ lexer_next:
     mov     rdx, r12
     jmp     .done
 
-// ---- newline ----------------------------
+; ---- newline ----------------------------
 .emit_newline:
     call    .token_begin
     mov     byte [r12 + TOKEN_kind], TOK_NEWLINE
-    // advance past LF
+    ; advance past LF
     inc     qword [rbx + LEXER_pos]
-    // increment line, reset col
+    ; increment line, reset col
     inc     dword [rbx + LEXER_line]
     mov     word  [rbx + LEXER_col], 1
     xor     rax, rax
     mov     rdx, r12
     jmp     .done
 
-// ---- single character tokens ------------
+; ---- single character tokens ------------
 .emit_single_comma:
     call    .token_begin
     mov     byte [r12 + TOKEN_kind], TOK_COMMA
@@ -380,10 +380,10 @@ lexer_next:
 
 .emit_single_hash:
     call    .token_begin
-    // Check for ## (A68)
+    ; Check for ## (A68)
     mov     r13, [rbx + LEXER_pos]
     mov     r10, [rbx + LEXER_end]
-    dec     r10                    // r10 = end - 1
+    dec     r10                    ; r10 = end - 1
     cmp     r13, r10
     jge     .emit_just_hash
     
@@ -391,7 +391,7 @@ lexer_next:
     cmp     rcx, '#'
     jne     .emit_just_hash
     
-    // It's ##
+    ; It's ##
     mov     byte [r12 + TOKEN_kind], TOK_CONCAT
     add     qword [rbx + LEXER_pos], 2
     add     word  [rbx + LEXER_col], 2
@@ -417,13 +417,13 @@ lexer_next:
     mov     rdx, r12
     jmp     .done
 
-// ---- << and >> --------------------------
+; ---- << and >> --------------------------
 .lex_lshift:
     call    .token_begin
-    // check next char — must have at least 2 bytes remaining (pos + 1 < end)
+    ; check next char — must have at least 2 bytes remaining (pos + 1 < end)
     mov     r13, [rbx + LEXER_pos]
     mov     r10, [rbx + LEXER_end]
-    dec     r10                    // r10 = end - 1
+    dec     r10                    ; r10 = end - 1
     cmp     r13, r10
     jge     .single_lt_not_supported
     movzx   rcx, byte [r13 + 1]
@@ -444,7 +444,7 @@ lexer_next:
     call    .token_begin
     mov     r13, [rbx + LEXER_pos]
     mov     r10, [rbx + LEXER_end]
-    dec     r10                    // r10 = end - 1
+    dec     r10                    ; r10 = end - 1
     cmp     r13, r10
     jge     .single_gt_not_supported
     movzx   rcx, byte [r13 + 1]
@@ -461,24 +461,24 @@ lexer_next:
 .single_gt_not_supported:
     jmp     .unknown_char
 
-// ---- identifier / label -----------------
-/*
+; ---- identifier / label -----------------
+;
  Reads [a-zA-Z_.][a-zA-Z0-9_.]* into arena.
  If followed by : emits TOK_LABEL or TOK_LOCAL_LABEL.
  Otherwise emits TOK_IDENT.
-*/
+;
 .lex_ident:
     call    .token_begin
-    mov     r13, [rbx + LEXER_pos]     // start of identifier
+    mov     r13, [rbx + LEXER_pos]     ; start of identifier
 
-    // scan while ident chars
+    ; scan while ident chars
 .lex_ident_loop:
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
     jge     .lex_ident_done
     movzx   rdi, byte [r10]
 
-    // UTF-8 check
+    ; UTF-8 check
     cmp     rdi, 128
     jae     .lex_ident_utf8
 
@@ -496,26 +496,26 @@ lexer_next:
     test    rax, rax
     jz      .malformed_utf8_in_ident
 
-    // rdx = codepoint, rax = length
-    // Sanitization: block control chars and dangerous non-printables
+    ; rdx = codepoint, rax = length
+    ; Sanitization: block control chars and dangerous non-printables
     cmp     rdx, 0x9F
-    jbe     .lex_ident_done        // Stop at Latin-1 control chars or lower
+    jbe     .lex_ident_done        ; Stop at Latin-1 control chars or lower
     
-    // allow codepoint as part of identifier
+    ; allow codepoint as part of identifier
     add     [rbx + LEXER_pos], rax
-    inc     word [rbx + LEXER_col]  // 1 col per codepoint
+    inc     word [rbx + LEXER_col]  ; 1 col per codepoint
     jmp     .lex_ident_loop
 
 .malformed_utf8_in_ident:
-    // We already have a malformed handler, jump to it
+    ; We already have a malformed handler, jump to it
     jmp     .malformed_utf8
 
 .lex_ident_done:
-    // length = pos - start
+    ; length = pos - start
     mov     r10, [rbx + LEXER_pos]
-    sub     r10, r13                   // r10 = length
+    sub     r10, r13                   ; r10 = length
 
-    // copy into arena
+    ; copy into arena
     mov     rdi, [rbx + LEXER_arena]
     mov     rsi, r13
     mov     rdx, r10
@@ -523,11 +523,11 @@ lexer_next:
     test    rax, rax
     jnz     .fail
 
-    // store value pointer and length
+    ; store value pointer and length
     mov     [r12 + TOKEN_value], rdx
     mov     word [r12 + TOKEN_len], r10w
 
-    // check if followed by : (label)
+    ; check if followed by : (label)
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
     jge     .lex_ident_not_label
@@ -535,11 +535,11 @@ lexer_next:
     cmp     rcx, ':'
     jne     .lex_ident_not_label
 
-    // consume the colon
+    ; consume the colon
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
-    // check if local label (starts with .)
+    ; check if local label (starts with .)
     movzx   rcx, byte [r13]
     cmp     rcx, '.'
     je      .lex_local_label
@@ -561,16 +561,16 @@ lexer_next:
     mov     rdx, r12
     jmp     .done
 
-// ---- number -----------------------------
-/*
+; ---- number -----------------------------
+;
  Reads numeric literal into arena string.
  Supports: decimal, 0x hex, 0b binary, 0o octal.
  Stores raw string in TOKEN_value for str_to_int later.
-*/
+;
 .lex_number:
     call    .token_begin
-    mov     r13, [rbx + LEXER_pos]     // start of number
-    xor     r14, r14                   // r14 = float flag (0=int, 1=float)
+    mov     r13, [rbx + LEXER_pos]     ; start of number
+    xor     r14, r14                   ; r14 = float flag (0=int, 1=float)
 
 .lex_number_loop:
     mov     r10, [rbx + LEXER_pos]
@@ -578,12 +578,12 @@ lexer_next:
     jge     .lex_number_done
     movzx   rdi, byte [r10]
 
-    // accept hex digits
+    ; accept hex digits
     call    str_is_hex_digit
     cmp     rax, TRUE
     je      .lex_number_advance
 
-    // accept prefixes and scientific markers
+    ; accept prefixes and scientific markers
     movzx   rdi, byte [r10]
     cmp     rdi, 'x'
     je      .lex_number_advance
@@ -598,7 +598,7 @@ lexer_next:
     cmp     rdi, 'O'
     je      .lex_number_advance
     
-    // Float markers
+    ; Float markers
     cmp     rdi, '.'
     je      .is_float
     cmp     rdi, 'e'
@@ -610,7 +610,7 @@ lexer_next:
     cmp     rdi, 'P'
     je      .is_float
     
-    // signs can appear after e/p
+    ; signs can appear after e/p
     cmp     rdi, '+'
     je      .lex_number_advance
     cmp     rdi, '-'
@@ -629,9 +629,9 @@ lexer_next:
 
 .lex_number_done:
     mov     r10, [rbx + LEXER_pos]
-    sub     r10, r13                   // length
+    sub     r10, r13                   ; length
 
-    // copy raw number string into arena
+    ; copy raw number string into arena
     mov     rdi, [rbx + LEXER_arena]
     mov     rsi, r13
     mov     rdx, r10
@@ -639,7 +639,7 @@ lexer_next:
     test    rax, rax
     jnz     .fail
 
-    // Set token kind based on float flag
+    ; Set token kind based on float flag
     mov     byte [r12 + TOKEN_kind], TOK_NUMBER
     test    r14, r14
     jz      .set_val
@@ -652,8 +652,8 @@ lexer_next:
     mov     rdx, r12
     jmp     .done
 
-// ---- string literal ---------------------
-/*
+; ---- string literal ---------------------
+;
  Reads "..." handling escape sequences:
    \n  newline
    \t  tab
@@ -661,23 +661,23 @@ lexer_next:
    \\  backslash
    \"  double quote
    \0  null byte
-*/
+;
 .lex_string:
     call    .token_begin
-    // skip opening "
+    ; skip opening "
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
-    // allocate string buffer in arena
-    // max length is remaining buffer size
+    ; allocate string buffer in arena
+    ; max length is remaining buffer size
     mov     rdi, [rbx + LEXER_arena]
     mov     rsi, MAX_LINE
     call    arena_alloc
     test    rax, rax
     jnz     .fail
 
-    mov     r13, rdx               // r13 = string output buffer
-    xor     r10, r10               // r10 = output length
+    mov     r13, rdx               ; r13 = string output buffer
+    xor     r10, r10               ; r10 = output length
 
 .lex_string_loop:
     mov     r11, [rbx + LEXER_pos]
@@ -686,17 +686,17 @@ lexer_next:
 
     movzx   rcx, byte [r11]
 
-    cmp     rcx, '"'               // closing quote
+    cmp     rcx, '"'               ; closing quote
     je      .lex_string_done
 
-    cmp     rcx, 10                // unexpected newline
+    cmp     rcx, 10                ; unexpected newline
     je      .lex_string_unterminated
 
-    cmp     rcx, '\'               // escape sequence
+    cmp     rcx, '\'               ; escape sequence
     je      .lex_string_escape
 
-    // normal character
-    // check buffer limit
+    ; normal character
+    ; check buffer limit
     cmp     r10, MAX_LINE - 1
     jge     .lex_string_too_long
 
@@ -717,7 +717,7 @@ lexer_next:
     jmp     .fail
 
 .lex_string_escape:
-    // skip backslash
+    ; skip backslash
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
@@ -727,18 +727,18 @@ lexer_next:
 
     movzx   rcx, byte [r11]
     
-    // Check for line continuation (A66)
+    ; Check for line continuation (A66)
     IF rcx, e, 10
         inc     qword [rbx + LEXER_pos]
         inc     dword [rbx + LEXER_line]
         mov     word  [rbx + LEXER_col], 1
         jmp     .lex_string_loop
     ELSEIF rcx, e, 13
-        // Check for CR+LF
+        ; Check for CR+LF
         mov     rax, [rbx + LEXER_pos]
         inc     rax
         cmp     rax, [rbx + LEXER_end]
-        jge     .lex_string_loop       // Just ignore CR at EOF
+        jge     .lex_string_loop       ; Just ignore CR at EOF
         
         IF byte [rax], e, 10
             add     qword [rbx + LEXER_pos], 2
@@ -776,16 +776,16 @@ lexer_next:
     cmp     rcx, 'x'
     je      .esc_hex
 
-    // unknown escape — store literally
+    ; unknown escape — store literally
     mov     byte [r13 + r10], cl
     inc     r10
     jmp     .lex_string_loop
 
 .esc_hex:
-    // Parse 2 hex digits
-    xor     r14, r14               // r14 = resulting byte
+    ; Parse 2 hex digits
+    xor     r14, r14               ; r14 = resulting byte
     
-    // First Digit
+    ; First Digit
     mov     r11, [rbx + LEXER_pos]
     cmp     r11, [rbx + LEXER_end]
     jge     .lex_string_unterminated
@@ -798,7 +798,7 @@ lexer_next:
     shl     rax, 4
     mov     r14, rax
     
-    // Second Digit
+    ; Second Digit
     mov     r11, [rbx + LEXER_pos]
     cmp     r11, [rbx + LEXER_end]
     jge     .lex_string_unterminated
@@ -815,7 +815,7 @@ lexer_next:
     jmp     .lex_string_loop
 
 .hex_digit_to_val:
-    // rcx = char, rax = val
+    ; rcx = char, rax = val
     IF rcx, ge, '0'
         IF rcx, le, '9'
             lea rax, [rcx - '0']
@@ -893,11 +893,11 @@ lexer_next:
     jmp     .lex_string_loop
 
 .lex_string_done:
-    // skip closing "
+    ; skip closing "
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
-    // null terminate
+    ; null terminate
     mov     byte [r13 + r10], 0
 
     mov     byte [r12 + TOKEN_kind], TOK_STRING
@@ -908,7 +908,7 @@ lexer_next:
     jmp     .done
 
 .lex_string_unterminated:
-    // emit error
+    ; emit error
     mov     rdi, [rbx + LEXER_ctx]
     mov     rsi, [rbx + LEXER_file]
     mov     edx, dword [rbx + LEXER_line]
@@ -919,14 +919,14 @@ lexer_next:
     mov     rax, EXIT_UNEXPECTED_EOF
     jmp     .fail
 
-// ---- char literal -----------------------
-/*
+; ---- char literal -----------------------
+;
  Reads 'x' or '\n' single character literal.
  Stores integer value in TOKEN_value directly.
-*/
+;
 .lex_char:
     call    .token_begin
-    // skip opening '
+    ; skip opening '
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
@@ -935,10 +935,10 @@ lexer_next:
     jge     .lex_char_unterminated
 
     movzx   rcx, byte [r11]
-    cmp     rcx, '\'               // escape?
+    cmp     rcx, '\'               ; escape?
     je      .lex_char_escape
 
-    // regular character
+    ; regular character
     mov     r13, rcx
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
@@ -962,7 +962,7 @@ lexer_next:
     je      .char_esc_t
     cmp     rcx, '0'
     je      .char_esc_0
-    mov     r13, rcx               // literal
+    mov     r13, rcx               ; literal
     jmp     .lex_char_closing
 
 .char_esc_n:
@@ -976,7 +976,7 @@ lexer_next:
     jmp     .lex_char_closing
 
 .lex_char_closing:
-    // expect closing '
+    ; expect closing '
     mov     r11, [rbx + LEXER_pos]
     cmp     r11, [rbx + LEXER_end]
     jge     .lex_char_unterminated
@@ -1004,19 +1004,19 @@ lexer_next:
     mov     rax, EXIT_UNEXPECTED_EOF
     jmp     .fail
 
-// ---- directive --------------------------
-/*
+; ---- directive --------------------------
+;
  Reads %identifier — preprocessor directive.
  Emits TOK_DIRECTIVE with value pointing to
  the identifier string (without the % prefix).
-*/
+;
 .lex_directive:
     call    .token_begin
-    // skip %
+    ; skip %
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
-    // Check for macro-local label %% (A70)
+    ; Check for macro-local label %% (A70)
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
     jge     .lex_directive_standard
@@ -1024,10 +1024,10 @@ lexer_next:
     cmp     dil, '%'
     jne     .lex_directive_standard
     
-    // It's %%
+    ; It's %%
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
-    mov     r13, [rbx + LEXER_pos] // start of identifier
+    mov     r13, [rbx + LEXER_pos] ; start of identifier
     
 .lex_macro_local_loop:
     mov     r10, [rbx + LEXER_pos]
@@ -1043,7 +1043,7 @@ lexer_next:
 
 .lex_macro_local_done:
     mov     r10, [rbx + LEXER_pos]
-    sub     r10, r13               // length
+    sub     r10, r13               ; length
     mov     rdi, [rbx + LEXER_arena]
     mov     rsi, r13
     mov     rdx, r10
@@ -1056,9 +1056,9 @@ lexer_next:
     jmp     .done
 
 .lex_directive_standard:
-    mov     r13, [rbx + LEXER_pos] // start of directive name
+    mov     r13, [rbx + LEXER_pos] ; start of directive name
 
-    // Check for braced directive %{...} (A69)
+    ; Check for braced directive %{...} (A69)
     movzx   rdi, byte [r13]
     cmp     dil, '{'
     je      .lex_braced_directive
@@ -1069,7 +1069,7 @@ lexer_next:
     jge     .lex_directive_done
     movzx   rdi, byte [r10]
     
-    // UTF-8 check
+    ; UTF-8 check
     cmp     rdi, 128
     jae     .lex_directive_utf8
 
@@ -1085,7 +1085,7 @@ lexer_next:
     mov     rsi, [rbx + LEXER_end]
     call    str_utf8_decode
     test    rax, rax
-    jz      .malformed_utf8_in_ident // reuse same handler
+    jz      .malformed_utf8_in_ident ; reuse same handler
     
     cmp     rdx, 0x9F
     jbe     .lex_directive_done
@@ -1095,9 +1095,9 @@ lexer_next:
     jmp     .lex_directive_loop
 
 .lex_braced_directive:
-    inc     qword [rbx + LEXER_pos] // skip {
+    inc     qword [rbx + LEXER_pos] ; skip {
     inc     word  [rbx + LEXER_col]
-    mov     r13, [rbx + LEXER_pos]  // start of content
+    mov     r13, [rbx + LEXER_pos]  ; start of content
 
 .lex_braced_loop:
     mov     r10, [rbx + LEXER_pos]
@@ -1108,8 +1108,8 @@ lexer_next:
     cmp     dil, '}'
     je      .lex_braced_done
     
-    // allow anything inside braces except newline? 
-    // actually, NASM allows many things. We'll allow anything but } and EOL.
+    ; allow anything inside braces except newline? 
+    ; actually, NASM allows many things. We'll allow anything but } and EOL.
     cmp     dil, 10
     je      .lex_braced_unterminated
     
@@ -1119,8 +1119,8 @@ lexer_next:
 
 .lex_braced_done:
     mov     r10, [rbx + LEXER_pos]
-    sub     r10, r13               // length
-    inc     qword [rbx + LEXER_pos] // skip }
+    sub     r10, r13               ; length
+    inc     qword [rbx + LEXER_pos] ; skip }
     inc     word  [rbx + LEXER_col]
     jmp     .lex_directive_done
 
@@ -1136,7 +1136,7 @@ lexer_next:
 
 .lex_directive_done:
     mov     r10, [rbx + LEXER_pos]
-    sub     r10, r13               // length
+    sub     r10, r13               ; length
 
     mov     rdi, [rbx + LEXER_arena]
     mov     rsi, r13
@@ -1152,7 +1152,7 @@ lexer_next:
     mov     rdx, r12
     jmp     .done
 
-// ---- unknown character ------------------
+; ---- unknown character ------------------
 .unknown_char:
     mov     rdi, [rbx + LEXER_ctx]
     mov     rsi, [rbx + LEXER_file]
@@ -1161,11 +1161,11 @@ lexer_next:
     lea     r8,  [msg_unknown_char]
     call    error_emit
 
-    // skip the bad character and continue
+    ; skip the bad character and continue
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
-    // retry — tail call back to lexer_next
+    ; retry — tail call back to lexer_next
     mov     rdi, rbx
     mov     rsi, r12
     pop     r13
@@ -1173,38 +1173,38 @@ lexer_next:
     pop     rbx
     jmp     lexer_next
 
-// ---- shared helpers ---------------------
+; ---- shared helpers ---------------------
 
-/*
+;
  .token_begin (internal)
  Initialises the output Token struct with tag, file, line, col.
  Uses rbx=LexerState, r12=Token output.
-*/
+;
 .token_begin:
     mov     byte [r12 + TOKEN_tag],   TAG_TOKEN
     mov     byte [r12 + TOKEN_kind],  TOK_UNKNOWN
     mov     byte [r12 + TOKEN_flags], 0
     mov     qword [r12 + TOKEN_value], 0
 
-    // copy line and col from lexer state
+    ; copy line and col from lexer state
     mov     eax, dword [rbx + LEXER_line]
     mov     dword [r12 + TOKEN_line], eax
     movzx   eax, word [rbx + LEXER_col]
     mov     word [r12 + TOKEN_col], ax
 
-    // copy filename pointer
+    ; copy filename pointer
     mov     rax, [rbx + LEXER_file]
     mov     [r12 + TOKEN_file], rax
 
     mov     word [r12 + TOKEN_len], 0
     ret
 
-/*
+;
  .skip_ignored (internal)
- Skips whitespace (space, tab, CR) and comments (// and /* *\/).
+ Skips whitespace (space, tab, CR) and comments (; and ; *\/).
  Emits no tokens. Updates line and col counters.
  Uses rbx=LexerState.
-*/
+;
 .skip_ignored:
 .skip_loop:
     mov     r10, [rbx + LEXER_pos]
@@ -1213,15 +1213,15 @@ lexer_next:
 
     movzx   rcx, byte [r10]
 
-    // skip whitespace (Space, Tab, CR)
+    ; skip whitespace (Space, Tab, CR)
     test    byte [lexer_char_props + rcx], CHAR_IS_WHITESPACE
     jnz     .skip_ws
 
-    // check for // comment
+    ; check for ; comment
     cmp     rcx, '/'
     jne     .skip_check_block
 
-    // peek next char
+    ; peek next char
     mov     r11, r10
     inc     r11
     cmp     r11, [rbx + LEXER_end]
@@ -1230,20 +1230,20 @@ lexer_next:
     cmp     r11, '/'
     jne     .skip_check_block
 
-    // skip until LF
+    ; skip until LF
     add     qword [rbx + LEXER_pos], 2
 .skip_line_loop:
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
     jge     .skip_done
     movzx   rcx, byte [r10]
-    cmp     rcx, 10             // LF — stop, don't consume
+    cmp     rcx, 10             ; LF — stop, don't consume
     je      .skip_loop
     inc     qword [rbx + LEXER_pos]
     jmp     .skip_line_loop
 
 .skip_check_block:
-    // check for /* block comment
+    ; check for ; block comment
     cmp     rcx, '/'
     jne     .skip_done
 
@@ -1255,7 +1255,7 @@ lexer_next:
     cmp     r11, '*'
     jne     .skip_done
 
-    // skip block comment until */
+    ; skip block comment until ;
     add     qword [rbx + LEXER_pos], 2
 .skip_block_loop:
     mov     r10, [rbx + LEXER_pos]
@@ -1273,7 +1273,7 @@ lexer_next:
     cmp     rcx, '*'
     jne     .skip_block_next
     
-    // peek for /
+    ; peek for /
     mov     r11, r10
     inc     r11
     cmp     r11, [rbx + LEXER_end]
@@ -1287,12 +1287,12 @@ lexer_next:
     jmp     .skip_block_loop
 
 .skip_block_done:
-    add     qword [rbx + LEXER_pos], 2 // skip */
+    add     qword [rbx + LEXER_pos], 2 ; skip ;
     add     word [rbx + LEXER_col], 2
     jmp     .skip_loop
 
 .skip_block_unterminated:
-    // unterminated block comment — emit error
+    ; unterminated block comment — emit error
     mov     rdi, [rbx + LEXER_ctx]
     mov     rsi, [rbx + LEXER_file]
     mov     edx, dword [rbx + LEXER_line]
@@ -1330,8 +1330,8 @@ lexer_next:
     pop     rbx
     ret
 
-// ---- lexer_peek -------------------------
-/*
+; ---- lexer_peek -------------------------
+;
  lexer_peek
  Returns the next token without consuming it.
  Subsequent calls to lexer_peek return the same token.
@@ -1341,7 +1341,7 @@ lexer_next:
  Output   : rax = EXIT_OK or error code
              rdx = pointer to filled Token (same as rsi)
  Clobbers : rcx, r8, r9, r10, r11
-*/
+;
 global lexer_peek
 lexer_peek:
     push    rbx
@@ -1350,7 +1350,7 @@ lexer_peek:
     mov     rbx, rdi
     mov     r12, rsi
 
-    // if peek slot already valid — copy it out
+    ; if peek slot already valid — copy it out
     cmp     byte [rbx + LEXER_has_peek], TRUE
     jne     .do_peek
 
@@ -1366,17 +1366,17 @@ lexer_peek:
     jmp     .done
 
 .do_peek:
-    // lex into the inline peek slot
+    ; lex into the inline peek slot
     mov     rdi, rbx
     lea     rsi, [rbx + LEXER_peek]
     call    lexer_next
     test    rax, rax
     jnz     .fail
 
-    // mark peek valid
+    ; mark peek valid
     mov     byte [rbx + LEXER_has_peek], TRUE
 
-    // copy to caller output
+    ; copy to caller output
     lea     rsi, [rbx + LEXER_peek]
     mov     rdi, r12
     mov     rdx, TOKEN_SIZE
@@ -1397,8 +1397,8 @@ lexer_peek:
     pop     rbx
     ret
 
-// ---- lexer_expect -----------------------
-/*
+; ---- lexer_expect -----------------------
+;
  lexer_expect
  Reads the next token and verifies it matches the expected kind.
  Emits an error if it does not match.
@@ -1408,28 +1408,28 @@ lexer_peek:
  Output   : rax = EXIT_OK or EXIT_UNEXPECTED_TOKEN
              rdx = pointer to filled Token
  Clobbers : rcx, r8, r9, r10, r11
-*/
+;
 global lexer_expect
 lexer_expect:
     push    rbx
     push    r12
     push    r13
 
-    mov     r12, rdi               // R12 = LexerState
-    mov     r13, rdx               // R13 = expected kind
+    mov     r12, rdi               ; R12 = LexerState
+    mov     r13, rdx               ; R13 = expected kind
 
     call    lexer_next
     test    rax, rax
     jnz     .fail
 
-    // check kind matches
-    // RDX = pointer to returned token
+    ; check kind matches
+    ; RDX = pointer to returned token
     movzx   rcx, byte [rdx + TOKEN_kind]
     cmp     rcx, r13
     je      .match
 
-    // mismatch — emit error
-    mov     rbx, rdx               // RBX = Token pointer
+    ; mismatch — emit error
+    mov     rbx, rdx               ; RBX = Token pointer
     mov     rdi, [r12 + LEXER_ctx]
     mov     rsi, [rbx + TOKEN_file]
     mov     edx, dword [rbx + TOKEN_line]
@@ -1449,15 +1449,15 @@ lexer_expect:
     pop     rbx
     ret
 
-// ---- lexer_destroy ----------------------
-/*
+; ---- lexer_destroy ----------------------
+;
  lexer_destroy
  Clears a LexerState struct. Does not free the source buffer
  (caller owns it) or the arena (shared with whole pass).
  Input    : rdi = pointer to LexerState
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : rcx, rdx
-*/
+;
 global lexer_destroy
 lexer_destroy:
     cmp     byte [rdi + LEXER_tag], TAG_LEXER
@@ -1473,9 +1473,9 @@ lexer_destroy:
     mov     rax, EXIT_INTERNAL
     ret
 
-// ============================================================================
-// DATA
-// ============================================================================
+; ============================================================================
+; DATA
+; ============================================================================
 
 [SECTION .data]
 
@@ -1500,9 +1500,9 @@ msg_malformed_utf8:
 msg_unterminated_brace:
     db      "unterminated braced directive", 0
 
-// ============================================================================
-// CHARACTER PROPERTIES LOOKUP TABLE (LUT)
-// ============================================================================
+; ============================================================================
+; CHARACTER PROPERTIES LOOKUP TABLE (LUT)
+; ============================================================================
 
 global lexer_char_props
 lexer_char_props:

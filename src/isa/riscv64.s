@@ -1,13 +1,13 @@
-/*
+;
  ============================================================================
  File        : src/arch/riscv64.s
  Project     : utasm
  Description : RISCV64 Mnemonic and Register Lookup Tables.
  ============================================================================
-*/
+;
 
-%inc "core/macro.s"
-%inc "arch/riscv64.s"
+%include "core/macro.s"
+%include "arch/riscv64.s"
 
 section .data
 global mnc_tb_rv64
@@ -797,7 +797,7 @@ mnc_tb_rv64:
 
 global riscv64_register_table
 riscv64_register_table:
-    // ---- Raw Architectural Names (x0-x31) ----
+    ; ---- Raw Architectural Names (x0-x31) ----
     %assign i 0
     %rep 32
         compile_time_hash "x%[i]", H_X%[i]
@@ -805,7 +805,7 @@ riscv64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- ABI Names ----
+    ; ---- ABI Names ----
     compile_time_hash "zero", H_ZERO
     dq H_ZERO, (8 << 8) | 0
     compile_time_hash "ra", H_RA
@@ -831,7 +831,7 @@ riscv64_register_table:
     compile_time_hash "a1", H_A1
     dq H_A1, (8 << 8) | 11
 
-    // ---- Floating Point Registers (f0-f31) ----
+    ; ---- Floating Point Registers (f0-f31) ----
     %assign i 0
     %rep 32
         compile_time_hash "f%[i]", H_F%[i]
@@ -839,7 +839,7 @@ riscv64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- FP ABI Aliases ----
+    ; ---- FP ABI Aliases ----
     %assign i 0
     %rep 8
         compile_time_hash "ft%[i]", H_FT%[i]
@@ -853,7 +853,7 @@ riscv64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- Vector Registers (v0-v31) ----
+    ; ---- Vector Registers (v0-v31) ----
     %assign i 0
     %rep 32
         compile_time_hash "v%[i]", H_V%[i]

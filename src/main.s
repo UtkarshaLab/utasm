@@ -1,18 +1,17 @@
-/*
- ============================================
- File     : src/main.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- Description: Entry point and orchestrator for the utasm assembler.
- ============================================
-*/
+; ============================================
+; File     : src/main.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; Description: Entry point and orchestrator for the utasm assembler.
+; ============================================
 
-%inc "include/constant.s"
-%inc "include/type.s"
-%inc "include/macro.s"
+%include "include/constant.s"
+%include "include/type.s"
+%include "include/macro.s"
 
 extern arena_init
+extern arena_alloc
 extern cli_parse
 extern str_len
 extern io_open
@@ -31,9 +30,10 @@ extern linker_run
 extern listing_generate
 extern mapfile_generate
 extern asm_ctx_align
+extern error_report
 
 [SECTION .data]
-    // Professional banner for the assembler
+    ; Professional banner for the assembler
     msg_banner:
         db 0x1B, "[1;36m", "UTASM", 0x1B, "[0m", " - The Sovereign Assembler Kernel", 0x0A
         db "Version 0.1.0 (Millennial Inversion)", 0x0A, 0
@@ -49,250 +49,205 @@ extern asm_ctx_align
 
 [SECTION .bss]
     align 8
-    global_arena: resb ARENA_SIZE
-    global_ctx:   resb ASMCTX_SIZE
+    global_arena: resb 268435456 ; ARENA_SIZE (256 MiB)
+    global_ctx:   resb 1024      ; ASMCTX_SIZE
 
 [SECTION .text]
     global _start
 
 _start:
-    // 1. Establish stack frame
-    // In _start, [rsp] is argc, [rsp+8] is argv[0]
+    ; 1. Establish stack frame
     push    rbp
     mov     rbp, rsp
 
-    // 2. Clear context and arena structures
-    zero_mem global_ctx, ASMCTX_SIZE
-    zero_mem global_arena, ARENA_SIZE
-
-    // 3. Initialize Arena Allocator (256 MiB reservation)
+    ; 2. Initialize Arena Allocator (256 MiB reservation)
     mov     rdi, global_arena
-    mov     rsi, UTASM_HEAP_SIZE
+    mov     rsi, 0x10000000 ; UTASM_HEAP_SIZE
     call    arena_init
     test    rax, rax
     jnz     .exit_oom
 
-    // Link arena to context
+    ; Link arena to context
     mov     rax, global_arena
-    mov     [global_ctx + ASMCTX_arena], rax
-    mov     byte [global_ctx + ASMCTX_tag], TAG_ASM_CTX
+    mov     [global_ctx + 8], rax ; ASMCTX_arena offset
+    mov     byte [global_ctx + 0], 0x08 ; TAG_ASM_CTX at offset 0
 
-    // 3.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
+    ; 2.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
     mov     rdi, global_arena
-    mov     rsi, (65536 * 8)
+    mov     rsi, 524288
     call    arena_alloc
     test    rax, rax
     jnz     .exit_oom
-    mov     [global_ctx + ASMCTX_symhash], rdx
-    // arena_alloc already zeroes if it's fresh, but we could explicitly zero_mem if needed.
+    mov     [global_ctx + 160], rdx ; ASMCTX_symhash offset
 
-    // 4. Parse Command Line Arguments
-    // After 'push rbp', [rbp+8] = argc, [rbp+16] = argv[0]
+    ; 3. Parse Command Line Arguments
     mov     rdi, global_ctx
-    mov     rsi, [rbp + 8]   // argc
-    lea     rdx, [rbp + 16]  // argv
+    mov     rsi, [rbp + 8]   ; argc
+    lea     rdx, [rbp + 16]  ; argv
     call    cli_parse
     test    rax, rax
-    jnz     .show_usage      // If error or help, show usage
+    jnz     .show_usage      ; If error or help, show usage
 
-    // 5. Check if input file provided
-    cmp     qword [global_ctx + ASMCTX_input], 0
+    ; 4. Check if input file provided
+    cmp     qword [global_ctx + 136], 0 ; ASMCTX_input offset
     je      .show_usage
 
-    // 6. Compilation Pipeline
+    ; 5. Compilation Pipeline
     
-    // 6.1 Initialize Relocation Engine
+    ; 5.1 Initialize Relocation Engine
     mov     rdi, global_ctx
     call    reloc_init
-    check_err
+    test    rax, rax
+    jnz     .exit_error
 
-    // 6.2 Open and Map Input File
-    mov     rdi, [global_ctx + ASMCTX_input] // Filename from CLI
-    mov     rsi, AMD64_O_RDONLY
+    ; 5.2 Open and Map Input File
+    mov     rdi, [global_ctx + 136]
+    mov     rsi, 0 ; O_RDONLY
     xor     rdx, rdx
     call    io_open
     test    rax, rax
     jnz     .exit_io_error
-    mov     r12, rdx                         // r12 = fd
+    mov     r12, rdx                         ; r12 = fd
     
     mov     rdi, r12
     call    io_file_size
-    mov     r13, rdx                         // r13 = size
+    mov     r13, rdx                         ; r13 = size
     
     xor     rdi, rdi
     mov     rsi, r13
-    mov     rdx, PROT_READ
-    mov     rcx, MAP_PRIVATE
+    mov     rdx, 1 ; PROT_READ
+    mov     rcx, 2 ; MAP_PRIVATE
     mov     r8, r12
     xor     r9, r9
     call    io_mmap
     test    rax, rax
     jnz     .exit_io_error
-    mov     r14, rdx                         // r14 = buffer
+    mov     r14, rdx                         ; r14 = buffer
     
-    // 6.3 Initialize Pipeline Components
-    // Lexer
-    sub     rsp, LEXER_SIZE
-    mov     rbx, rsp                         // rbx = LexerState
+    ; 5.3 Initialize Pipeline Components
+    sub     rsp, 1024 ; LEXER_SIZE
+    mov     rbx, rsp
     mov     rdi, rbx
-    mov     rsi, r14                         // buffer
-    mov     rdx, r13                         // size
-    mov     rcx, [global_ctx + ASMCTX_input] // filename
+    mov     rsi, r14
+    mov     rdx, r13
+    mov     rcx, [global_ctx + 136]
     mov     r8, global_ctx
     mov     r9, global_arena
     call    lexer_init
     
-    // Preprocessor
-    sub     rsp, PREP_SIZE
-    mov     r15, rsp                         // r15 = PrepState
+    sub     rsp, 1024 ; PREP_SIZE
+    mov     r15, rsp
     mov     rdi, r15
-    mov     rsi, rbx                         // LexerState
+    mov     rsi, rbx
     mov     rdx, global_ctx
     mov     rcx, global_arena
     call    prep_init
     
-    // 6.3.1 Start Benchmark
-    rdtsc
-    shl     rdx, 32
-    or      rax, rdx
-    mov     [global_ctx + ASMCTX_perf_start], rax
-
-    // 6.4 Main Assembly Loop
+    ; 5.4 Main Assembly Loop
 .assembly_loop:
-    push_alloc                       // Checkpoint arena state (Macro in include/macro.s)
-    mov     rdi, r15                 // PrepState
+    mov     rdi, r15
     call    parser_parse_instruction
     test    rax, rax
-    jz      .no_parser_err
-    pop_alloc                        // A100.7: Clean up stack before error exit
-    jmp     .error_in_parser
-.no_parser_err:
+    jnz     .error_in_parser
     
-    // Check for EOF (RAX=0, RDX=0)
+    ; Check for EOF (RAX=0, RDX=0)
     test    rdx, rdx
     jz      .emission
     
-    mov     r14, rdx                         // r14 = INST*
-    movzx   eax, byte [global_ctx + ASMCTX_target]
-    
-    // ---- 1. Alignment Guard (RISC / Fixed-width) ----
-    IF eax, e, TARGET_AARCH64
-        mov     rdi, global_ctx
-        mov     rsi, 4
-        call    asm_ctx_align
-    ELSEIF eax, e, TARGET_RISCV64
-        mov     rdi, global_ctx
-        mov     rsi, 2                 // Allow 2-byte (C-extension)
-        call    asm_ctx_align
-    ENDIF
+    mov     r14, rdx                         ; r14 = INST*
+    movzx   eax, byte [global_ctx + 1]       ; ASMCTX_target offset
 
-    // ---- 2. Offset Stamping (CRITICAL FOR RELOCS) ----
-    mov     rdi, [global_ctx + ASMCTX_curr_sec]
-    test    rdi, rdi
-    IF z | mov rdi, [global_ctx + ASMCTX_sections] | mov rdi, [rdi] | ENDIF
-    mov     rax, [rdi + SECTION_size]
-    mov     [r14 + INST_offset], rax
-    
-    // ---- 3. Encoding Dispatch ----
+    ; Target-specific alignment
+    cmp     eax, 1 ; TARGET_AARCH64
+    jne     .check_riscv
+    mov     rdi, global_ctx
+    mov     rsi, 4
+    call    asm_ctx_align
+    jmp     .encode
+.check_riscv:
+    cmp     eax, 3 ; TARGET_RISCV64
+    jne     .encode
+    mov     rdi, global_ctx
+    mov     rsi, 2
+    call    asm_ctx_align
+
+.encode:
     mov     rdi, global_ctx
     mov     rsi, r14
-    movzx   eax, byte [global_ctx + ASMCTX_target]
+    movzx   eax, byte [global_ctx + 1]
     
-    IF eax, e, TARGET_AMD64
-        call    amd64_encode_instruction
-    ELSEIF eax, e, TARGET_AARCH64
-        call    aarch64_encode_instruction
-    ELSEIF eax, e, TARGET_RISCV64
-        call    riscv64_encode_instruction
-    ENDIF
-    check_err
-    
-    pop_alloc                        // Rollback arena (reclaim INST and temporary allocations)
+    cmp     eax, 2 ; TARGET_AMD64
+    je      .call_amd64
+    cmp     eax, 1 ; TARGET_AARCH64
+    je      .call_aarch64
+    cmp     eax, 3 ; TARGET_RISCV64
+    je      .call_riscv64
+    jmp     .assembly_loop
+
+.call_amd64:
+    call    amd64_encode_instruction
+    jmp     .check_enc_err
+.call_aarch64:
+    call    aarch64_encode_instruction
+    jmp     .check_enc_err
+.call_riscv64:
+    call    riscv64_encode_instruction
+
+.check_enc_err:
+    test    rax, rax
+    jnz     .exit_error
     jmp     .assembly_loop
 
 .error_in_parser:
-    // Handle real errors here
     mov     rdi, rax
     call    error_report
     jmp     .exit_error
 
-.loop_check:
-    cmp     rax, EXIT_OK
-    je      .emission
-    // If it's EOF, we proceed to emission
-    // (Assuming parser returns specific code for EOF, or check Lexer)
-    // For now, assume any non-zero RAX is "Done" or "Error"
-    
 .emission:
-    // 6.5 Emission Phase
     mov     rdi, global_ctx
     call    linker_run
-    check_err
+    test    rax, rax
+    jnz     .exit_error
 
-    // 6.6 Diagnostic Phase (Optional)
-    mov     rax, [global_ctx + ASMCTX_flags]
-    test    rax, CTX_FLAG_LISTING
-    jz      .check_map
-    mov     rdi, global_ctx
-    call    listing_generate
-
-.check_map:
-    // Logic for map file...
-    // (We will expand this as needed)
-
-    // 7. Normal Exit
-    rdtsc
-    shl     rdx, 32
-    or      rax, rdx
-    mov     r8, [global_ctx + ASMCTX_perf_start]
-    sub     rax, r8                         // rax = total cycles
-    
-    // For now, we just exit, but we've recorded the data.
-    // In a future pass, we'll implement a 'print_uint64' to show it.
-    
-    mov     rax, AMD64_SYS_EXIT
-    mov     rdi, EXIT_OK
+    mov     rax, 60
+    mov     rdi, 0
     syscall
 
 .show_usage:
-    mov     rdi, STDOUT_FILENO
+    mov     rdi, 1
     lea     rsi, [msg_banner]
     call    print_str
     lea     rsi, [msg_usage]
     call    print_str
-    
-    mov     rax, AMD64_SYS_EXIT
-    mov     rdi, EXIT_USAGE
+    mov     rax, 60
+    mov     rdi, 2
     syscall
 
 .exit_oom:
-    mov     rax, AMD64_SYS_EXIT
-    mov     rdi, EXIT_OOM
+    mov     rax, 60
+    mov     rdi, 125
     syscall
 
 .exit_io_error:
-    mov     rax, AMD64_SYS_EXIT
-    mov     rdi, EXIT_FILE_NOT_FOUND
+    mov     rax, 60
+    mov     rdi, 3
     syscall
 
 .exit_error:
-    mov     rax, AMD64_SYS_EXIT
-    mov     rdi, EXIT_ERROR
+    mov     rax, 60
+    mov     rdi, 1
     syscall
-// rdi = fd, rsi = str
+
 print_str:
     push    rbx
     push    rdi
     push    rsi
-    
     mov     rdi, rsi
     call    str_len
-    mov     rdx, rax        // rdx = length
-    
-    mov     rax, AMD64_SYS_WRITE
-    pop     rsi             // rsi = buffer
-    pop     rdi             // rdi = fd
+    mov     rdx, rax
+    mov     rax, 1
+    pop     rsi
+    pop     rdi
     syscall
-    
     pop     rbx
     ret

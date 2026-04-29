@@ -1,15 +1,15 @@
-/*
+;
  ============================================
  File     : src/core/diagnostics.s
  Project  : utasm
  Author   : Utkarsha Lab
  License  : Apache-2.0
  ============================================
-*/
+;
 
-%inc "include/constant.s"
-%inc "include/type.s"
-%inc "include/macro.s"
+%include "include/constant.s"
+%include "include/type.s"
+%include "include/macro.s"
 
 [SECTION .data]
     msg_error:   db 0x1B, "[1;31merror: ", 0x1B, "[0m", 0
@@ -20,14 +20,14 @@
 
 [SECTION .text]
 
-/**
+;*
  * [diag_error_at]
  * Prints a contextual error message.
  * Input:
  *   rdi = pointer to AsmCtx
  *   rsi = pointer to Token
  *   rdx = message string
- */
+ ;
 global diag_error_at
 diag_error_at:
     prologue
@@ -36,13 +36,13 @@ diag_error_at:
     push    r13
     push    r14
     
-    mov     rbx, rdi               // rbx = AsmCtx
-    mov     r12, rsi               // r12 = Token
-    mov     r13, rdx               // r13 = Message
+    mov     rbx, rdi               ; rbx = AsmCtx
+    mov     r12, rsi               ; r12 = Token
+    mov     r13, rdx               ; r13 = Message
     
     inc     word [rbx + ASMCTX_err_count]
 
-    // 1. Print "file:line:col: error: "
+    ; 1. Print "file:line:col: error: "
     mov     rsi, [r12 + TOKEN_file]
     test    rsi, rsi
     jnz     .print_file
@@ -69,20 +69,20 @@ diag_error_at:
     lea     rsi, [msg_error]
     call    .print_str
     
-    // 2. Print the message
+    ; 2. Print the message
     mov     rsi, r13
     call    .print_str
     call    .print_nl
 
-    // 3. Print the source line (if available)
-    // For now, we skip the line snippet for brevity in this round
-    // and just do the caret positioning if col is known.
+    ; 3. Print the source line (if available)
+    ; For now, we skip the line snippet for brevity in this round
+    ; and just do the caret positioning if col is known.
     
     movzx   rcx, word [r12 + TOKEN_col]
     test    cx, cx
     jz      .done
     
-    dec     cx                     // 1-based to 0-based
+    dec     cx                     ; 1-based to 0-based
 .indent:
     push    rcx
     call    .print_space
@@ -101,7 +101,7 @@ diag_error_at:
 
 .print_str:
     mov     rdi, STDERR_FILENO
-    extern  print_str              // from main.s
+    extern  print_str              ; from main.s
     jmp     print_str
 
 .print_space:
@@ -113,7 +113,7 @@ diag_error_at:
     jmp     .print_str
 
 .print_int:
-    // Simple integer to decimal printer
+    ; Simple integer to decimal printer
     sub     rsp, 32
     mov     rax, rdi
     mov     rcx, 10

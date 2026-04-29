@@ -1,4 +1,4 @@
-/*
+;
  ============================================================================
  File        : src/linker/elf64.s
  Project     : utasm
@@ -6,19 +6,19 @@
                Writes a standards-compliant ELF64 .o file consumable by
                ld, lld, and any POSIX linker.
  ============================================================================
-*/
+;
 
-%inc "include/constant.s"
-%inc "include/type.s"
-%inc "include/macro.s"
-%inc "include/elf.s"
+%include "include/constant.s"
+%include "include/type.s"
+%include "include/macro.s"
+%include "include/elf.s"
 
 [SECTION .text]
 
-// ============================================================================
-// elf64_emit
-// ============================================================================
-/*
+; ============================================================================
+; elf64_emit
+; ============================================================================
+;
  elf64_emit
  Top-level entry point: writes a complete ELF64 relocatable object file
  from the current AsmCtx to the file descriptor provided.
@@ -37,7 +37,7 @@
  Input  : rdi = pointer to AsmCtx
            rsi = output file descriptor (i32)
  Output : rax = EXIT_OK or error code
-*/
+;
 global elf64_emit
 elf64_emit:
     prologue
@@ -46,22 +46,22 @@ elf64_emit:
     push    r14
     push    r15
 
-    mov     r12, rdi               // r12 = AsmCtx
-    mov     r13d, esi              // r13d = fd
+    mov     r12, rdi               ; r12 = AsmCtx
+    mov     r13d, esi              ; r13d = fd
 
-    // ---- 0. Resolve Entry Point (Standalone only) ----
+    ; ---- 0. Resolve Entry Point (Standalone only) ----
     IF byte [r12 + ASMCTX_standalone], e, 1
         mov     rdi, r12
         call    elf64_resolve_entry
         check_err
     ENDIF
 
-    // ---- 1. Write ELF Header ----
+    ; ---- 1. Write ELF Header ----
     mov     rdi, [r12 + ASMCTX_arena]
     mov     rsi, ELF64_EHDR_SIZE
     call    arena_alloc
     check_err
-    mov     r14, rdx               // r14 = ehdr buffer
+    mov     r14, rdx               ; r14 = ehdr buffer
 
     call    elf64_write_ehdr
     check_err
@@ -72,23 +72,23 @@ elf64_emit:
     call    io_write
     check_err
 
-    // ---- 2. Write Program Headers (if standalone) ----
+    ; ---- 2. Write Program Headers (if standalone) ----
     IF byte [r12 + ASMCTX_standalone], e, 1
         call    elf64_write_phdrs
         check_err
     ENDIF
 
-    // ---- 3. Write .text section ----
+    ; ---- 3. Write .text section ----
     call    elf64_write_text_section
     check_err
 
-    // ---- 4. Write .data section ----
-    // Ensure .data is aligned correctly in file (A88)
+    ; ---- 4. Write .data section ----
+    ; Ensure .data is aligned correctly in file (A88)
     mov     rdi, r12
     mov     rsi, SEC_DATA
     call    asmctx_get_section
     mov     rsi, [rdx + SECTION_align]
-    IF rsi, e, 0 | mov rsi, 8 | ENDIF // Default 8-byte
+    IF rsi, e, 0 | mov rsi, 8 | ENDIF ; Default 8-byte
     mov     rdi, r13d
     call    elf64_align_file
     check_err
@@ -96,11 +96,11 @@ elf64_emit:
     call    elf64_write_data_section
     check_err
 
-    // ---- 4.5 Write Section Groups (A57) ----
+    ; ---- 4.5 Write Section Groups (A57) ----
     call    elf64_write_groups
     check_err
 
-    // ---- 5. Write Metadata sections ----
+    ; ---- 5. Write Metadata sections ----
     call    elf64_prepare_strtab
     check_err
     call    elf64_write_symtab
@@ -118,7 +118,7 @@ elf64_emit:
     call    elf64_write_debug_abbrev
     check_err
 
-    // ---- 6. Write Section Header Table ----
+    ; ---- 6. Write Section Header Table ----
     call    elf64_write_shdrs
     check_err
 
@@ -130,17 +130,17 @@ elf64_emit:
     pop     r12
     epilogue
 
-/**
+;*
  * [elf64_write_debug_line]
- */
+ ;
 elf64_write_debug_line:
     prologue
     push    rbx
     sub     rsp, 16
     
-    // 1. Unit Length (Length of data after this field)
-    // 2 (version) + 1 (type) + 1 (addr_size) + 4 (abbrev) = 8
-    // Note: Line info stub here is even simpler.
+    ; 1. Unit Length (Length of data after this field)
+    ; 2 (version) + 1 (type) + 1 (addr_size) + 4 (abbrev) = 8
+    ; Note: Line info stub here is even simpler.
     mov     dword [rsp], 0
     mov     rdi, r13d
     mov     rsi, rsp
@@ -148,7 +148,7 @@ elf64_write_debug_line:
     call    io_write
     check_err
     
-    // 2. Version
+    ; 2. Version
     mov     word [rsp], 5
     mov     rdx, 2
     call    io_write
@@ -159,38 +159,38 @@ elf64_write_debug_line:
     xor     rax, rax
     epilogue
 
-/**
+;*
  * [elf64_write_debug_info]
  * Writes a minimal DWARF v5 Compile Unit header.
- */
+ ;
 elf64_write_debug_info:
     prologue
     push    rbx
     sub     rsp, 16
     
-    // 1. Unit Length (Version + Type + AddrSize + AbbrevOffset = 8)
+    ; 1. Unit Length (Version + Type + AddrSize + AbbrevOffset = 8)
     mov     dword [rsp], 8
     mov     rdi, r13d
     mov     rsi, rsp
     mov     rdx, 4
     call    io_write
     
-    // 2. Version (5)
+    ; 2. Version (5)
     mov     word [rsp], 5
     mov     rdx, 2
     call    io_write
     
-    // 3. Unit Type (DW_UT_compile = 1)
+    ; 3. Unit Type (DW_UT_compile = 1)
     mov     byte [rsp], 1
     mov     rdx, 1
     call    io_write
     
-    // 4. Address Size (8)
+    ; 4. Address Size (8)
     mov     byte [rsp], 8
     mov     rdx, 1
     call    io_write
     
-    // 5. Abbrev Offset (0)
+    ; 5. Abbrev Offset (0)
     mov     dword [rsp], 0
     mov     rdx, 4
     call    io_write
@@ -200,13 +200,13 @@ elf64_write_debug_info:
     xor     rax, rax
     epilogue
 
-/**
+;*
  * [elf64_write_debug_abbrev]
  * Writes a minimal DWARF v5 abbreviation table.
- */
+ ;
 elf64_write_debug_abbrev:
     prologue
-    // Write a single 0 byte (Empty abbrev table)
+    ; Write a single 0 byte (Empty abbrev table)
     sub     rsp, 16
     mov     byte [rsp], 0
     mov     rdi, r13d
@@ -217,15 +217,15 @@ elf64_write_debug_abbrev:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// elf64_write_ehdr
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_ehdr
+; ============================================================================
+;
  elf64_resolve_entry
  Finds the _start symbol and computes its absolute virtual address.
  Input  : rdi = AsmCtx
  Output : rax = EXIT_OK or EXIT_UNDEF_SYMBOL
-*/
+;
 elf64_resolve_entry:
     prologue
     push    rbx
@@ -233,23 +233,23 @@ elf64_resolve_entry:
     push    r13
     push    r14
     
-    mov     r12, rdi // AsmCtx
+    mov     r12, rdi ; AsmCtx
     
     mov     rdi, [r12 + ASMCTX_symtab]
     lea     rsi, [rel .str_start]
     extern  symbol_find
     call    symbol_find
     IF rax, e, EXIT_OK
-        mov     r10, rdx // SYMBOL*
+        mov     r10, rdx ; SYMBOL*
         mov     rax, [r10 + SYMBOL_value]
         
-        // Add section base address
+        ; Add section base address
         movzx   r11, word [r10 + SYMBOL_section]
         mov     r14, [r12 + ASMCTX_sections]
-        mov     r13, [r14 + r11 * 8] // SECTION*
+        mov     r13, [r14 + r11 * 8] ; SECTION*
         add     rax, [r13 + SECTION_addr]
         
-        // A94: Architectural Validation - Entry must be in Executable section
+        ; A94: Architectural Validation - Entry must be in Executable section
         movzx   ecx, word [r13 + SECTION_flags]
         test    ecx, SHF_EXECINSTR
         jz      .error_non_exec
@@ -263,7 +263,7 @@ elf64_resolve_entry:
     ENDIF
 
 .error_non_exec:
-    mov     rax, EXIT_ENCODE_FAIL   // Better error code for "entry not executable"
+    mov     rax, EXIT_ENCODE_FAIL   ; Better error code for "entry not executable"
 
 .done:
     
@@ -275,24 +275,24 @@ elf64_resolve_entry:
 
 .str_start: db "_start", 0
 
-// ============================================================================
-/*
+; ============================================================================
+;
  elf64_write_ehdr
  Fills the 64-byte ELF file header buffer at r14 with correct values
  for a relocatable AMD64 object file (ET_REL).
  Input  : r12 = AsmCtx, r14 = ehdr buffer
  Output : rax = EXIT_OK
-*/
+;
 elf64_write_ehdr:
     prologue
 
-    // Zero the buffer
+    ; Zero the buffer
     mov     rdi, r14
     mov     rsi, ELF64_EHDR_SIZE
     call    mem_zero
     check_err
 
-    // e_ident magic
+    ; e_ident magic
     mov     byte [r14 + EHDR_IDENT + EI_MAG0],    ELFMAG0
     mov     byte [r14 + EHDR_IDENT + EI_MAG1],    ELFMAG1
     mov     byte [r14 + EHDR_IDENT + EI_MAG2],    ELFMAG2
@@ -302,14 +302,14 @@ elf64_write_ehdr:
     mov     byte [r14 + EHDR_IDENT + EI_VERSION], EV_CURRENT
     mov     byte [r14 + EHDR_IDENT + EI_OSABI],   ELFOSABI_NONE
 
-    // e_type
+    ; e_type
     IF byte [r12 + ASMCTX_standalone], e, 1
         mov     word [r14 + EHDR_TYPE],    ET_EXEC
     ELSE
         mov     word [r14 + EHDR_TYPE],    ET_REL
     ENDIF
     
-    // ---- FIX: DYNAMIC MACHINE TYPE ----
+    ; ---- FIX: DYNAMIC MACHINE TYPE ----
     mov     al, [r12 + ASMCTX_target]
     IF al, e, TARGET_AARCH64
         mov     word [r14 + EHDR_MACHINE], EM_AARCH64
@@ -321,43 +321,43 @@ elf64_write_ehdr:
     
     mov     dword [r14 + EHDR_VERSION], EV_CURRENT
 
-    // e_entry
+    ; e_entry
     mov     rax, [r12 + ASMCTX_entry_point]
     mov     qword [r14 + EHDR_ENTRY], rax
 
-    // e_phoff
+    ; e_phoff
     IF byte [r12 + ASMCTX_standalone], e, 1
         mov     qword [r14 + EHDR_PHOFF], ELF64_EHDR_SIZE
         mov     word  [r14 + EHDR_PHENTSIZE], ELF64_PHDR_SIZE
-        mov     word  [r14 + EHDR_PHNUM], 2 // For now: 1 Code + 1 Data
+        mov     word  [r14 + EHDR_PHNUM], 2 ; For now: 1 Code + 1 Data
     ELSE
         mov     qword [r14 + EHDR_PHOFF], 0
         mov     word  [r14 + EHDR_PHENTSIZE], 0
         mov     word  [r14 + EHDR_PHNUM], 0
     ENDIF
 
-    // e_shoff will be patched after all sections are written
-    // e_shnum and e_shstrndx
+    ; e_shoff will be patched after all sections are written
+    ; e_shnum and e_shstrndx
     movzx   eax, word [r12 + ASMCTX_seccount]
     add     eax, [r12 + ASMCTX_group_count]
-    add     eax, 4                 // NULL + symtab + strtab + shstrtab
+    add     eax, 4                 ; NULL + symtab + strtab + shstrtab
     IF dword [r12 + ASMCTX_reloccount], ne, 0
-        inc     eax                // .rela.text
+        inc     eax                ; .rela.text
     ENDIF
     mov     word  [r14 + EHDR_SHNUM], ax
     
-    // .shstrtab index is 1 + seccount + group_count + 2 (symtab, strtab)
+    ; .shstrtab index is 1 + seccount + group_count + 2 (symtab, strtab)
     movzx   ecx, word [r12 + ASMCTX_seccount]
     add     ecx, [r12 + ASMCTX_group_count]
-    add     ecx, 3                 // 0:NULL, 1..N:User, N+1:sym, N+2:str, N+3:shstr
+    add     ecx, 3                 ; 0:NULL, 1..N:User, N+1:sym, N+2:str, N+3:shstr
     mov     word  [r14 + EHDR_SHSTRNDX], cx
 
     xor     rax, rax
     epilogue
 
-/**
+;*
  * [elf64_write_phdrs]
- */
+ ;
 elf64_write_phdrs:
     prologue
     push    rbx
@@ -365,26 +365,26 @@ elf64_write_phdrs:
     push    r13
     push    r14
     
-    mov     r12, rdi               // r12 = AsmCtx
-    mov     r13d, esi              // r13d = fd
+    mov     r12, rdi               ; r12 = AsmCtx
+    mov     r13d, esi              ; r13d = fd
     
-    // Allocate 112 bytes for 2 PHDRs
+    ; Allocate 112 bytes for 2 PHDRs
     mov     rdi, [r12 + ASMCTX_arena]
     mov     rsi, 112
     call    arena_alloc
     check_err
-    mov     r14, rdx               // r14 = buffer
+    mov     r14, rdx               ; r14 = buffer
     
     mov     rdi, r14
     mov     rsi, 112
     call    mem_zero
     
-    // 1. Calculate Code Offset: Immediately after Headers
+    ; 1. Calculate Code Offset: Immediately after Headers
     mov     rax, ELF64_EHDR_SIZE
-    add     rax, 112               // 2 PHDRs * 56 bytes
-    mov     r15, rax               // r15 = code_offset
+    add     rax, 112               ; 2 PHDRs * 56 bytes
+    mov     r15, rax               ; r15 = code_offset
     
-    // CODE Segment
+    ; CODE Segment
     mov     dword [r14 + PHDR_type],   PT_LOAD
     mov     dword [r14 + PHDR_flags],  (PF_R | PF_X)
     mov     qword [r14 + PHDR_offset], r15
@@ -400,21 +400,21 @@ elf64_write_phdrs:
     mov     qword [r14 + PHDR_memsz],  rax
     mov     qword [r14 + PHDR_align],  0x1000
     
-    // 2. Calculate Data Offset: Align(Code_Offset + Code_Size, 4096)
-    add     r15, rax               // r15 = code_offset + code_size
+    ; 2. Calculate Data Offset: Align(Code_Offset + Code_Size, 4096)
+    add     r15, rax               ; r15 = code_offset + code_size
     add     r15, 4095
-    and     r15, -4096             // r15 = data_offset (aligned)
+    and     r15, -4096             ; r15 = data_offset (aligned)
     
-    // DATA Segment
+    ; DATA Segment
     add     r14, 56
     mov     dword [r14 + PHDR_type],   PT_LOAD
     mov     dword [r14 + PHDR_flags],  (PF_R | PF_W)
     mov     qword [r14 + PHDR_offset], r15
     
-    // Virtual Address for data segment: Entry + (Data_Offset - Code_Offset)
+    ; Virtual Address for data segment: Entry + (Data_Offset - Code_Offset)
     mov     rax, [r12 + ASMCTX_entry_point]
-    mov     rcx, r15               // data_offset
-    sub     rcx, [r14 - 56 + PHDR_offset] // code_offset
+    mov     rcx, r15               ; data_offset
+    sub     rcx, [r14 - 56 + PHDR_offset] ; code_offset
     add     rax, rcx
     
     mov     qword [r14 + PHDR_vaddr],  rax
@@ -426,19 +426,19 @@ elf64_write_phdrs:
     mov     rax, [rdx + SECTION_size]
     mov     qword [r14 + PHDR_filesz], rax
     
-    // memsz = data_size + bss_size
-    mov     r8, rax                // r8 = data_size
+    ; memsz = data_size + bss_size
+    mov     r8, rax                ; r8 = data_size
     
     mov     rdi, r12
     mov     rsi, SEC_BSS
     call    asmctx_get_section
     mov     rax, [rdx + SECTION_size]
-    add     r8, rax                // r8 = data_size + bss_size
+    add     r8, rax                ; r8 = data_size + bss_size
     
     mov     qword [r14 + PHDR_memsz],  r8
     mov     qword [r14 + PHDR_align],  0x1000
     
-    // Write buffer
+    ; Write buffer
     sub     r14, 56
     mov     rdi, r13d
     mov     rsi, r14
@@ -453,25 +453,25 @@ elf64_write_phdrs:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// elf64_write_text_section
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_text_section
+; ============================================================================
+;
  Writes the assembled .text bytes to the output fd.
  Input  : r12 = AsmCtx, r13 = fd
  Output : rax = EXIT_OK or error
-*/
+;
 elf64_write_text_section:
     prologue
 
-    // Get .text section from AsmCtx section array
+    ; Get .text section from AsmCtx section array
     mov     rdi, r12
     mov     rsi, SEC_TEXT
     call    asmctx_get_section
     check_err
-    mov     r10, rdx               // r10 = SECTION*
+    mov     r10, rdx               ; r10 = SECTION*
 
-    mov     rdi, r13d              // fd
+    mov     rdi, r13d              ; fd
     mov     rsi, [r10 + SECTION_data]
     mov     rdx, [r10 + SECTION_size]
     call    io_write
@@ -480,9 +480,9 @@ elf64_write_text_section:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// elf64_write_data_section
-// ============================================================================
+; ============================================================================
+; elf64_write_data_section
+; ============================================================================
 elf64_write_data_section:
     prologue
 
@@ -501,9 +501,9 @@ elf64_write_data_section:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// elf64_prepare_strtab
-// ============================================================================
+; ============================================================================
+; elf64_prepare_strtab
+; ============================================================================
 elf64_prepare_strtab:
     prologue
     push    rbx
@@ -512,12 +512,12 @@ elf64_prepare_strtab:
     push    r14
     push    r15
     
-    mov     r12, rdi               // AsmCtx
+    mov     r12, rdi               ; AsmCtx
     mov     rbx, [r12 + ASMCTX_symtab]
     
-    // Start at index 1 (0 is null byte)
+    ; Start at index 1 (0 is null byte)
     mov     r15, 1
-    xor     r14, r14               // i = 0
+    xor     r14, r14               ; i = 0
     
 .outer_loop:
     cmp     r14d, [r12 + ASMCTX_symcount]
@@ -528,8 +528,8 @@ elf64_prepare_strtab:
     test    rsi, rsi
     jz      .next_outer
     
-    // Check if this string appeared before index r14
-    xor     rcx, rcx               // j = 0
+    ; Check if this string appeared before index r14
+    xor     rcx, rcx               ; j = 0
 .inner_loop:
     cmp     ecx, r14d
     jge     .is_unique
@@ -539,7 +539,7 @@ elf64_prepare_strtab:
     test    rax, rax
     jz      .next_inner
     
-    // Compare names
+    ; Compare names
     push    rsi
     push    rcx
     mov     rdi, rax
@@ -551,7 +551,7 @@ elf64_prepare_strtab:
     test    rax, rax
     jnz     .next_inner
     
-    // Found duplicate! Reuse index
+    ; Found duplicate! Reuse index
     mov     eax, [rbx + rcx * SYMBOL_SIZE + SYMBOL_name_idx]
     mov     [r13 + SYMBOL_name_idx], eax
     jmp     .next_outer
@@ -561,19 +561,19 @@ elf64_prepare_strtab:
     jmp     .inner_loop
 
 .is_unique:
-    // Store current offset
+    ; Store current offset
     mov     [r13 + SYMBOL_name_idx], r15d
     
-    // Advance offset
+    ; Advance offset
     mov     rdi, rsi
     extern  str_len
     call    str_len
     add     r15, rax
     inc     r15
     
-    // A98: ELF 32-bit String Table Limit Validation
+    ; A98: ELF 32-bit String Table Limit Validation
     IF r15, g, 0xFFFFFFFF
-        mov rax, EXIT_ENCODE_FAIL // Reusing ENCODE_FAIL for simplicity or specific string overflow
+        mov rax, EXIT_ENCODE_FAIL ; Reusing ENCODE_FAIL for simplicity or specific string overflow
         jmp .error_bounds
     ENDIF
     
@@ -586,7 +586,7 @@ elf64_prepare_strtab:
     jmp     .epilogue
 
 .error_bounds:
-    // Error code already in rax
+    ; Error code already in rax
 
 .epilogue:
     pop     r15
@@ -596,14 +596,14 @@ elf64_prepare_strtab:
     pop     rbx
     epilogue
 
-// ============================================================================
-// elf64_write_symtab
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_symtab
+; ============================================================================
+;
  Writes the ELF64 symbol table (.symtab).
  Each utasm SYMBOL maps to one Sym64 entry (24 bytes).
  Input  : r12 = AsmCtx, r13 = fd
-*/
+;
 elf64_write_symtab:
     prologue
     push    rbx
@@ -612,12 +612,12 @@ elf64_write_symtab:
     push    r14
     push    r15
 
-    mov     r12, rdi               // r12 = AsmCtx
-    mov     r13d, esi              // r13d = fd
+    mov     r12, rdi               ; r12 = AsmCtx
+    mov     r13d, esi              ; r13d = fd
     
-    sub     rsp, ELF64_SYM_SIZE    // scratch Sym64
+    sub     rsp, ELF64_SYM_SIZE    ; scratch Sym64
 
-    // ---- 1. Null Symbol ----
+    ; ---- 1. Null Symbol ----
     mov     rdi, rsp
     mov     rsi, ELF64_SYM_SIZE
     call    mem_zero
@@ -627,9 +627,9 @@ elf64_write_symtab:
     call    io_write
     check_err
 
-    // ---- 2. Pass 1: Local Symbols ----
-    mov     r11, 1                 // ELF symbol index (0 is Null)
-    xor     r14, r14               // internal loop index
+    ; ---- 2. Pass 1: Local Symbols ----
+    mov     r11, 1                 ; ELF symbol index (0 is Null)
+    xor     r14, r14               ; internal loop index
     mov     r15, [r12 + ASMCTX_symtab]
     mov     ebx, [r12 + ASMCTX_symcount]
 .local_loop:
@@ -646,7 +646,7 @@ elf64_write_symtab:
     inc     r14
     jmp     .local_loop
 
-    // ---- 3. Pass 2: Global/Weak Symbols ----
+    ; ---- 3. Pass 2: Global/Weak Symbols ----
 .global_pass:
     xor     r14, r14
 .global_loop:
@@ -673,23 +673,23 @@ elf64_write_symtab:
     xor     rax, rax
     epilogue
 
-// Helper: writes SYMBOL at R10 to FD R13D using scratch RSP
+; Helper: writes SYMBOL at R10 to FD R13D using scratch RSP
 .write_one_sym:
     push    rdi
     push    rsi
     push    rdx
     
     mov     rdi, rsp
-    add     rdi, 24                // back to scratch
+    add     rdi, 24                ; back to scratch
     mov     rsi, ELF64_SYM_SIZE
     call    mem_zero
     
-    // st_name
+    ; st_name
     mov     eax, [r10 + SYMBOL_name_idx]
     mov     [rsp + 24 + SYM64_NAME], eax
     
-    // st_info: (bind << 4) | (kind == LABEL ? FUNC : OBJECT)
-    movzx   eax, byte [r10 + SYMBOL_vis]   // VIS_LOCAL=0, VIS_GLOBAL=1, VIS_WEAK=2
+    ; st_info: (bind << 4) | (kind == LABEL ? FUNC : OBJECT)
+    movzx   eax, byte [r10 + SYMBOL_vis]   ; VIS_LOCAL=0, VIS_GLOBAL=1, VIS_WEAK=2
     shl     al, 4
     mov     cl, [r10 + SYMBOL_kind]
     IF cl, e, SYM_LABEL
@@ -699,18 +699,18 @@ elf64_write_symtab:
     ENDIF
     mov     [rsp + 24 + SYM64_INFO], al
     
-    // st_other: STV_DEFAULT (0)
+    ; st_other: STV_DEFAULT (0)
     mov     byte [rsp + 24 + SYM64_OTHER], 0
     
-    // st_shndx
+    ; st_shndx
     movzx   eax, word [r10 + SYMBOL_section]
     mov     [rsp + 24 + SYM64_SHNDX], ax
     
-    // st_value
+    ; st_value
     mov     rax, [r10 + SYMBOL_value]
     mov     [rsp + 24 + SYM64_VALUE], rax
     
-    // st_size
+    ; st_size
     mov     rax, [r10 + SYMBOL_size]
     mov     [rsp + 24 + SYM64_SIZE], rax
     
@@ -732,23 +732,23 @@ elf64_write_symtab:
     pop     rbx
     epilogue
 
-// ============================================================================
-// elf64_write_strtab
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_strtab
+; ============================================================================
+;
  Writes the .strtab section — a sequence of null-terminated symbol names.
  The null symbol at index 0 is the first byte (\0).
-*/
+;
 elf64_write_strtab:
     prologue
     push    rbx
     push    r14
     push    r15
 
-    // Start at offset 1 (0 is null)
+    ; Start at offset 1 (0 is null)
     mov     r15, 1
 
-    // Write leading null byte
+    ; Write leading null byte
     sub     rsp, 8
     mov     byte [rsp], 0
     mov     rdi, r13d
@@ -758,7 +758,7 @@ elf64_write_strtab:
     add     rsp, 8
     check_err
 
-    // Walk symbols and write each name
+    ; Walk symbols and write each name
     mov     rbx, [r12 + ASMCTX_symtab]
     mov     r14d, [r12 + ASMCTX_symcount]
     xor     rcx, rcx
@@ -770,7 +770,7 @@ elf64_write_strtab:
     lea     rdi, [rbx + rcx * SYMBOL_SIZE]
     mov     eax, [rdi + SYMBOL_name_idx]
     
-    // Only write if this is the first occurrence (idx == r15)
+    ; Only write if this is the first occurrence (idx == r15)
     IF eax, e, r15d
         mov     rsi, [rdi + SYMBOL_name]
         push    rax
@@ -797,10 +797,10 @@ elf64_write_strtab:
     pop     rbx
     epilogue
 
-/**
+;*
  * [elf64_write_groups]
  * Purpose: Emits SHT_GROUP data for each unique section group.
- */
+ ;
 elf64_write_groups:
     prologue
     push    rbx
@@ -809,30 +809,30 @@ elf64_write_groups:
     push    r14
     push    r15
     
-    mov     r12, rdi               // AsmCtx
-    mov     r13d, esi              // fd
+    mov     r12, rdi               ; AsmCtx
+    mov     r13d, esi              ; fd
     
-    // We need to iterate over UNIQUE groups.
-    // A group is unique if its signature symbol hasn't been processed yet.
-    // We'll use a temporary array on the stack to track processed signatures.
+    ; We need to iterate over UNIQUE groups.
+    ; A group is unique if its signature symbol hasn't been processed yet.
+    ; We'll use a temporary array on the stack to track processed signatures.
     movzx   eax, word [r12 + ASMCTX_seccount]
-    shl     rax, 3                 // 8 bytes per pointer
+    shl     rax, 3                 ; 8 bytes per pointer
     sub     rsp, rax
-    mov     r14, rsp               // r14 = processed_sigs array
+    mov     r14, rsp               ; r14 = processed_sigs array
     
     mov     rdi, r14
     mov     rsi, rax
     call    mem_zero
     
-    xor     r15, r15               // n_processed = 0
+    xor     r15, r15               ; n_processed = 0
     
-    xor     rbx, rbx               // i = 0
+    xor     rbx, rbx               ; i = 0
 .outer_loop:
     cmp     bx, [r12 + ASMCTX_seccount]
     jge     .done
     
     mov     rax, [r12 + ASMCTX_sections]
-    mov     r10, [rax + rbx * 8]   // r10 = SECTION*
+    mov     r10, [rax + rbx * 8]   ; r10 = SECTION*
     
     test    word [r10 + SECTION_flags], SHF_GROUP
     jz      .next_outer
@@ -841,7 +841,7 @@ elf64_write_groups:
     test    r11, r11
     jz      .next_outer
     
-    // Check if r11 is in processed_sigs
+    ; Check if r11 is in processed_sigs
     xor     rcx, rcx
 .sig_check:
     cmp     rcx, r15
@@ -852,12 +852,12 @@ elf64_write_groups:
     jmp     .sig_check
     
 .new_group:
-    // Mark as processed
+    ; Mark as processed
     mov     [r14 + r15 * 8], r11
     inc     r15
     
-    // Emit group data: [flags, idx1, idx2, ...]
-    // 1. GRP_COMDAT flag (always first word)
+    ; Emit group data: [flags, idx1, idx2, ...]
+    ; 1. GRP_COMDAT flag (always first word)
     sub     rsp, 4
     mov     eax, [r10 + SECTION_group_flags]
     mov     [rsp], eax
@@ -868,19 +868,19 @@ elf64_write_groups:
     add     rsp, 4
     check_err
     
-    // 2. Member section indices
-    xor     rcx, rcx               // j = 0
+    ; 2. Member section indices
+    xor     rcx, rcx               ; j = 0
 .member_loop:
     cmp     cx, [r12 + ASMCTX_seccount]
     jge     .next_outer
     
     mov     rax, [r12 + ASMCTX_sections]
-    mov     r8, [rax + rcx * 8]    // r8 = member SECTION*
+    mov     r8, [rax + rcx * 8]    ; r8 = member SECTION*
     
     cmp     [r8 + SECTION_group_sig], r11
     jne     .next_member
     
-    // Member found! Index is j + 1 (0 is NULL)
+    ; Member found! Index is j + 1 (0 is NULL)
     sub     rsp, 4
     lea     eax, [ecx + 1]
     mov     [rsp], eax
@@ -912,19 +912,19 @@ elf64_write_groups:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// elf64_write_shstrtab
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_shstrtab
+; ============================================================================
+;
  Writes .shstrtab — section name string table.
  Fixed set of names for the standard sections we emit.
-*/
+;
 elf64_write_shstrtab:
     prologue
 
     mov     rdi, r13d
 
-    // Write the whole shstrtab as one blob
+    ; Write the whole shstrtab as one blob
     lea     rsi, [shstrtab_data]
     mov     rdx, shstrtab_size
     call    io_write
@@ -933,19 +933,19 @@ elf64_write_shstrtab:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// elf64_write_rela
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_rela
+; ============================================================================
+;
  Writes .rela.text — relocation entries for unresolved symbols in .text.
  Walks the RELOC table stored in AsmCtx.
-*/
+;
 elf64_write_rela:
     prologue
     push    rbx
     push    r14
 
-    sub     rsp, ELF64_RELA_SIZE   // scratch Rela64 on stack
+    sub     rsp, ELF64_RELA_SIZE   ; scratch Rela64 on stack
 
     mov     rbx, [r12 + ASMCTX_reloctab]
     mov     r14d, [r12 + ASMCTX_reloccount]
@@ -957,32 +957,32 @@ elf64_write_rela:
 
     lea     rdi, [rbx + rcx * RELOC_SIZE]
 
-    // r_offset
+    ; r_offset
     mov     rax, [rdi + RELOC_offset]
     mov     qword [rsp + RELA_OFFSET], rax
 
-    // r_info: (sym_index << 32) | reloc_type
-    mov     rsi, [rdi + RELOC_sym] // symbol name ptr
+    ; r_info: (sym_index << 32) | reloc_type
+    mov     rsi, [rdi + RELOC_sym] ; symbol name ptr
     mov     rdi, [r12 + ASMCTX_symtab]
     extern  symbol_find
     call    symbol_find
     IF rax, e, EXIT_OK
         mov     eax, [rdx + SYMBOL_elf_idx]
     ELSE
-        // If symbol is truly missing, this should have been caught in Pass 2.
-        // For now, use 0 (Null symbol) as fallback.
+        ; If symbol is truly missing, this should have been caught in Pass 2.
+        ; For now, use 0 (Null symbol) as fallback.
         xor     eax, eax
     ENDIF
     
     mov     r11, rax
     shl     r11, 32
     
-    // ---- FIX: ARCH-SPECIFIC RELOC TYPE ----
+    ; ---- FIX: ARCH-SPECIFIC RELOC TYPE ----
     movzx   edx, dword [rdi + RELOC_type]
     or      r11, rdx
     mov     qword [rsp + RELA_INFO], r11
 
-    // r_addend
+    ; r_addend
     mov     rax, [rdi + RELOC_addend]
     mov     qword [rsp + RELA_ADDEND], rax
 
@@ -1002,14 +1002,14 @@ elf64_write_rela:
     pop     rbx
     epilogue
 
-// ============================================================================
-// elf64_write_shdrs
-// ============================================================================
-/*
+; ============================================================================
+; elf64_write_shdrs
+; ============================================================================
+;
  Writes the section header table (8 entries for a minimal object).
  Sections: [0] NULL, [1] .text, [2] .data, [3] .bss,
            [4] .symtab, [5] .strtab, [6] .shstrtab, [7] .rela.text
-*/
+;
 elf64_write_shdrs:
     prologue
     push    rbx
@@ -1018,34 +1018,34 @@ elf64_write_shdrs:
     push    r14
     push    r15
     
-    mov     rbx, rdi               // AsmCtx
-    mov     r12, rsi               // FD
+    mov     rbx, rdi               ; AsmCtx
+    mov     r12, rsi               ; FD
     
-    sub     rsp, ELF64_SHDR_SIZE   // scratch shdr
+    sub     rsp, ELF64_SHDR_SIZE   ; scratch shdr
     
-    // 1. NULL Section [0]
+    ; 1. NULL Section [0]
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
     
-    // 2. Iterate User Sections
+    ; 2. Iterate User Sections
     mov     r14, [rbx + ASMCTX_sections]
     mov     r15d, [rbx + ASMCTX_seccount]
     xor     ecx, ecx
     
-    // Initial file offset (after ELF header + Phdrs)
-    // For now, assume a fixed start or pass it in. 
-    // Actually, we should calculate this based on the previous sections.
-    mov     r11, 0x1000            // Initial page alignment for .text
+    ; Initial file offset (after ELF header + Phdrs)
+    ; For now, assume a fixed start or pass it in. 
+    ; Actually, we should calculate this based on the previous sections.
+    mov     r11, 0x1000            ; Initial page alignment for .text
     
 .sec_loop:
     cmp     ecx, r15d
     jge     .sec_done
     
-    mov     r13, [r14 + rcx * 8]   // r13 = SECTION*
+    mov     r13, [r14 + rcx * 8]   ; r13 = SECTION*
     
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
     
-    // Name index (placeholder)
+    ; Name index (placeholder)
     mov     dword [rsp + SHDR_NAME], 0 
     
     mov     eax, [r13 + SECTION_elf_type]
@@ -1057,11 +1057,11 @@ elf64_write_shdrs:
     mov     rax, [r13 + SECTION_addr]
     mov     qword [rsp + SHDR_ADDR], rax
     
-    // sh_offset: Align current r11 to section alignment
+    ; sh_offset: Align current r11 to section alignment
     mov     rax, [r13 + SECTION_align]
     test    rax, rax | jnz .use_align | mov rax, 1 | .use_align:
     
-    // r11 = (r11 + rax - 1) & ~(rax - 1)
+    ; r11 = (r11 + rax - 1) & ~(rax - 1)
     dec     rax
     add     r11, rax
     not     rax
@@ -1072,8 +1072,8 @@ elf64_write_shdrs:
     mov     rax, [r13 + SECTION_size]
     mov     qword [rsp + SHDR_SIZE], rax
     
-    // Update r11 for next section (unless it's NOBITS)
-    cmp     dword [r13 + SECTION_elf_type], 8 // SHT_NOBITS (.bss)
+    ; Update r11 for next section (unless it's NOBITS)
+    cmp     dword [r13 + SECTION_elf_type], 8 ; SHT_NOBITS (.bss)
     je      .no_offset_inc
     add     r11, rax
 .no_offset_inc:
@@ -1092,29 +1092,29 @@ elf64_write_shdrs:
     jmp     .sec_loop
     
 .sec_done:
-    // 2.5 Iterate Groups (A57)
-    // We need to emit a SHT_GROUP header for each unique group.
-    // Use the same unique-sig collection logic on the stack.
-    push    r11                    // Save current file offset
+    ; 2.5 Iterate Groups (A57)
+    ; We need to emit a SHT_GROUP header for each unique group.
+    ; Use the same unique-sig collection logic on the stack.
+    push    r11                    ; Save current file offset
     movzx   eax, word [rbx + ASMCTX_seccount]
     shl     rax, 3
     sub     rsp, rax
-    mov     r14, rsp               // r14 = processed_sigs array
+    mov     r14, rsp               ; r14 = processed_sigs array
     mov     rdi, r14 | mov rsi, rax | call mem_zero
-    xor     r15, r15               // n_processed = 0
-    pop     r11                    // r11 = offset before groups
+    xor     r15, r15               ; n_processed = 0
+    pop     r11                    ; r11 = offset before groups
     
-    xor     rcx, rcx               // i = 0
+    xor     rcx, rcx               ; i = 0
 .group_loop:
     cmp     cx, [rbx + ASMCTX_seccount]
     jge     .groups_done
     
     mov     rax, [rbx + ASMCTX_sections]
-    mov     r10, [rax + rcx * 8]   // r10 = SECTION*
+    mov     r10, [rax + rcx * 8]   ; r10 = SECTION*
     test    word [r10 + SECTION_flags], SHF_GROUP | jz .next_group_header
     mov     r8, [r10 + SECTION_group_sig] | test r8, r8 | jz .next_group_header
     
-    // De-duplicate
+    ; De-duplicate
     xor     rdx, rdx
 .sig_check_shdr:
     cmp     rdx, r15 | jge .new_group_shdr
@@ -1126,26 +1126,26 @@ elf64_write_shdrs:
     inc     r15
     
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME], 55    // ".group"
-    mov     dword [rsp + SHDR_TYPE], 17    // SHT_GROUP
+    mov     dword [rsp + SHDR_NAME], 55    ; ".group"
+    mov     dword [rsp + SHDR_TYPE], 17    ; SHT_GROUP
     mov     qword [rsp + SHDR_OFFSET], r11
     
-    // Info = symbol index of signature
+    ; Info = symbol index of signature
     mov     eax, [r8 + SYMBOL_elf_idx]
     mov     dword [rsp + SHDR_INFO], eax
     
-    // Link = .symtab index
+    ; Link = .symtab index
     movzx   eax, word [rbx + ASMCTX_seccount]
     add     eax, [rbx + ASMCTX_group_count]
-    inc     eax                    // NULL + User + Groups + SYMTAB
+    inc     eax                    ; NULL + User + Groups + SYMTAB
     mov     dword [rsp + SHDR_LINK], eax
     
     mov     qword [rsp + SHDR_ADDRALIGN], 4
     mov     qword [rsp + SHDR_ENTSIZE], 4
     
-    // Size = 4 * (1 + num_members)
-    mov     r9, 4                  // start with GRP_COMDAT word
-    xor     rdx, rdx               // j = 0
+    ; Size = 4 * (1 + num_members)
+    mov     r9, 4                  ; start with GRP_COMDAT word
+    xor     rdx, rdx               ; j = 0
 .count_members:
     cmp     dx, [rbx + ASMCTX_seccount] | jge .emit_group_shdr
     mov     rax, [rbx + ASMCTX_sections]
@@ -1157,7 +1157,7 @@ elf64_write_shdrs:
     
 .emit_group_shdr:
     mov     qword [rsp + SHDR_SIZE], r9
-    add     r11, r9                // Advance offset for next group
+    add     r11, r9                ; Advance offset for next group
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
     
 .next_group_header:
@@ -1166,74 +1166,74 @@ elf64_write_shdrs:
 .groups_done:
     movzx   eax, word [rbx + ASMCTX_seccount]
     shl     rax, 3
-    add     rsp, rax               // Clean up processed_sigs
+    add     rsp, rax               ; Clean up processed_sigs
 
-    // 3. .symtab
+    ; 3. .symtab
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME], 18    // ".symtab"
-    mov     dword [rsp + SHDR_TYPE], 2     // SHT_SYMTAB
-    mov     qword [rsp + SHDR_ENTSIZE], 24 // sizeof(Elf64_Sym)
-    // Link = .strtab index
+    mov     dword [rsp + SHDR_NAME], 18    ; ".symtab"
+    mov     dword [rsp + SHDR_TYPE], 2     ; SHT_SYMTAB
+    mov     qword [rsp + SHDR_ENTSIZE], 24 ; sizeof(Elf64_Sym)
+    ; Link = .strtab index
     movzx   eax, word [rbx + ASMCTX_seccount]
     add     eax, [rbx + ASMCTX_group_count]
-    add     eax, 2                 // NULL + User + Groups + SYMTAB + STRTAB
+    add     eax, 2                 ; NULL + User + Groups + SYMTAB + STRTAB
     mov     dword [rsp + SHDR_LINK], eax
-    // ... remaining shdr fields ...
+    ; ... remaining shdr fields ...
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
 
-    // 4. .strtab
+    ; 4. .strtab
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME], 26    // ".strtab"
-    mov     dword [rsp + SHDR_TYPE], 3     // SHT_STRTAB
+    mov     dword [rsp + SHDR_NAME], 26    ; ".strtab"
+    mov     dword [rsp + SHDR_TYPE], 3     ; SHT_STRTAB
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
 
-    // 5. .shstrtab
+    ; 5. .shstrtab
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     dword [rsp + SHDR_NAME], 34    // ".shstrtab"
-    mov     dword [rsp + SHDR_TYPE], 3     // SHT_STRTAB
+    mov     dword [rsp + SHDR_NAME], 34    ; ".shstrtab"
+    mov     dword [rsp + SHDR_TYPE], 3     ; SHT_STRTAB
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
     
     pop     r15 | pop     r14 | pop     r13 | pop     r12 | pop     rbx
     epilogue
 
-/**
+;*
  * [elf64_align_file]
  * Writes padding to FD until current offset is aligned to RSI.
  * Input:
  *   RDI: FD
  *   RSI: Alignment (Power of 2)
- */
+ ;
 elf64_align_file:
     prologue
     push    rbx
     push    r12
     push    r13
     
-    mov     rbx, rdi               // FD
-    mov     r12, rsi               // alignment
+    mov     rbx, rdi               ; FD
+    mov     r12, rsi               ; alignment
     
-    // 1. Get current offset
+    ; 1. Get current offset
     mov     rdi, rbx
     xor     rsi, rsi
-    mov     rdx, 1                 // SEEK_CUR
+    mov     rdx, 1                 ; SEEK_CUR
     extern  io_lseek
     call    io_lseek
-    // If seek fails (e.g. pipe), we can't align correctly for some sections
-    // but for now we assume seekable file for ELF emission.
+    ; If seek fails (e.g. pipe), we can't align correctly for some sections
+    ; but for now we assume seekable file for ELF emission.
     test    rax, rax
     js      .done
-    mov     r13, rax               // current pos
+    mov     r13, rax               ; current pos
     
-    // 2. Calculate padding
+    ; 2. Calculate padding
     mov     rax, r13
     mov     rcx, r12
-    dec     rcx                    // mask
+    dec     rcx                    ; mask
     and     rax, rcx
-    jz      .done                  // already aligned
+    jz      .done                  ; already aligned
     
-    sub     r12, rax               // r12 = padding size
+    sub     r12, rax               ; r12 = padding size
     
-    // 3. Write padding
+    ; 3. Write padding
 .loop:
     test    r12, r12
     jz      .done
@@ -1253,20 +1253,20 @@ elf64_align_file:
     xor     rax, rax
     epilogue
 
-// ============================================================================
-// Read-only data: .shstrtab content
-// ============================================================================
+; ============================================================================
+; Read-only data: .shstrtab content
+; ============================================================================
 [SECTION .rodata]
 
 shstrtab_data:
-    db 0                // [0]  null (index 0 = unnamed)
-    db ".text", 0       // [1]
-    db ".data", 0       // [7]
-    db ".bss",  0       // [13]
-    db ".symtab", 0     // [18]
-    db ".strtab", 0     // [26]
-    db ".shstrtab", 0   // [34]
-    db ".rela.text", 0  // [44]
-    db ".group", 0      // [55]
+    db 0                ; [0]  null (index 0 = unnamed)
+    db ".text", 0       ; [1]
+    db ".data", 0       ; [7]
+    db ".bss",  0       ; [13]
+    db ".symtab", 0     ; [18]
+    db ".strtab", 0     ; [26]
+    db ".shstrtab", 0   ; [34]
+    db ".rela.text", 0  ; [44]
+    db ".group", 0      ; [55]
 shstrtab_end:
-%def shstrtab_size (shstrtab_end - shstrtab_data)
+%define shstrtab_size (shstrtab_end - shstrtab_data)

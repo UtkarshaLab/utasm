@@ -1,13 +1,13 @@
-/*
+;
  ============================================================================
  File        : src/arch/aarch64.s
  Project     : utasm
  Description : AArch64 Mnemonic and Register Lookup Tables.
  ============================================================================
-*/
+;
 
-%inc "core/macro.s"
-%inc "arch/aarch64.s"
+%include "core/macro.s"
+%include "arch/aarch64.s"
 
 section .data
 global mnc_tb_arm64
@@ -969,7 +969,7 @@ mnc_tb_arm64:
 
 global aarch64_register_table
 aarch64_register_table:
-    // ---- 64-bit GPRs (X0-X30) ----
+    ; ---- 64-bit GPRs (X0-X30) ----
     %assign i 0
     %rep 31
         compile_time_hash "x%[i]", H_X%[i]
@@ -977,13 +977,13 @@ aarch64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- Special Registers ----
+    ; ---- Special Registers ----
     compile_time_hash "xzr", H_XZR
     dq H_XZR, (8 << 8) | 31
     compile_time_hash "sp", H_SP
     dq H_SP, (8 << 8) | 32
 
-    // ---- 32-bit GPRs (W0-W30) ----
+    ; ---- 32-bit GPRs (W0-W30) ----
     %assign i 0
     %rep 31
         compile_time_hash "w%[i]", H_W%[i]
@@ -991,7 +991,7 @@ aarch64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- SIMD/FP Vector Registers (V0-V31) ----
+    ; ---- SIMD/FP Vector Registers (V0-V31) ----
     %assign i 0
     %rep 32
         compile_time_hash "v%[i]", H_V%[i]
@@ -1009,7 +1009,7 @@ aarch64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- SVE Scalable Vector Registers (Z0-Z31) ----
+    ; ---- SVE Scalable Vector Registers (Z0-Z31) ----
     %assign i 0
     %rep 32
         compile_time_hash "z%[i]", H_Z%[i]
@@ -1017,7 +1017,7 @@ aarch64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- SVE Predicate Registers (P0-P15) ----
+    ; ---- SVE Predicate Registers (P0-P15) ----
     %assign i 0
     %rep 16
         compile_time_hash "p%[i]", H_P%[i]

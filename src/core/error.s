@@ -1,64 +1,64 @@
-/*
+;
  ============================================
  File     : src/core/error.s
  Project  : utasm
  Author   : Utkarsha Lab
  License  : Apache-2.0
  ============================================
-*/
+;
 
-%inc "include/constant.s"
-%inc "include/type.s"
-%inc "include/macro.s"
+%include "include/constant.s"
+%include "include/type.s"
+%include "include/macro.s"
 
-// ============================================================================
-// ERROR REPORTER
-// ============================================================================
-// Handles all diagnostic output for utasm.
-// Prints errors, warnings, and info messages to stderr.
-//
-// Output format:
-//   file.s:line:col: error: message
-//   file.s:line:col: warning: message
-//   file.s:line:col: note: message
-//
-// Color output (when CTX_FLAG_COLOR is set):
-//   error   → bold red
-//   warning → bold yellow
-//   note    → bold cyan
-//   info    → bold white
-//
-// All errors increment AsmCtx.err_count.
-// All warnings increment AsmCtx.warn_count.
-// When err_count >= MAX_ERRORS, utasm stops immediately.
-// When CTX_FLAG_WERROR is set, warnings are treated as errors.
-//
-// Calling convention (AMD64):
-//   args  : rdi, rsi, rdx, rcx, r8, r9
-//   return: rax = error code, rdx = result
-//   callee saved: rbx, r12-r15, rbp
+; ============================================================================
+; ERROR REPORTER
+; ============================================================================
+; Handles all diagnostic output for utasm.
+; Prints errors, warnings, and info messages to stderr.
+;
+; Output format:
+;   file.s:line:col: error: message
+;   file.s:line:col: warning: message
+;   file.s:line:col: note: message
+;
+; Color output (when CTX_FLAG_COLOR is set):
+;   error   → bold red
+;   warning → bold yellow
+;   note    → bold cyan
+;   info    → bold white
+;
+; All errors increment AsmCtx.err_count.
+; All warnings increment AsmCtx.warn_count.
+; When err_count >= MAX_ERRORS, utasm stops immediately.
+; When CTX_FLAG_WERROR is set, warnings are treated as errors.
+;
+; Calling convention (AMD64):
+;   args  : rdi, rsi, rdx, rcx, r8, r9
+;   return: rax = error code, rdx = result
+;   callee saved: rbx, r12-r15, rbp
 
 [SECTION .text]
 
-// ---- error_init -------------------------
-/*
+; ---- error_init -------------------------
+;
  error_init
  Initialises the error reporter against an AsmCtx.
  Must be called before any other error function.
  Input    : rdi = pointer to AsmCtx
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : rcx
-*/
+;
 global error_init
 error_init:
     test    rdi, rdi
     jz      .null_ptr
 
-    // validate AsmCtx tag
+    ; validate AsmCtx tag
     cmp     byte [rdi + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    // zero error and warning counters
+    ; zero error and warning counters
     mov     word [rdi + ASMCTX_err_count],  0
     mov     word [rdi + ASMCTX_warn_count], 0
 
@@ -70,8 +70,8 @@ error_init:
     mov     rax, EXIT_INTERNAL
     ret
 
-// ---- error_emit -------------------------
-/*
+; ---- error_emit -------------------------
+;
  error_emit
  Emits a formatted error message to stderr.
  Increments AsmCtx.err_count.
@@ -85,7 +85,7 @@ error_init:
             r8  = pointer to message string
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : r9, r10, r11
-*/
+;
 global error_emit
 error_emit:
     push    rbx
@@ -94,44 +94,44 @@ error_emit:
     push    r14
     push    r15
 
-    mov     rbx, rdi               // save AsmCtx
-    mov     r12, rsi               // save filename
-    mov     r13, rdx               // save line
-    mov     r14, rcx               // save column
-    mov     r15, r8                // save message
+    mov     rbx, rdi               ; save AsmCtx
+    mov     r12, rsi               ; save filename
+    mov     r13, rdx               ; save line
+    mov     r14, rcx               ; save column
+    mov     r15, r8                ; save message
 
-    // validate ctx
+    ; validate ctx
     test    rbx, rbx
     jz      .bad_ctx
     cmp     byte [rbx + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    // increment error count
+    ; increment error count
     movzx   rax, word [rbx + ASMCTX_err_count]
     inc     rax
     mov     word [rbx + ASMCTX_err_count], ax
 
-    // check color flag
+    ; check color flag
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_error
 
-    // write bold red for error
+    ; write bold red for error
     mov     rdi, STDERR_FILENO
     lea     rsi, [color_bold_red]
     mov     rdx, color_bold_red_len
     call    error_write_raw
 
 .no_color_error:
-    // print: filename:line:col: error: message
+    ; print: filename:line:col: error: message
     call    .print_location
     call    .print_severity_error
     call    .print_message
 
-    // print source line and caret
+    ; print source line and caret
     call    .print_caret_diagnostics
 
-    // reset color
+    ; reset color
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
     jz      .check_limit
@@ -142,12 +142,12 @@ error_emit:
     call    error_write_raw
 
 .check_limit:
-    // check if we hit MAX_ERRORS
+    ; check if we hit MAX_ERRORS
     movzx   rax, word [rbx + ASMCTX_err_count]
     cmp     rax, MAX_ERRORS
     jl      .done
 
-    // too many errors — fatal
+    ; too many errors — fatal
     mov     rdi, rbx
     lea     rsi, [msg_too_many_errors]
     call    error_fatal
@@ -170,8 +170,8 @@ error_emit:
     pop     rbx
     ret
 
-// ---- error_warn -------------------------
-/*
+; ---- error_warn -------------------------
+;
  error_warn
  Emits a formatted warning message to stderr.
  Increments AsmCtx.warn_count.
@@ -183,7 +183,7 @@ error_emit:
             r8  = pointer to message string
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : r9, r10, r11
-*/
+;
 global error_warn
 error_warn:
     push    rbx
@@ -203,12 +203,12 @@ error_warn:
     cmp     byte [rbx + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    // if WERROR flag set — treat as error
+    ; if WERROR flag set — treat as error
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_WERROR
     jz      .emit_warn
 
-    // redirect to error_emit
+    ; redirect to error_emit
     mov     rdi, rbx
     mov     rsi, r12
     mov     rdx, r13
@@ -218,12 +218,12 @@ error_warn:
     jmp     .done
 
 .emit_warn:
-    // increment warning count
+    ; increment warning count
     movzx   rax, word [rbx + ASMCTX_warn_count]
     inc     rax
     mov     word [rbx + ASMCTX_warn_count], ax
 
-    // color — bold yellow
+    ; color — bold yellow
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_warn
@@ -238,7 +238,7 @@ error_warn:
     call    .print_severity_warn
     call    .print_message
     
-    // source line and caret
+    ; source line and caret
     call    .print_caret_diagnostics
 
     mov     rax, [rbx + ASMCTX_flags]
@@ -268,8 +268,8 @@ error_warn:
     pop     rbx
     ret
 
-// ---- error_note -------------------------
-/*
+; ---- error_note -------------------------
+;
  error_note
  Emits a note (supplementary information) to stderr.
  Does not increment any counter.
@@ -280,7 +280,7 @@ error_warn:
             r8  = pointer to message string
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : r9, r10, r11
-*/
+;
 global error_note
 error_note:
     push    rbx
@@ -300,7 +300,7 @@ error_note:
     cmp     byte [rbx + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    // color — bold cyan
+    ; color — bold cyan
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_note
@@ -342,8 +342,8 @@ error_note:
     pop     rbx
     ret
 
-// ---- error_info -------------------------
-/*
+; ---- error_info -------------------------
+;
  error_info
  Emits a plain informational message to stderr.
  Used for verbose/debug output — not a diagnostic.
@@ -352,7 +352,7 @@ error_note:
             rsi = pointer to message string
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : rcx, rdx, r8, r9
-*/
+;
 global error_info
 error_info:
     test    rdi, rdi
@@ -360,7 +360,7 @@ error_info:
     cmp     byte [rdi + ASMCTX_tag], TAG_ASM_CTX
     jne     .bad_ctx
 
-    // only emit if verbose flag set
+    ; only emit if verbose flag set
     mov     rax, [rdi + ASMCTX_flags]
     test    rax, CTX_FLAG_VERBOSE
     jz      .done
@@ -370,7 +370,7 @@ error_info:
     mov     rbx, rdi
     mov     r12, rsi
 
-    // color — bold white
+    ; color — bold white
     test    rax, CTX_FLAG_COLOR
     jz      .no_color_info
 
@@ -380,7 +380,7 @@ error_info:
     call    error_write_raw
 
 .no_color_info:
-    // print: "utasm: info: message\n"
+    ; print: "utasm: info: message\n"
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_prefix_info]
     mov     rdx, msg_prefix_info_len
@@ -416,8 +416,8 @@ error_info:
     mov     rax, EXIT_INTERNAL
     ret
 
-// ---- error_fatal ------------------------
-/*
+; ---- error_fatal ------------------------
+;
  error_fatal
  Emits a fatal error message and exits immediately.
  Does not return.
@@ -425,15 +425,15 @@ error_info:
             rsi = pointer to message string
  Output   : does not return
  Clobbers : all
-*/
+;
 global error_fatal
 error_fatal:
     push    r12
     push    r13
-    mov     r12, rdi               // save ctx (may be NULL)
-    mov     r13, rsi               // save message
+    mov     r12, rdi               ; save ctx (may be NULL)
+    mov     r13, rsi               ; save message
 
-    // color if ctx available and color enabled
+    ; color if ctx available and color enabled
     test    r12, r12
     jz      .no_color_fatal
     cmp     byte [r12 + ASMCTX_tag], TAG_ASM_CTX
@@ -448,7 +448,7 @@ error_fatal:
     call    error_write_raw
 
 .no_color_fatal:
-    // print: "utasm: fatal: message\n"
+    ; print: "utasm: fatal: message\n"
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_prefix_fatal]
     mov     rdx, msg_prefix_fatal_len
@@ -463,7 +463,7 @@ error_fatal:
     mov     rdx, 1
     call    error_write_raw
 
-    // reset color
+    ; reset color
     test    r12, r12
     jz      .exit_now
     cmp     byte [r12 + ASMCTX_tag], TAG_ASM_CTX
@@ -481,17 +481,17 @@ error_fatal:
     mov     rax, AMD64_SYS_EXIT
     mov     rdi, EXIT_INTERNAL
     syscall
-    // never reached
+    ; never reached
 
-// ---- error_summary ----------------------
-/*
+; ---- error_summary ----------------------
+;
  error_summary
  Prints a final summary line after assembly completes.
  Example: "2 errors, 1 warning generated."
  Input    : rdi = pointer to AsmCtx
  Output   : rax = EXIT_OK or EXIT_INTERNAL
  Clobbers : rcx, rdx, r8, r9, r10, r11
-*/
+;
 global error_summary
 error_summary:
     test    rdi, rdi
@@ -505,14 +505,14 @@ error_summary:
     movzx   rax, word [rbx + ASMCTX_err_count]
     movzx   rcx, word [rbx + ASMCTX_warn_count]
 
-    // only print if there were errors or warnings
+    ; only print if there were errors or warnings
     test    rax, rax
     jnz     .print_summary
     test    rcx, rcx
     jz      .done
 
 .print_summary:
-    // print error count
+    ; print error count
     movzx   rdi, word [rbx + ASMCTX_err_count]
     call    error_uint_to_str
     mov     rdi, STDERR_FILENO
@@ -524,7 +524,7 @@ error_summary:
     mov     rdi, STDERR_FILENO
     call    error_write_raw
 
-    // print warning count
+    ; print warning count
     movzx   rdi, word [rbx + ASMCTX_warn_count]
     call    error_uint_to_str
     mov     rdi, STDERR_FILENO
@@ -550,18 +550,18 @@ error_summary:
     mov     rax, EXIT_INTERNAL
     ret
 
-// ============================================================================
-// INTERNAL HELPERS
-// ============================================================================
+; ============================================================================
+; INTERNAL HELPERS
+; ============================================================================
 
-// ---- .print_location --------------------
-/*
+; ---- .print_location --------------------
+;
  .print_location (internal)
  Prints "filename:line:col: " to stderr.
  Uses rbx=AsmCtx, r12=filename, r13=line, r14=col.
-*/
+;
 .print_location:
-    // print filename if available
+    ; print filename if available
     test    r12, r12
     jz      .no_file
 
@@ -575,7 +575,7 @@ error_summary:
     call    error_write_raw
 
 .no_file:
-    // print line number if non-zero
+    ; print line number if non-zero
     test    r13, r13
     jz      .no_line
 
@@ -591,7 +591,7 @@ error_summary:
     call    error_write_raw
 
 .no_line:
-    // print column if non-zero
+    ; print column if non-zero
     test    r14, r14
     jz      .no_col
 
@@ -609,7 +609,7 @@ error_summary:
 .no_col:
     ret
 
-// ---- .print_severity_error --------------
+; ---- .print_severity_error --------------
 .print_severity_error:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_error]
@@ -617,7 +617,7 @@ error_summary:
     call    error_write_raw
     ret
 
-// ---- .print_severity_warn ---------------
+; ---- .print_severity_warn ---------------
 .print_severity_warn:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_warning]
@@ -625,7 +625,7 @@ error_summary:
     call    error_write_raw
     ret
 
-// ---- .print_severity_note ---------------
+; ---- .print_severity_note ---------------
 .print_severity_note:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_note]
@@ -633,7 +633,7 @@ error_summary:
     call    error_write_raw
     ret
 
-// ---- .print_message ---------------------
+; ---- .print_message ---------------------
 .print_message:
     mov     rdi, STDERR_FILENO
     mov     rsi, r15
@@ -645,8 +645,8 @@ error_summary:
     call    error_write_raw
     ret
 
-// ---- error_write_raw --------------------
-/*
+; ---- error_write_raw --------------------
+;
  error_write_raw
  Writes exactly rdx bytes from rsi to file descriptor rdi.
  Input    : rdi = file descriptor
@@ -654,7 +654,7 @@ error_summary:
             rdx = byte count
  Output   : rax = EXIT_OK or EXIT_FILE_WRITE
  Clobbers : rax, r11
-*/
+;
 error_write_raw:
     mov     rax, AMD64_SYS_WRITE
     syscall
@@ -666,21 +666,21 @@ error_write_raw:
     mov     rax, EXIT_FILE_WRITE
     ret
 
-// ---- error_write_str --------------------
-/*
+; ---- error_write_str --------------------
+;
  error_write_str
  Writes a null-terminated string to file descriptor rdi.
  Input    : rdi = file descriptor
             rsi = pointer to null-terminated string
  Output   : rax = EXIT_OK or EXIT_FILE_WRITE
  Clobbers : rax, rdx, rcx, r11
-*/
+;
 error_write_str:
     push    rdi
     push    rsi
     mov     rdi, rsi
     call    str_len
-    mov     rdx, rax               // length
+    mov     rdx, rax               ; length
     pop     rsi
     pop     rdi
     mov     rax, AMD64_SYS_WRITE
@@ -693,8 +693,8 @@ error_write_str:
     mov     rax, EXIT_FILE_WRITE
     ret
 
-// ---- error_uint_to_str ------------------
-/*
+; ---- error_uint_to_str ------------------
+;
  error_uint_to_str
  Converts an unsigned integer to a decimal string.
  Uses an internal static buffer — not reentrant.
@@ -702,12 +702,12 @@ error_write_str:
  Output   : rax = EXIT_OK
              rdx = pointer to null-terminated decimal string
  Clobbers : rcx, r8, r9, r10
-*/
+;
 error_uint_to_str:
-    lea     r8, [uint_buf + 20]     // build from end
-    mov     byte [r8], 0            // null terminator
-    mov     rax, rdi                // value to convert
-    mov     rcx, 10                 // base 10
+    lea     r8, [uint_buf + 20]     ; build from end
+    mov     byte [r8], 0            ; null terminator
+    mov     rax, rdi                ; value to convert
+    mov     rcx, 10                 ; base 10
 
     test    rax, rax
     jnz     .loop
@@ -720,15 +720,15 @@ error_uint_to_str:
     test    rax, rax
     jz      .done
     xor     rdx, rdx
-    div     rcx                     // rax = quot, rdx = rem
-    add     dl, '0'                 // convert rem to char
+    div     rcx                     ; rax = quot, rdx = rem
+    add     dl, '0'                 ; convert rem to char
     dec     r8
-    mov     byte [r8], dl           // store char
+    mov     byte [r8], dl           ; store char
     jmp     .loop
 
 .done:
-    xor     rax, rax                // EXIT_OK
-    mov     rdx, r8                 // pointer to string
+    xor     rax, rax                ; EXIT_OK
+    mov     rdx, r8                 ; pointer to string
     ret
 
 .print_caret_diagnostics:
@@ -739,7 +739,7 @@ error_uint_to_str:
     push    r14
     push    r15
     
-    // rbx = AsmCtx, r13 = line, r14 = col (from error_emit/warn)
+    ; rbx = AsmCtx, r13 = line, r14 = col (from error_emit/warn)
     test    r13, r13
     jz      .pcd_done
     test    r14, r14
@@ -753,12 +753,12 @@ error_uint_to_str:
     test    rsi, rsi
     jz      .pcd_done
 
-    // 1. Find the start of line R13
-    mov     r8, rsi                // current ptr
+    ; 1. Find the start of line R13
+    mov     r8, rsi                ; current ptr
     mov     r9, [r12 + INCLUDECTX_size]
-    add     r9, rsi                // end ptr
+    add     r9, rsi                ; end ptr
     
-    mov     rcx, r13               // count down
+    mov     rcx, r13               ; count down
     dec     rcx
     jz      .pcd_line_found
     
@@ -773,9 +773,9 @@ error_uint_to_str:
     jnz     .pcd_find_loop
 
 .pcd_line_found:
-    // r8 is the start of the line
-    // 2. Print the line itself
-    mov     r10, r8                // save start
+    ; r8 is the start of the line
+    ; 2. Print the line itself
+    mov     r10, r8                ; save start
 .pcd_scan_end:
     cmp     r8, r9
     jae     .pcd_print_line
@@ -789,9 +789,9 @@ error_uint_to_str:
 
 .pcd_print_line:
     mov     rdx, r8
-    sub     rdx, r10               // length
+    sub     rdx, r10               ; length
     
-    // indent for clarity
+    ; indent for clarity
     push    rdx
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_indent]
@@ -799,7 +799,7 @@ error_uint_to_str:
     call    error_write_raw
     pop     rdx
 
-    jz      .pcd_skip_line         // empty line? 
+    jz      .pcd_skip_line         ; empty line? 
     
     mov     rdi, STDERR_FILENO
     mov     rsi, r10
@@ -811,14 +811,14 @@ error_uint_to_str:
     mov     rdx, 1
     call    error_write_raw
     
-    // 3. Print the caret
-    // Print indent
+    ; 3. Print the caret
+    ; Print indent
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_indent]
     mov     rdx, 4
     call    error_write_raw
 
-    // Print r14-1 spaces
+    ; Print r14-1 spaces
     mov     rcx, r14
     dec     rcx
     jz      .pcd_print_caret
@@ -850,13 +850,13 @@ error_uint_to_str:
     pop     rbx
     epilogue
 
-// ============================================================================
-// DATA
-// ============================================================================
+; ============================================================================
+; DATA
+; ============================================================================
 
 [SECTION .data]
 
-// ---- ANSI color codes --------------------
+; ---- ANSI color codes --------------------
 
 color_bold_red:
     db      0x1B, "[1;31m"
@@ -878,7 +878,7 @@ color_reset:
     db      0x1B, "[0m"
 color_reset_len equ $ - color_reset
 
-// ---- severity labels ---------------------
+; ---- severity labels ---------------------
 
 msg_error:
     db      "error: "
@@ -892,7 +892,7 @@ msg_note:
     db      "note: "
 msg_note_len equ $ - msg_note
 
-// ---- prefixes ----------------------------
+; ---- prefixes ----------------------------
 
 msg_prefix_info:
     db      "utasm: info: "
@@ -902,7 +902,7 @@ msg_prefix_fatal:
     db      "utasm: fatal: "
 msg_prefix_fatal_len equ $ - msg_prefix_fatal
 
-// ---- summary -----------------------------
+; ---- summary -----------------------------
 
 msg_summary_errors_label:
     db      " error(s) and ", 0
@@ -912,7 +912,7 @@ msg_summary_warnings_label:
     db      " warning(s) generated.", 0
 msg_summary_warnings_label_len equ $ - msg_summary_warnings_label - 1
 
-// ---- misc --------------------------------
+; ---- misc --------------------------------
 
 msg_too_many_errors:
     db      "too many errors — stopping.", 0
@@ -950,18 +950,18 @@ msg_note_field_size:
 msg_note_access_size:
     db      "access width: ", 0
 
-// ---- error_new_from_errno ----------------
-/*
+; ---- error_new_from_errno ----------------
+;
  error_new_from_errno
  Translates a system errno into a diagnostic message.
  Input    : rdi = errno (i64)
  Output   : rax = EXIT_OK
  Clobbers : r8, r9, r10
-*/
+;
 global error_new_from_errno
 error_new_from_errno:
-    // for now, just print "system error (errno X)"
-    // we don't have a full strerror yet
+    ; for now, just print "system error (errno X)"
+    ; we don't have a full strerror yet
     push    rdi
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_system_error]
@@ -987,33 +987,33 @@ error_new_from_errno:
     xor     rax, rax
     ret
 
-/**
+;*
  * [error_struct_bounds]
  * Input:
  *   RDI = field name string
  *   RSI = field size (bytes)
  *   RDX = access size (bytes)
- */
+ ;
 global error_struct_bounds
 error_struct_bounds:
     prologue
     push    rbx
     push    r12
     push    r13
-    mov     rbx, rdi               // field name
-    mov     r12, rsi               // field size
-    mov     r13, rdx               // access size
+    mov     rbx, rdi               ; field name
+    mov     r12, rsi               ; field size
+    mov     r13, rdx               ; access size
     
-    // 1. Emit the main error
-    mov     rdi, [global_ctx]      // We'll need a way to get AsmCtx. 
-                                   // In utasm, we usually pass it or keep it global.
-    mov     rsi, 0                 // filename (will be filled by error_emit if we find it)
-    xor     rdx, rdx               // line
-    xor     rcx, rcx               // col
+    ; 1. Emit the main error
+    mov     rdi, [global_ctx]      ; We'll need a way to get AsmCtx. 
+                                   ; In utasm, we usually pass it or keep it global.
+    mov     rsi, 0                 ; filename (will be filled by error_emit if we find it)
+    xor     rdx, rdx               ; line
+    xor     rcx, rcx               ; col
     lea     r8, [msg_struct_bounds]
     call    error_emit
     
-    // 2. Emit notes for details
+    ; 2. Emit notes for details
     mov     rdi, [global_ctx]
     lea     r8, [msg_note_field_name]
     call    error_note
@@ -1053,8 +1053,8 @@ error_struct_bounds:
     mov     rdx, 1
     jmp     error_write_raw
 
-// ---- integer conversion buffer -----------
+; ---- integer conversion buffer -----------
 
 [SECTION .bss]
 
-uint_buf:   resb 21                // max 20 digits for uint64 + null
+uint_buf:   resb 21                ; max 20 digits for uint64 + null

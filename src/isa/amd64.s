@@ -1,19 +1,19 @@
-/*
+;
  ============================================================================
  File        : src/arch/amd64.s
  Project     : utasm
  Description : AMD64 Mnemonic and Register Lookup Tables.
  ============================================================================
-*/
+;
 
-%inc "include/arch/amd64.s"
+%include "include/arch/amd64.s"
 
 [SECTION .rodata]
 align 8
 
 global mnc_tb_x64
 mnc_tb_x64:
-    // Generated from user-provided intel.txt
+    ; Generated from user-provided intel.txt
     mnc_ent "aaa", 0, 1000
     mnc_ent "aad", 0, 1001
     mnc_ent "aam", 0, 1002
@@ -1279,7 +1279,7 @@ mnc_tb_x64:
     mnc_ent "xsusldtrk", 0, 2169
     mnc_ent "xtest", 0, 2170
     
-    // ---- VMX / SVM Suite (Custom IDs) ----
+    ; ---- VMX / SVM Suite (Custom IDs) ----
     mnc_ent "vmcall", 0, 5000
     mnc_ent "vmlaunch", 0, 5001
     mnc_ent "vmresume", 0, 5002
@@ -1293,7 +1293,7 @@ mnc_tb_x64:
     mnc_ent "invept", 0, 5010
     mnc_ent "invvpid", 0, 5011
     
-    // AMD-V (SVM) Suite
+    ; AMD-V (SVM) Suite
     mnc_ent "vmrun", 0, 5012
     mnc_ent "vmmcall", 0, 5013
     mnc_ent "vmload", 0, 5014
@@ -1304,7 +1304,7 @@ mnc_tb_x64:
     mnc_ent "skinit", 0, 5019
     mnc_ent "clzero", 0, 5020
 
-    // ---- Step 3 & 4: FMA3 & 8087 (Custom IDs) ----
+    ; ---- Step 3 & 4: FMA3 & 8087 (Custom IDs) ----
     mnc_ent "fsin", 0, 5300
     mnc_ent "fcos", 0, 5301
     mnc_ent "fsincos", 0, 5302
@@ -1324,7 +1324,7 @@ mnc_tb_x64:
     mnc_ent "fxtract", 0, 5317
     mnc_ent "fscale", 0, 5318
     
-    // ---- AVX-512 Suite (Custom IDs) ----
+    ; ---- AVX-512 Suite (Custom IDs) ----
     mnc_ent "vaesenc", 0, 5100
     mnc_ent "vaesdec", 0, 5101
     mnc_ent "vaesenclast", 0, 5102
@@ -1333,7 +1333,7 @@ mnc_tb_x64:
     mnc_ent "vmovdqa64", 0, 5105
     mnc_ent "vaddpd", 0, 5106
 
-    // ---- Step 5: AVX-512 (Custom IDs) ----
+    ; ---- Step 5: AVX-512 (Custom IDs) ----
     mnc_ent "kaddw", 0, 5400
     mnc_ent "kandw", 0, 5401
     mnc_ent "korw", 0, 5402
@@ -1348,13 +1348,13 @@ mnc_tb_x64:
     mnc_ent "vexp2ps", 0, 5411
     mnc_ent "vrcp14ps", 0, 5412
 
-    // ---- Step 6: VNNI & BF16 (Custom IDs) ----
+    ; ---- Step 6: VNNI & BF16 (Custom IDs) ----
     mnc_ent "vpdpbusd", 0, 5500
     mnc_ent "vpdpwssd", 0, 5501
     mnc_ent "vdpbf16ps", 0, 5502
     mnc_ent "vcvtne2ps2bf16", 0, 5503
 
-    // ---- Step 7: 3DNow! & XOP (Custom IDs) ----
+    ; ---- Step 7: 3DNow! & XOP (Custom IDs) ----
     mnc_ent "femms", 0, 5600
     mnc_ent "pfadd", 0, 5601
     mnc_ent "pfcmpeq", 0, 5602
@@ -1369,7 +1369,7 @@ mnc_tb_x64:
     mnc_ent "vprotb", 0, 5611
     mnc_ent "vpshab", 0, 5612
 
-    // ---- Step 8: SGX Sub-Leafs (Custom IDs) ----
+    ; ---- Step 8: SGX Sub-Leafs (Custom IDs) ----
     mnc_ent "eadd", 0, 5700
     mnc_ent "eblock", 0, 5701
     mnc_ent "ecreate", 0, 5702
@@ -1382,7 +1382,7 @@ mnc_tb_x64:
 
 global amd64_register_table
 amd64_register_table:
-    // ---- 64-bit GPRs ----
+    ; ---- 64-bit GPRs ----
     compile_time_hash "rax", H_RAX
     dq H_RAX, (8 << 8) | REG_RAX
     compile_time_hash "rcx", H_RCX
@@ -1416,7 +1416,7 @@ amd64_register_table:
     compile_time_hash "r15", H_R15
     dq H_R15, (8 << 8) | REG_R15
 
-    // ---- 32-bit GPRs ----
+    ; ---- 32-bit GPRs ----
     compile_time_hash "eax", H_EAX
     dq H_EAX, (4 << 8) | REG_RAX
     compile_time_hash "ecx", H_ECX
@@ -1440,7 +1440,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- 16-bit GPRs ----
+    ; ---- 16-bit GPRs ----
     compile_time_hash "ax", H_AX
     dq H_AX, (2 << 8) | REG_RAX
     compile_time_hash "cx", H_CX
@@ -1464,7 +1464,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- 8-bit GPRs (Low) ----
+    ; ---- 8-bit GPRs (Low) ----
     compile_time_hash "al", H_AL
     dq H_AL, (1 << 8) | REG_RAX
     compile_time_hash "cl", H_CL
@@ -1488,7 +1488,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- 8-bit GPRs (High) ----
+    ; ---- 8-bit GPRs (High) ----
     compile_time_hash "ah", H_AH
     dq H_AH, (1 << 16) | (1 << 8) | 4  ; is_high=1, size=1, ID=4
     compile_time_hash "ch", H_CH
@@ -1498,9 +1498,9 @@ amd64_register_table:
     compile_time_hash "bh", H_BH
     dq H_BH, (1 << 16) | (1 << 8) | 7  ; is_high=1, size=1, ID=7
 
-    // ---- SIMD (XMM) ----
+    ; ---- SIMD (XMM) ----
     %assign i 0
-    // ---- SIMD (XMM/YMM/ZMM) ----
+    ; ---- SIMD (XMM/YMM/ZMM) ----
     %assign i 0
     %rep 32
         compile_time_hash "xmm%[i]", H_XMM%[i]
@@ -1512,7 +1512,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- Opmask (K0-K7) ----
+    ; ---- Opmask (K0-K7) ----
     %assign i 0
     %rep 8
         compile_time_hash "k%[i]", H_K%[i]
@@ -1520,7 +1520,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- Control Registers (CR0-CR15) ----
+    ; ---- Control Registers (CR0-CR15) ----
     %assign i 0
     %rep 16
         compile_time_hash "cr%[i]", H_CR%[i]
@@ -1528,7 +1528,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- Debug Registers (DR0-DR15) ----
+    ; ---- Debug Registers (DR0-DR15) ----
     %assign i 0
     %rep 16
         compile_time_hash "dr%[i]", H_DR%[i]
@@ -1536,7 +1536,7 @@ amd64_register_table:
         %assign i i+1
     %endrep
 
-    // ---- Segments ----
+    ; ---- Segments ----
     compile_time_hash "cs", H_CS
     dq H_CS, (2 << 8) | REG_CS
     compile_time_hash "ds", H_DS

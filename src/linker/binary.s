@@ -1,4 +1,4 @@
-/*
+;
  ============================================================================
  File        : src/linker/binary.s
  Project     : utasm
@@ -6,18 +6,18 @@
                Writes raw machine bytes with no ELF container.
                Essential for OS bootloaders and bare-metal images.
  ============================================================================
-*/
+;
 
-%inc "include/constant.s"
-%inc "include/type.s"
-%inc "include/macro.s"
+%include "include/constant.s"
+%include "include/type.s"
+%include "include/macro.s"
 
 [SECTION .text]
 
-// ============================================================================
-// binary_emit
-// ============================================================================
-/*
+; ============================================================================
+; binary_emit
+; ============================================================================
+;
  binary_emit
  Writes assembled sections as a contiguous flat binary.
  Section order: .text then .data (no .bss — zero-filled at runtime).
@@ -28,7 +28,7 @@
            rsi = output file descriptor (i32, already opened for write)
            rdx = base address (ORG value, 0x7C00 for bootloaders etc.)
  Output : rax = EXIT_OK or error code
-*/
+;
 global binary_emit
 binary_emit:
     prologue
@@ -37,22 +37,22 @@ binary_emit:
     push    r14
     push    r15
 
-    mov     r12, rdi               // r12 = AsmCtx
-    mov     r13d, esi              // r13d = fd
-    mov     r14, rdx               // r14 = base_addr (ORG)
+    mov     r12, rdi               ; r12 = AsmCtx
+    mov     r13d, esi              ; r13d = fd
+    mov     r14, rdx               ; r14 = base_addr (ORG)
 
-    // ---- 1. Apply relocations before writing ----
+    ; ---- 1. Apply relocations before writing ----
     mov     rdi, r12
     mov     rsi, r14
     call    binary_patch_relocs
     check_err
 
-    // ---- 2. Write .text section ----
+    ; ---- 2. Write .text section ----
     mov     rdi, r12
     mov     rsi, SEC_TEXT
     call    asmctx_get_section
     check_err
-    mov     r15, rdx               // r15 = SECTION* for .text
+    mov     r15, rdx               ; r15 = SECTION* for .text
 
     mov     rdi, r13d
     mov     rsi, [r15 + SECTION_data]
@@ -64,7 +64,7 @@ binary_emit:
     check_err
 
 .write_data:
-    // ---- 3. Write .data section ----
+    ; ---- 3. Write .data section ----
     mov     rdi, r12
     mov     rsi, SEC_DATA
     call    asmctx_get_section
@@ -87,10 +87,10 @@ binary_emit:
     pop     r12
     epilogue
 
-// ============================================================================
-// binary_patch_relocs
-// ============================================================================
-/*
+; ============================================================================
+; binary_patch_relocs
+; ============================================================================
+;
  binary_patch_relocs
  Applies all relocations in the AsmCtx reloc table directly into the
  in-memory .text buffer before it is flushed to disk.
@@ -100,7 +100,7 @@ binary_emit:
 
  Input  : rdi = AsmCtx, rsi = base_addr (ORG)
  Output : rax = EXIT_OK or EXIT_UNDEF_REF
-*/
+;
 global binary_patch_relocs
 binary_patch_relocs:
     prologue
@@ -109,20 +109,20 @@ binary_patch_relocs:
     push    r13
     push    r14
 
-    mov     rbx, rdi               // rbx = AsmCtx
-    mov     r12, rsi               // r12 = base_addr
+    mov     rbx, rdi               ; rbx = AsmCtx
+    mov     r12, rsi               ; r12 = base_addr
 
-    // Get .text buffer base
+    ; Get .text buffer base
     mov     rdi, rbx
     mov     rsi, SEC_TEXT
     call    asmctx_get_section
     check_err
-    mov     r13, [rdx + SECTION_data]  // r13 = .text buffer
+    mov     r13, [rdx + SECTION_data]  ; r13 = .text buffer
 
-    // Walk reloc table
+    ; Walk reloc table
     mov     r14, [rbx + ASMCTX_reloctab]
     mov     ecx, [rbx + ASMCTX_reloccount]
-    xor     r15d, r15d             // index
+    xor     r15d, r15d             ; index
 
 .loop:
     cmp     r15d, ecx
@@ -130,25 +130,25 @@ binary_patch_relocs:
 
     lea     rdi, [r14 + r15 * RELOC_SIZE]
 
-    // resolve symbol value
-    mov     rsi, [rdi + RELOC_sym]     // symbol name ptr
+    ; resolve symbol value
+    mov     rsi, [rdi + RELOC_sym]     ; symbol name ptr
     mov     rdi, rbx
     extern  symbol_find
     call    symbol_find
     test    rax, rax
-    jnz     .undef                     // symbol not found
+    jnz     .undef                     ; symbol not found
 
-    // target_va = base_addr + symbol.value
+    ; target_va = base_addr + symbol.value
     mov     rax, [rdx + SYMBOL_value]
-    add     rax, r12                   // absolute VA
+    add     rax, r12                   ; absolute VA
 
-    // patch_va = base_addr + reloc.offset
+    ; patch_va = base_addr + reloc.offset
     mov     rcx, [rdi + RELOC_offset]
-    lea     rdx, [r13 + rcx]           // patch_ptr (buffer)
-    add     rcx, r12                   // patch_va (absolute)
+    lea     rdx, [r13 + rcx]           ; patch_ptr (buffer)
+    add     rcx, r12                   ; patch_va (absolute)
 
-    // Apply via unified helper
-    mov     rsi, rax                   // sym_va
+    ; Apply via unified helper
+    mov     rsi, rax                   ; sym_va
     call    reloc_apply_one
     check_err
 
@@ -169,10 +169,10 @@ binary_patch_relocs:
     pop     rbx
     epilogue
 
-// ============================================================================
-// binary_emit_bootloader
-// ============================================================================
-/*
+; ============================================================================
+; binary_emit_bootloader
+; ============================================================================
+;
  binary_emit_bootloader
  Convenience wrapper: emits flat binary with ORG=0x7C00 and appends the
  mandatory 0x55AA boot signature at offset 510.
@@ -180,7 +180,7 @@ binary_patch_relocs:
 
  Input  : rdi = AsmCtx, rsi = fd
  Output : rax = EXIT_OK or error
-*/
+;
 global binary_emit_bootloader
 binary_emit_bootloader:
     prologue
@@ -190,25 +190,25 @@ binary_emit_bootloader:
     mov     r12, rdi
     mov     r13d, esi
 
-    // Emit flat binary at ORG 0x7C00
+    ; Emit flat binary at ORG 0x7C00
     mov     rdx, 0x7C00
     call    binary_emit
     check_err
 
-    // Get .text size — must be <= 510 bytes for a valid MBR
+    ; Get .text size — must be <= 510 bytes for a valid MBR
     mov     rdi, r12
     mov     rsi, SEC_TEXT
     call    asmctx_get_section
     check_err
     mov     rcx, [rdx + SECTION_size]
 
-    // Pad to 510 bytes if needed
+    ; Pad to 510 bytes if needed
     mov     rax, 510
     sub     rax, rcx
-    jle     .write_sig             // already 510 bytes (or over, error)
+    jle     .write_sig             ; already 510 bytes (or over, error)
 
-    // Write (510 - size) zero bytes as padding
-    mov     r10, rax               // pad count
+    ; Write (510 - size) zero bytes as padding
+    mov     r10, rax               ; pad count
     sub     rsp, 512
 .pad_loop:
     test    r10, r10
@@ -225,7 +225,7 @@ binary_emit_bootloader:
 
 .write_sig:
     add     rsp, 512
-    // Write 0xAA55 boot signature (little-endian: 0x55 then 0xAA)
+    ; Write 0xAA55 boot signature (little-endian: 0x55 then 0xAA)
     mov     word [rsp - 2], 0xAA55
     mov     rdi, r13d
     lea     rsi, [rsp - 2]
