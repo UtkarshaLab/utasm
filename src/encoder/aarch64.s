@@ -353,6 +353,19 @@ aarch64_encode_dp_reg:
         
         mov     rax, [r9 + OPERAND_imm]
         
+        // Record relocation if it's a symbol (A73)
+        IF byte [r9 + OPERAND_kind], e, OP_SYMBOL
+            push    rax
+            mov     rdi, rbx               // AsmCtx
+            mov     rsi, [r12 + INST_offset]
+            mov     rdx, [r9 + OPERAND_sym]
+            mov     rcx, rax               // addend (the imm value)
+            mov     r8, R_AARCH64_ADD_ABS_LO12_NC
+            extern  reloc_record
+            call    reloc_record
+            pop     rax
+        ENDIF
+
         // Check if imm fits in 12 bits
         IF rax, le, 0xFFF
             // Fits directly
@@ -589,7 +602,34 @@ aarch64_encode_ldst:
     shl     edi, 5
     or      eax, edi
     
-    mov     edi, [r11 + OPERAND_imm]
+    mov     rdi, [r11 + OPERAND_imm]
+    
+    // Record relocation if symbol is present (A73)
+    IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        push    rdi
+        mov     rdi, rbx               // AsmCtx
+        mov     rsi, [r12 + INST_offset]
+        mov     rdx, [r11 + OPERAND_sym]
+        mov     rcx, [r11 + OPERAND_imm] // addend
+        
+        // Pick relocation based on size
+        mov     r8, R_AARCH64_LDST32_ABS_LO12_NC
+        movzx   r10, byte [r10 + OPERAND_size]
+        IF r10, e, 8
+            mov r8, R_AARCH64_LDST64_ABS_LO12_NC
+        ELSEIF r10, e, 2
+            mov r8, R_AARCH64_LDST16_ABS_LO12_NC
+        ELSEIF r10, e, 1
+            mov r8, R_AARCH64_LDST8_ABS_LO12_NC
+        ENDIF
+        
+        extern  reloc_record
+        call    reloc_record
+        pop     rdi
+        pop     rax
+    ENDIF
+
     // Unsigned offset is scaled by size
     IF cl, e, 8
         shr     edi, 3
