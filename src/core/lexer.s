@@ -1016,6 +1016,11 @@ lexer_next:
 
     mov     r13, [rbx + LEXER_pos] // start of directive name
 
+    // Check for braced directive %{...} (A69)
+    movzx   rdi, byte [r13]
+    cmp     dil, '{'
+    je      .lex_braced_directive
+
 .lex_directive_loop:
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
@@ -1046,6 +1051,46 @@ lexer_next:
     add     [rbx + LEXER_pos], rax
     inc     word [rbx + LEXER_col]
     jmp     .lex_directive_loop
+
+.lex_braced_directive:
+    inc     qword [rbx + LEXER_pos] // skip {
+    inc     word  [rbx + LEXER_col]
+    mov     r13, [rbx + LEXER_pos]  // start of content
+
+.lex_braced_loop:
+    mov     r10, [rbx + LEXER_pos]
+    cmp     r10, [rbx + LEXER_end]
+    jge     .lex_braced_unterminated
+    
+    movzx   rdi, byte [r10]
+    cmp     dil, '}'
+    je      .lex_braced_done
+    
+    // allow anything inside braces except newline? 
+    // actually, NASM allows many things. We'll allow anything but } and EOL.
+    cmp     dil, 10
+    je      .lex_braced_unterminated
+    
+    inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
+    jmp     .lex_braced_loop
+
+.lex_braced_done:
+    mov     r10, [rbx + LEXER_pos]
+    sub     r10, r13               // length
+    inc     qword [rbx + LEXER_pos] // skip }
+    inc     word  [rbx + LEXER_col]
+    jmp     .lex_directive_done
+
+.lex_braced_unterminated:
+    mov     rdi, [rbx + LEXER_ctx]
+    mov     rsi, [rbx + LEXER_file]
+    mov     edx, dword [rbx + LEXER_line]
+    movzx   rcx, word  [rbx + LEXER_col]
+    lea     r8,  [msg_unterminated_brace]
+    call    error_emit
+    mov     rax, EXIT_UNEXPECTED_EOF
+    jmp     .fail
 
 .lex_directive_done:
     mov     r10, [rbx + LEXER_pos]
@@ -1408,6 +1453,8 @@ msg_string_too_long:
     db      "string literal too long", 0
 msg_malformed_utf8:
     db      "malformed UTF-8 sequence", 0
+msg_unterminated_brace:
+    db      "unterminated braced directive", 0
 
 // ============================================================================
 // CHARACTER PROPERTIES LOOKUP TABLE (LUT)

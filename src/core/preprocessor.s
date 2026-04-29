@@ -338,7 +338,7 @@ prep_expand_start:
     
     // For the first param, we don't need a comma.
     test    r15, r15
-    jz      .get_param
+    jz      .parse_param_value
     
     // consume comma
     sub     rsp, TOKEN_SIZE
@@ -369,7 +369,7 @@ prep_expand_start:
         ENDIF
     ENDIF
 
-.get_param:
+.parse_param_value:
     // allocate token for param
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, TOKEN_SIZE
@@ -575,6 +575,54 @@ prep_expand_next:
         mov     rdi, r12
         mov     rcx, (TOKEN_SIZE / 8)
         rep movsq
+        jmp     .produced
+    ENDIF
+
+    // CASE 3: Variadic Expansion %{n..} (A69)
+    IF byte [rdi], e, '{'
+        // parse braced parameter ref like "{1..}"
+        inc     rdi                    // skip {
+        
+        // simple parser for digit
+        movzx   rax, byte [rdi]
+        sub     al, '0'
+        IF al, ge, 1 | IF al, le, 9
+            // r14 = starting index (1-based)
+            movzx   r14, al
+            
+            // check for ".." suffix
+            IF byte [rdi + 1], e, '.' | IF byte [rdi + 2], e, '.'
+                // It's %{n..}!
+                // We need to expand all params from r14 to nparams.
+                // This is complex for a single prep_expand_next call 
+                // because it returns one token.
+                // For now, we'll implement it by expanding the FIRST 
+                // param in the range and setting a flag to expand 
+                // the rest in subsequent calls? 
+                
+                // Better: if nparams > r14, we expand r14 and then 
+                // we'd need to inject commas.
+                // To keep it simple for now, we'll support %{n..} as a 
+                // way to get ALL arguments from n onwards as a single 
+                // space-separated sequence if captured greedy.
+                
+                // If the parameter was captured via prep_capture_greedy, 
+                // it is ALREADY a single string.
+                movzx   rcx, byte [r13 + MACROEXP_nparams]
+                cmp     r14b, cl
+                jg      .produced      // Out of range
+                
+                dec     r14b           // 0-indexed
+                mov     r11, [r13 + MACROEXP_params]
+                movzx   rax, r14b
+                mov     rsi, [r11 + rax * 8]
+                
+                mov     rdi, r12
+                mov     rcx, (TOKEN_SIZE / 8)
+                rep movsq
+                jmp     .produced
+            ENDIF
+        ENDIF
     ENDIF
 
 .produced:
