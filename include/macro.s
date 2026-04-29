@@ -297,12 +297,8 @@
 ; * Purpose: Structured conditional branching using NASM context stack.
 ; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
 ; ;
-%assign utasm_if_seq 0
-
 %macro IF 3-4
-    %assign utasm_if_seq utasm_if_seq + 1
     %push   if
-    %assign %$uid utasm_if_seq
     %assign %$else_idx 0
     %if %0 == 4
         cmp     %1, %4
@@ -311,46 +307,46 @@
     %endif
 
     %ifidni %2, ==
-        jne ..@if_%+%$uid_else_%+%$else_idx
+        jne ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, =
-        jne ..@if_%+%$uid_else_%+%$else_idx
+        jne ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, !=
-        je  ..@if_%+%$uid_else_%+%$else_idx
+        je  ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, <>
-        je  ..@if_%+%$uid_else_%+%$else_idx
+        je  ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, e
-        jne ..@if_%+%$uid_else_%+%$else_idx
+        jne ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, ne
-        je  ..@if_%+%$uid_else_%+%$else_idx
+        je  ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, g
-        jng ..@if_%+%$uid_else_%+%$else_idx
+        jng ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, ge
-        jnge ..@if_%+%$uid_else_%+%$else_idx
+        jnge ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, l
-        jnl ..@if_%+%$uid_else_%+%$else_idx
+        jnl ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, le
-        jnle ..@if_%+%$uid_else_%+%$else_idx
+        jnle ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, a
-        jna ..@if_%+%$uid_else_%+%$else_idx
+        jna ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, ae
-        jnae ..@if_%+%$uid_else_%+%$else_idx
+        jnae ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, b
-        jnb ..@if_%+%$uid_else_%+%$else_idx
+        jnb ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, be
-        jnbe ..@if_%+%$uid_else_%+%$else_idx
+        jnbe ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, z
-        jnz ..@if_%+%$uid_else_%+%$else_idx
+        jnz ..@if_%[__LINE__]_else_%+$else_idx
     %elifidni %2, nz
-        jz ..@if_%+%$uid_else_%+%$else_idx
+        jz ..@if_%[__LINE__]_else_%+$else_idx
     %else
-        jn%+ %2 ..@if_%+%$uid_else_%+%$else_idx
+        jn%+ %2 ..@if_%[__LINE__]_else_%+$else_idx
     %endif
 %endmacro
 
 %macro ELSEIF 3-4
     %ifctx if
-        jmp ..@if_%+%$uid_endif
-        ..@if_%+%$uid_else_%+%$else_idx:
+        jmp ..@if_%[__LINE__]_endif
+        ..@if_%[__LINE__]_else_%+$else_idx:
         %assign %$else_idx %$else_idx + 1
         %if %0 == 4
             cmp     %1, %4
@@ -359,39 +355,39 @@
         %endif
         
         %ifidni %2, ==
-            jne ..@if_%+%$uid_else_%+%$else_idx
+            jne ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, =
-            jne ..@if_%+%$uid_else_%+%$else_idx
+            jne ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, !=
-            je  ..@if_%+%$uid_else_%+%$else_idx
+            je  ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, <>
-            je  ..@if_%+%$uid_else_%+%$else_idx
+            je  ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, e
-            jne ..@if_%+%$uid_else_%+%$else_idx
+            jne ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, ne
-            je  ..@if_%+%$uid_else_%+%$else_idx
+            je  ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, g
-            jng ..@if_%+%$uid_else_%+%$else_idx
+            jng ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, ge
-            jnge ..@if_%+%$uid_else_%+%$else_idx
+            jnge ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, l
-            jnl ..@if_%+%$uid_else_%+%$else_idx
+            jnl ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, le
-            jnle ..@if_%+%$uid_else_%+%$else_idx
+            jnle ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, a
-            jna ..@if_%+%$uid_else_%+%$else_idx
+            jna ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, ae
-            jnae ..@if_%+%$uid_else_%+%$else_idx
+            jnae ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, b
-            jnb ..@if_%+%$uid_else_%+%$else_idx
+            jnb ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, be
-            jnbe ..@if_%+%$uid_else_%+%$else_idx
+            jnbe ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, z
-            jnz ..@if_%+%$uid_else_%+%$else_idx
+            jnz ..@if_%[__LINE__]_else_%+$else_idx
         %elifidni %2, nz
-            jz ..@if_%+%$uid_else_%+%$else_idx
+            jz ..@if_%[__LINE__]_else_%+$else_idx
         %else
-            jn%+ %2 ..@if_%+%$uid_else_%+%$else_idx
+            jn%+ %2 ..@if_%[__LINE__]_else_%+$else_idx
         %endif
     %else
         %error "ELSEIF without IF"
@@ -400,8 +396,8 @@
 
 %macro ELSE 0
     %ifctx if
-        jmp ..@if_%+%$uid_endif
-        ..@if_%+%$uid_else_%+%$else_idx:
+        jmp ..@if_%[__LINE__]_endif
+        ..@if_%[__LINE__]_else_%+$else_idx:
         %assign %$else_idx %$else_idx + 1
     %else
         %error "ELSE without IF"
@@ -410,8 +406,8 @@
 
 %macro ENDIF 0
     %ifctx if
-        ..@if_%+%$uid_else_%+%$else_idx:
-        ..@if_%+%$uid_endif:
+        ..@if_%[__LINE__]_else_%+$else_idx:
+        ..@if_%[__LINE__]_endif:
         %pop    if
     %else
         %error "ENDIF without IF"

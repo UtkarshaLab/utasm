@@ -114,6 +114,8 @@ asm_ctx_emit_byte:
     
     jmp     .write
 
+.error:
+    mov     rax, EXIT_INTERNAL
 .done:
     pop     r12
     pop     rbx
@@ -183,7 +185,8 @@ asm_ctx_create_section:
     
     mov     rax, EXIT_OK
     mov     rdx, r14
-    jmp     .done
+.done:
+    pop     r14
 
 .error:
     ; A97: Unmap the buffer to prevent memory leak on overflow
