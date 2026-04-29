@@ -1513,6 +1513,14 @@ parser_handle_section_directive:
             inc     rsi
             jmp     .flag_loop
         .flag_done:
+            // A90: Enforce W^X security policy (Write XOR Execute)
+            mov     ecx, (SHF_WRITE | SHF_EXECINSTR)
+            mov     edx, eax
+            and     edx, ecx
+            IF edx, e, ecx
+                mov rax, EXIT_INVALID_SECTION_FLAGS | jmp .done
+            ENDIF
+            
             mov     [r13 + SECTION_flags], ax
             
             // 3.1 Handle Group Signature if 'G' flag is set
