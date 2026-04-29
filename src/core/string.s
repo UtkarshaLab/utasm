@@ -1111,22 +1111,181 @@ str_find_str:
     inc     rbx
     jmp     .outer
 
-.found:
-    mov     rdx, rbx
-    xor     rax, rax
-    jmp     .done
-
-.found_empty:
-    mov     rdx, rbx
-    xor     rax, rax
-    jmp     .done
-
-.not_found:
-    mov     rax, EXIT_ERROR
-    xor     rdx, rdx
-
 .done:
     pop     r13
     pop     r12
     pop     rbx
     epilogue
+
+// ---- str_utf8_decode --------------------
+/*
+ str_utf8_decode
+ Decodes a single UTF-8 character sequence and validates it.
+ Follows RFC 3629 / Unicode 15.0 strict validation.
+ 
+ Input    : rdi = pointer to UTF-8 sequence
+            rsi = pointer to end of buffer (boundary check)
+ Output   : rax = number of bytes consumed (1-4) or 0 on error
+             rdx = decoded Unicode codepoint
+ Clobbers : rcx, r8, r9
+*/
+global str_utf8_decode
+str_utf8_decode:
+    // check boundary
+    cmp     rdi, rsi
+    jge     .error
+    
+    movzx   eax, byte [rdi]
+    
+    // 1-byte (ASCII)
+    test    al, 0x80
+    jz      .one_byte
+    
+    // 2-byte: 110xxxxx
+    mov     cl, al
+    and     cl, 0xE0
+    cmp     cl, 0xC0
+    je      .two_bytes
+    
+    // 3-byte: 1110xxxx
+    mov     cl, al
+    and     cl, 0xF0
+    cmp     cl, 0xE0
+    je      .three_bytes
+    
+    // 4-byte: 11110xxx
+    mov     cl, al
+    and     cl, 0xF8
+    cmp     cl, 0xF0
+    je      .four_bytes
+    
+.error:
+    xor     rax, rax
+    ret
+
+.one_byte:
+    mov     rdx, rax
+    mov     rax, 1
+    ret
+
+.two_bytes:
+    // next byte?
+    lea     rcx, [rdi + 1]
+    cmp     rcx, rsi
+    jge     .error
+    
+    // validate 10xxxxxx
+    movzx   r8d, byte [rcx]
+    mov     r9d, r8d
+    and     r9d, 0xC0
+    cmp     r9d, 0x80
+    jne     .error
+    
+    // Decode: ((al & 0x1F) << 6) | (r8 & 0x3F)
+    and     eax, 0x1F
+    shl     eax, 6
+    and     r8d, 0x3F
+    or      eax, r8d
+    
+    // Overlong check: must be > 0x7F
+    cmp     eax, 0x7F
+    jle     .error
+    
+    mov     rdx, rax
+    mov     rax, 2
+    ret
+
+.three_bytes:
+    // next 2 bytes?
+    lea     rcx, [rdi + 2]
+    cmp     rcx, rsi
+    jge     .error
+    
+    // Byte 2: 10xxxxxx
+    movzx   r8d, byte [rdi + 1]
+    mov     r9d, r8d
+    and     r9d, 0xC0
+    cmp     r9d, 0x80
+    jne     .error
+    
+    // Byte 3: 10xxxxxx
+    movzx   ecx, byte [rdi + 2]
+    mov     r9d, ecx
+    and     r9d, 0xC0
+    cmp     r9d, 0x80
+    jne     .error
+    
+    // Decode: ((al & 0x0F) << 12) | ((r8 & 0x3F) << 6) | (rc)
+    and     eax, 0x0F
+    shl     eax, 12
+    and     r8d, 0x3F
+    shl     r8d, 6
+    or      eax, r8d
+    and     ecx, 0x3F
+    or      eax, ecx
+    
+    // Overlong check: must be > 0x7FF
+    cmp     eax, 0x7FF
+    jle     .error
+    
+    // Surrogate check: must not be in U+D800 - U+DFFF
+    cmp     eax, 0xD800
+    jl      .3_ok
+    cmp     eax, 0xDFFF
+    jle     .error
+    
+.3_ok:
+    mov     rdx, rax
+    mov     rax, 3
+    ret
+
+.four_bytes:
+    // next 3 bytes?
+    lea     rcx, [rdi + 3]
+    cmp     rcx, rsi
+    jge     .error
+    
+    // Byte 2
+    movzx   r8d, byte [rdi + 1]
+    mov     r9d, r8d
+    and     r9d, 0xC0
+    cmp     r9d, 0x80
+    jne     .error
+    
+    // Byte 3
+    movzx   ecx, byte [rdi + 2]
+    mov     r9d, ecx
+    and     r9d, 0xC0
+    cmp     r9d, 0x80
+    jne     .error
+    
+    // Byte 4
+    movzx   r9d, byte [rdi + 3]
+    mov     r10d, r9d
+    and     r10d, 0xC0
+    cmp     r10d, 0x80
+    jne     .error
+    
+    // Decode
+    and     eax, 0x07
+    shl     eax, 18
+    and     r8d, 0x3F
+    shl     r8d, 12
+    or      eax, r8d
+    and     ecx, 0x3F
+    shl     ecx, 6
+    or      eax, ecx
+    and     r9d, 0x3F
+    or      eax, r9d
+    
+    // Overlong check: > 0xFFFF
+    cmp     eax, 0xFFFF
+    jle     .error
+    
+    // Out of range: <= 0x10FFFF
+    cmp     eax, 0x10FFFF
+    jg      .error
+    
+    mov     rdx, rax
+    mov     rax, 4
+    ret
