@@ -166,6 +166,10 @@ lexer_next:
     // read current character
     movzx   rcx, byte [r13]
 
+    // check for UTF-8 (high bit set)
+    cmp     rcx, 128
+    jae     .lex_utf8_start
+
     // dispatch on character
     cmp     rcx, 10                // LF newline
     je      .emit_newline
@@ -230,6 +234,45 @@ lexer_next:
 
     // unknown character — emit error and skip
     jmp     .unknown_char
+
+// ---- UTF-8 Handling ---------------------
+.lex_utf8_start:
+    mov     rdi, [rbx + LEXER_pos]
+    mov     rsi, [rbx + LEXER_end]
+    call    str_utf8_decode
+    test    rax, rax
+    jz      .malformed_utf8
+
+    // rdx = codepoint, rax = length
+    // Sanitization: block control characters and dangerous non-printables
+    cmp     rdx, 0x20
+    jbe     .unknown_char
+    cmp     rdx, 0x7F
+    je      .unknown_char
+    cmp     rdx, 0x9F
+    jbe     .unknown_char          // Latin-1 control chars
+
+    // Is it a valid identifier start?
+    // For now, we allow any non-control Unicode codepoint > 0x7F as an identifier start.
+    jmp     .lex_ident
+
+.malformed_utf8:
+    mov     rdi, [rbx + LEXER_ctx]
+    mov     rsi, [rbx + LEXER_file]
+    mov     edx, dword [rbx + LEXER_line]
+    movzx   rcx, word  [rbx + LEXER_col]
+    lea     r8,  [msg_malformed_utf8]
+    call    error_emit
+    
+    // skip one byte and try again
+    inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
+    mov     rdi, rbx
+    mov     rsi, r12
+    pop     r13
+    pop     r12
+    pop     rbx
+    jmp     lexer_next
 
 // ---- EOF --------------------------------
 .emit_eof:
@@ -411,12 +454,38 @@ lexer_next:
     cmp     r10, [rbx + LEXER_end]
     jge     .lex_ident_done
     movzx   rdi, byte [r10]
+
+    // UTF-8 check
+    cmp     rdi, 128
+    jae     .lex_ident_utf8
+
     call    str_is_ident_char
     cmp     rax, TRUE
     jne     .lex_ident_done
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
     jmp     .lex_ident_loop
+
+.lex_ident_utf8:
+    mov     rdi, [rbx + LEXER_pos]
+    mov     rsi, [rbx + LEXER_end]
+    call    str_utf8_decode
+    test    rax, rax
+    jz      .malformed_utf8_in_ident
+
+    // rdx = codepoint, rax = length
+    // Sanitization: block control chars and dangerous non-printables
+    cmp     rdx, 0x9F
+    jbe     .lex_ident_done        // Stop at Latin-1 control chars or lower
+    
+    // allow codepoint as part of identifier
+    add     [rbx + LEXER_pos], rax
+    inc     word [rbx + LEXER_col]  // 1 col per codepoint
+    jmp     .lex_ident_loop
+
+.malformed_utf8_in_ident:
+    // We already have a malformed handler, jump to it
+    jmp     .malformed_utf8
 
 .lex_ident_done:
     // length = pos - start
@@ -874,11 +943,30 @@ lexer_next:
     cmp     r10, [rbx + LEXER_end]
     jge     .lex_directive_done
     movzx   rdi, byte [r10]
+    
+    // UTF-8 check
+    cmp     rdi, 128
+    jae     .lex_directive_utf8
+
     call    str_is_ident_char
     cmp     rax, TRUE
     jne     .lex_directive_done
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
+    jmp     .lex_directive_loop
+
+.lex_directive_utf8:
+    mov     rdi, [rbx + LEXER_pos]
+    mov     rsi, [rbx + LEXER_end]
+    call    str_utf8_decode
+    test    rax, rax
+    jz      .malformed_utf8_in_ident // reuse same handler
+    
+    cmp     rdx, 0x9F
+    jbe     .lex_directive_done
+    
+    add     [rbx + LEXER_pos], rax
+    inc     word [rbx + LEXER_col]
     jmp     .lex_directive_loop
 
 .lex_directive_done:
@@ -1240,6 +1328,8 @@ msg_unexpected_token:
     db      "unexpected token", 0
 msg_string_too_long:
     db      "string literal too long", 0
+msg_malformed_utf8:
+    db      "malformed UTF-8 sequence", 0
 
 // ============================================================================
 // CHARACTER PROPERTIES LOOKUP TABLE (LUT)
