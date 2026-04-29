@@ -915,6 +915,31 @@ parser_parse_struc:
     call    str_to_int                 // rax = field byte size
     mov     r11, rax                   // r11 = field size
     
+    // 3. Optional: Alignment (A77)
+    mov     r10, 1                     // default alignment
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        call    preprocessor_next_token
+        mov     rsi, [rdx + TOKEN_value]
+        call    str_to_int
+        mov     r10, rax
+        
+        // VALIDATION: Power of 2 (Industrial Safety)
+        mov     rax, r10
+        dec     rax
+        test    r10, rax
+        jnz     .error_invalid_align
+    ENDIF
+    
+    // Apply Alignment
+    mov     rax, r14                   // current offset
+    add     rax, r10
+    dec     rax
+    neg     r10
+    and     rax, r10                   // rax = aligned offset
+    mov     r14, rax
+    
     // Build fully-qualified name "StructName.FieldName" in arena
     mov     rdi, [rbx + PREP_arena]
     lea     rsi, [r13]             // struct name
@@ -958,6 +983,10 @@ parser_parse_struc:
 
 .error_no_global:
     mov     rax, EXIT_UNDEF_SYMBOL
+    jmp     .error
+
+.error_invalid_align:
+    mov     rax, EXIT_INVALID_ALIGN
     jmp     .error
 
 .error:
