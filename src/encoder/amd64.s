@@ -182,7 +182,11 @@ amd64_encode_instruction:
         mov     al, 16 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
         mov     al, 0xA5 | call amd64_emit_byte
     ELSEIF ax, e, 1420             // MOVSD
-        mov     al, 0xA5 | call amd64_emit_byte
+        IF byte [r12 + INST_nops], e, 0
+            mov     al, 0xA5 | call amd64_emit_byte
+        ELSE
+            mov     r13, 0x10 | mov r14, 1 | call amd64_encode_sse // SSE (F2 0F 10/11)
+        ENDIF
     ELSEIF ax, e, 1422             // MOVSQ
         mov     al, 64 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
         mov     al, 0xA5 | call amd64_emit_byte
