@@ -1521,7 +1521,15 @@ parser_handle_section_directive:
                 mov rax, EXIT_INVALID_SECTION_FLAGS | jmp .done
             ENDIF
             
-            mov     [r13 + SECTION_flags], ax
+            // A92: Validate flag consistency for duplicate declarations
+            movzx   ecx, word [r13 + SECTION_flags]
+            IF ecx, ne, 0
+                IF ecx, ne, eax
+                    mov rax, EXIT_INVALID_SECTION_FLAGS | jmp .done
+                ENDIF
+            ELSE
+                mov     [r13 + SECTION_flags], ax
+            ENDIF
             
             // 3.1 Handle Group Signature if 'G' flag is set
             test    ax, SHF_GROUP
