@@ -83,6 +83,16 @@ elf64_emit:
     check_err
 
     // ---- 4. Write .data section ----
+    // Ensure .data is aligned correctly in file (A88)
+    mov     rdi, r12
+    mov     rsi, SEC_DATA
+    call    asmctx_get_section
+    mov     rsi, [rdx + SECTION_align]
+    IF rsi, e, 0 | mov rsi, 8 | ENDIF // Default 8-byte
+    mov     rdi, r13d
+    call    elf64_align_file
+    check_err
+    
     call    elf64_write_data_section
     check_err
 
@@ -1159,6 +1169,63 @@ elf64_write_shdrs:
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
     
     pop     r15 | pop     r14 | pop     r13 | pop     r12 | pop     rbx
+    epilogue
+
+/**
+ * [elf64_align_file]
+ * Writes padding to FD until current offset is aligned to RSI.
+ * Input:
+ *   RDI: FD
+ *   RSI: Alignment (Power of 2)
+ */
+elf64_align_file:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi               // FD
+    mov     r12, rsi               // alignment
+    
+    // 1. Get current offset
+    mov     rdi, rbx
+    xor     rsi, rsi
+    mov     rdx, 1                 // SEEK_CUR
+    extern  io_lseek
+    call    io_lseek
+    // If seek fails (e.g. pipe), we can't align correctly for some sections
+    // but for now we assume seekable file for ELF emission.
+    test    rax, rax
+    js      .done
+    mov     r13, rax               // current pos
+    
+    // 2. Calculate padding
+    mov     rax, r13
+    mov     rcx, r12
+    dec     rcx                    // mask
+    and     rax, rcx
+    jz      .done                  // already aligned
+    
+    sub     r12, rax               // r12 = padding size
+    
+    // 3. Write padding
+.loop:
+    test    r12, r12
+    jz      .done
+    
+    mov     rdi, rbx
+    xor     rsi, rsi
+    extern  io_write_byte
+    call    io_write_byte
+    
+    dec     r12
+    jmp     .loop
+    
+.done:
+    pop     r13
+    pop     r12
+    pop     rbx
+    xor     rax, rax
     epilogue
 
 // ============================================================================
