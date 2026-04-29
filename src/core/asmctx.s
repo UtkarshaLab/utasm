@@ -388,21 +388,25 @@ asm_ctx_align:
     sub     r12, rdx               // padding = align - offset
     
     // 3. Determine fill byte
+    xor     r14, r14               // Default: Zero-fill (safe for data/bss)
+    
     mov     al, byte [r13 + SECTION_type]
     cmp     al, SEC_TEXT
     jne     .fill_loop
     
-    // Architecturally-aware NOP
+    // Architecturally-aware NOP for .text sections
     mov     al, [rbx + ASMCTX_target]
     IF al, e, TARGET_AMD64
-        mov     r14b, 0x90     // NOP
+        mov     r14b, 0x90     // NOP (1 byte)
     ELSEIF al, e, TARGET_AARCH64
-        mov     r14b, 0x1F     // NOP is 0xD503201F (we'll emit it byte by byte?)
-        // Wait, alignment can be 4-byte for RISC.
-        // For now, assume 0 for padding if not AMD64 or handle correctly.
-        mov     r14b, 0
-    ELSE
-        mov     r14b, 0
+        // AArch64 NOP is 0xD503201F. 
+        // Since we emit byte-by-byte, we'll use a special loop if needed,
+        // but for now, 0x00 is safer than a random byte.
+        // Let's use 0x1F and ensure it's handled as part of a 4-byte NOP.
+        mov     r14b, 0x00     // Default to 0 for now until 4-byte NOP loop implemented
+    ELSEIF al, e, TARGET_RISCV64
+        mov     r14b, 0x13     // Part of NOP (addi x0, x0, 0)
+        or      r14b, 0x00
     ENDIF
     
 .fill_loop:
