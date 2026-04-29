@@ -319,6 +319,9 @@ riscv64_encode_i_shift:
     or      eax, edi
     
     mov     edi, [r9 + OPERAND_imm]
+    IF edi, g, 63
+        mov rax, EXIT_IMM_RANGE | jmp .ret
+    ENDIF
     and     edi, 0x3F              // 6-bit shift amount
     shl     edi, 20
     or      eax, edi
