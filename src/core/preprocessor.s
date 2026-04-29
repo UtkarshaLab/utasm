@@ -488,6 +488,48 @@ prep_expand_next:
     // increment body pos
     inc     qword [r13 + MACROEXP_body]
 
+    // 2.5 Handle Stringification (#) (A67)
+    IF byte [r12 + TOKEN_kind], e, TOK_HASH
+        // Peek at NEXT token in macro body
+        mov     rax, [r13 + MACROEXP_body]
+        mov     r9, [r13 + MACROEXP_macro]
+        cmp     eax, [r9 + MACRO_ntokens]
+        jge     .produced              // Nothing after #
+        
+        mov     r10, [r9 + MACRO_tokens]
+        imul    rax, TOKEN_SIZE
+        add     r10, rax               // r10 = potential parameter ref
+        
+        IF byte [r10 + TOKEN_kind], e, TOK_DIRECTIVE
+            // Check if it's %1-%9
+            mov     rdi, [r10 + TOKEN_value]
+            movzx   rax, byte [rdi]
+            sub     al, '0'
+            IF al, ge, 1 | IF al, le, 9
+                // Yes, it's stringification!
+                // 1. Consume the directive token
+                inc     qword [r13 + MACROEXP_body]
+                
+                // 2. Get the parameter token
+                dec     al
+                movzx   rax, al
+                mov     r11, [r13 + MACROEXP_params]
+                mov     rsi, [r11 + rax * 8]   // rsi = param token
+                
+                // 3. Stringify it (Create a TOK_STRING)
+                mov     byte [r12 + TOKEN_kind], TOK_STRING
+                
+                // Use TOKEN_value or name string? 
+                // For TOK_IDENT, use value. For others, we need a helper.
+                // Simple implementation: use the value directly if it's already a string.
+                mov     rax, [rsi + TOKEN_value]
+                mov     [r12 + TOKEN_value], rax
+                
+                jmp     .produced
+            ENDIF
+        ENDIF
+    ENDIF
+
     // 3. Handle parameter substitution
     // Macro parameters are TOK_DIRECTIVE with value like "0", "1", "2"...
     cmp     byte [r12 + TOKEN_kind], TOK_DIRECTIVE
