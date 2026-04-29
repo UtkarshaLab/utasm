@@ -470,17 +470,19 @@ parser_evaluate_factor:
         xor     rax, rax
         epilogue
     ELSEIF al, e, TOK_IDENT
-        // Symbol lookup (Round 6 will industrialize this)
+        // Symbol lookup
         mov     rdi, [rbx + PREP_ctx]
         mov     rsi, [r12 + TOKEN_value]
         extern  symbol_find
         call    symbol_find
         IF rax, e, OK
+            mov     r11, rdx               // return SYMBOL* in r11 (A78)
             mov     rdx, [rdx + SYMBOL_value]
             xor     rax, rax
         ELSE
             // Deferred symbol (R_ABS64 reloc)
             mov     rdx, 0
+            mov     r11, 0                 // no symbol metadata yet
             mov     rcx, [r12 + TOKEN_value] // return symbol name in RCX
             xor     rax, rax
         ENDIF
@@ -682,8 +684,11 @@ parser_parse_mem_operand:
     // 2. Parse as expression (Displacement)
     call    parser_evaluate_expression
     check_err
-    // result in rdx
+    // result in rdx, symbol metadata in r11 (A78)
     add     [r12 + OPERAND_imm], rdx
+    IF r11, ne, 0
+        mov [r12 + OPERAND_sym], r11
+    ENDIF
     jmp     .loop
 
 .finalize:
