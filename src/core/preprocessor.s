@@ -46,6 +46,7 @@ prep_init:
     mov     byte [rdi + PREP_depth], 0
     mov     byte [rdi + PREP_skip_depth], 0
     mov     byte [rdi + PREP_has_peek], FALSE
+    mov     byte [rdi + PREP_mac_depth], 0 // (A83)
     mov     [rdi + PREP_lexer], rsi
     mov     [rdi + PREP_ctx], rdx
     mov     [rdi + PREP_arena], rcx
@@ -267,27 +268,18 @@ prep_expand_start:
     mov     rbx, rdi               // rbx = PrepState
     mov     r12, rsi               // r12 = MACRO struct
 
-    // 0. Check recursion depth
-    mov     r8, [rbx + PREP_ctx]
-    mov     r9, [r8 + ASMCTX_mac_exp]
-    xor     ecx, ecx
-.depth_loop:
-    test    r9, r9
-    jz      .depth_ok
-    inc     ecx
-    cmp     ecx, MAX_MACRO_DEPTH
-    jge     .error_recursion
-    mov     r9, [r9 + MACROEXP_parent]
-    jmp     .depth_loop
-
-.error_recursion:
-    mov     rax, EXIT_MACRO_RECURSION
-    jmp     .error
-
-.depth_ok:
+    // 0. Check recursion depth (A83: Optimized O(1) check)
+    inc     byte [rbx + PREP_mac_depth]
+    IF byte [rbx + PREP_mac_depth], g, MAX_MACRO_RECURSION
+        mov rax, EXIT_MACRO_RECURSION
+        jmp .error_recursion
+    ENDIF
     // Increment global expansion ID (A70)
     mov     r8, [rbx + PREP_ctx]
     inc     dword [r8 + ASMCTX_mac_exp_id]
+
+.error_recursion:
+    jmp     .error
 
     // 1. Allocate MACROEXP struct
     mov     rdi, [rbx + PREP_arena]
@@ -775,6 +767,7 @@ prep_expand_pop:
     jz      .done
     
     mov     r10, [r9 + MACROEXP_parent]
+    dec     byte [rdi + PREP_mac_depth] // A83: Correctly pop depth
     mov     [r8 + ASMCTX_mac_exp], r10
 .done:
     ret
