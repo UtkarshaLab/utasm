@@ -21,12 +21,12 @@
 [SECTION .text]
 
 ;*
- * [diag_error_at]
- * Prints a contextual error message.
- * Input:
- *   rdi = pointer to AsmCtx
- *   rsi = pointer to Token
- *   rdx = message string
+; * [diag_error_at]
+; * Prints a contextual error message.
+; * Input:
+; *   rdi = pointer to AsmCtx
+; *   rsi = pointer to Token
+; *   rdx = message string
  ;
 global diag_error_at
 diag_error_at:

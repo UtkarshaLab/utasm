@@ -13,11 +13,11 @@
 [SECTION .text]
 
 ;*
- * [asm_ctx_emit_byte]
- * Purpose: Appends a single byte to the active section's buffer.
- * Input:
- *   RDI: Pointer to AsmCtx
- *   RSI: Byte to emit (SIL)
+; * [asm_ctx_emit_byte]
+; * Purpose: Appends a single byte to the active section's buffer.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; *   RSI: Byte to emit (SIL)
  ;
 global asm_ctx_emit_byte
 asm_ctx_emit_byte:
@@ -108,19 +108,19 @@ asm_ctx_emit_byte:
     epilogue
 
 ;*
- * [asm_ctx_create_section]
- * Purpose: Creates a new section and adds it to the context.
+; * [asm_ctx_create_section]
+; * Purpose: Creates a new section and adds it to the context.
  ;
 ;*
- * [asm_ctx_create_section]
- * Purpose: Creates a new section and adds it to the context.
- * Input:
- *   RDI: Pointer to AsmCtx
- *   RSI: Section Name (Pointer)
- *   RDX: Section Type (SEC_*)
- * Output:
- *   RAX: EXIT_OK or error
- *   RDX: Pointer to new SECTION
+; * [asm_ctx_create_section]
+; * Purpose: Creates a new section and adds it to the context.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; *   RSI: Section Name (Pointer)
+; *   RDX: Section Type (SEC_*)
+; * Output:
+; *   RAX: EXIT_OK or error
+; *   RDX: Pointer to new SECTION
  ;
 global asm_ctx_create_section
 asm_ctx_create_section:
@@ -188,8 +188,8 @@ asm_ctx_create_section:
     epilogue
 
 ;*
- * [asm_ctx_emit_dword]
- * Purpose: Appends 4 bytes to the active section's buffer.
+; * [asm_ctx_emit_dword]
+; * Purpose: Appends 4 bytes to the active section's buffer.
  ;
 global asm_ctx_emit_dword
 asm_ctx_emit_dword:
@@ -222,8 +222,8 @@ asm_ctx_emit_dword:
 
 
 ;*
- * [asm_ctx_emit_word]
- * Purpose: Appends 2 bytes (16-bit) to the active section.
+; * [asm_ctx_emit_word]
+; * Purpose: Appends 2 bytes (16-bit) to the active section.
  ;
 global asm_ctx_emit_word
 asm_ctx_emit_word:
@@ -246,8 +246,8 @@ asm_ctx_emit_word:
     epilogue
 
 ;*
- * [asm_ctx_emit_qword]
- * Purpose: Appends 8 bytes (64-bit) to the active section.
+; * [asm_ctx_emit_qword]
+; * Purpose: Appends 8 bytes (64-bit) to the active section.
  ;
 global asm_ctx_emit_qword
 asm_ctx_emit_qword:
@@ -270,11 +270,11 @@ asm_ctx_emit_qword:
     epilogue
 
 ;*
- * [asm_ctx_emit_string]
- * Purpose: Appends a null-terminated string to the active section.
- * Input:
- *   RDI: Pointer to AsmCtx
- *   RSI: Pointer to null-terminated string
+; * [asm_ctx_emit_string]
+; * Purpose: Appends a null-terminated string to the active section.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; *   RSI: Pointer to null-terminated string
  ;
 global asm_ctx_emit_string
 asm_ctx_emit_string:
@@ -299,14 +299,14 @@ asm_ctx_emit_string:
     epilogue
 
 ;*
- * [asmctx_find_section]
- * Purpose: Finds a section by name string.
- * Input:
- *   RDI: Pointer to AsmCtx
- *   RSI: Section Name String
- * Output:
- *   RAX: EXIT_OK (found) or EXIT_ERROR
- *   RDX: Pointer to SECTION
+; * [asmctx_find_section]
+; * Purpose: Finds a section by name string.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; *   RSI: Section Name String
+; * Output:
+; *   RAX: EXIT_OK (found) or EXIT_ERROR
+; *   RDX: Pointer to SECTION
  ;
 global asmctx_find_section
 asmctx_find_section:
@@ -358,11 +358,11 @@ asmctx_find_section:
     epilogue
 
 ;*
- * [asm_ctx_align]
- * Aligns the current section to the specified boundary.
- * Input:
- *   RDI: AsmCtx*
- *   RSI: Alignment (Power of 2)
+; * [asm_ctx_align]
+; * Aligns the current section to the specified boundary.
+; * Input:
+; *   RDI: AsmCtx*
+; *   RSI: Alignment (Power of 2)
  ;
 global asm_ctx_align
 asm_ctx_align:

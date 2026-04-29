@@ -775,8 +775,8 @@ riscv64_encode_pseudo_call:
     epilogue
 
 ;*
- * [riscv64_encode_rvc_mv]
- * c.mv rd, rs2 -> 0x8002 | (rd << 7) | (rs2 << 2)
+; * [riscv64_encode_rvc_mv]
+; * c.mv rd, rs2 -> 0x8002 | (rd << 7) | (rs2 << 2)
  ;
 riscv64_encode_rvc_mv:
     prologue
@@ -803,8 +803,8 @@ riscv64_encode_rvc_mv:
     epilogue
 
 ;*
- * [riscv64_encode_rvc_addi]
- * c.addi rd, imm -> 0x0001 | (imm[5] << 12) | (rd << 7) | (imm[4:0] << 2)
+; * [riscv64_encode_rvc_addi]
+; * c.addi rd, imm -> 0x0001 | (imm[5] << 12) | (rd << 7) | (imm[4:0] << 2)
  ;
 riscv64_encode_rvc_addi:
     prologue
@@ -841,9 +841,9 @@ riscv64_encode_rvc_addi:
     epilogue
 
 ;*
- * [riscv64_encode_amo]
- * Encodes Atomic Memory Operations (AMO).
- * Format: funct5(5) aq(1) rl(1) rs2(5) rs1(5) funct3(3) rd(5) 0101111
+; * [riscv64_encode_amo]
+; * Encodes Atomic Memory Operations (AMO).
+; * Format: funct5(5) aq(1) rl(1) rs2(5) rs1(5) funct3(3) rd(5) 0101111
  ;
 riscv64_encode_atomic:
     prologue
@@ -911,8 +911,8 @@ riscv64_encode_atomic:
     epilogue
 
 ;*
- * [riscv64_emit_half]
- * Emits a 16-bit compressed instruction.
+; * [riscv64_emit_half]
+; * Emits a 16-bit compressed instruction.
  ;
 riscv64_emit_half:
     prologue

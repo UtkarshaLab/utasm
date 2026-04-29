@@ -1243,7 +1243,7 @@ prep_handle_def:
     jmp     .error
 
 ;*
- * [prep_capture_greedy]
+; * [prep_capture_greedy]
  ;
 prep_capture_greedy:
     prologue
@@ -1773,8 +1773,8 @@ macro_handle_def:
     ret
 
 ;*
- * [prep_handle_rep]
- * Input: RDI = PrepState
+; * [prep_handle_rep]
+; * Input: RDI = PrepState
  ;
 prep_handle_rep:
     push    rbx

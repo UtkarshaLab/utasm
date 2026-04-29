@@ -13,9 +13,9 @@
 ; ============================================================================
 
 ;*
- * [prologue]
- * Purpose: Establish a standard AMD64 function stack frame.
- * Clobbers: RBP
+; * [prologue]
+; * Purpose: Establish a standard AMD64 function stack frame.
+; * Clobbers: RBP
  ;
 %macro prologue 0
     push    rbp
@@ -30,9 +30,9 @@
 %endmacro
 
 ;*
- * [push_volatile]
- * Purpose: Save all volatile registers as defined by the AMD64 SysV ABI.
- * Used before calling functions where state must be preserved.
+; * [push_volatile]
+; * Purpose: Save all volatile registers as defined by the AMD64 SysV ABI.
+; * Used before calling functions where state must be preserved.
  ;
 %macro push_volatile 0
     push    rax
@@ -47,8 +47,8 @@
 %endmacro
 
 ;*
- * [pop_volatile]
- * Purpose: Restore all volatile registers as defined by the AMD64 SysV ABI.
+; * [pop_volatile]
+; * Purpose: Restore all volatile registers as defined by the AMD64 SysV ABI.
  ;
 %macro pop_volatile 0
     pop     r11
@@ -63,8 +63,8 @@
 %endmacro
 
 ;*
- * [save_context]
- * Purpose: Save the complete CPU state, including all GPRs and EFLAGS.
+; * [save_context]
+; * Purpose: Save the complete CPU state, including all GPRs and EFLAGS.
  ;
 %macro save_context 0
     pushfq
@@ -86,8 +86,8 @@
 %endmacro
 
 ;*
- * [restore_context]
- * Purpose: Restore the complete CPU state saved by save_context.
+; * [restore_context]
+; * Purpose: Restore the complete CPU state saved by save_context.
  ;
 %macro restore_context 0
     pop     r15
@@ -109,11 +109,11 @@
 %endmacro
 
 ;*
- * [switch_context]
- * Purpose: Perform a thread/coroutine context switch by swapping stack pointers.
- * Parameters:
- *   %1: [mem64] Location to save the current RSP
- *   %2: [mem64] Location of the next task's RSP
+; * [switch_context]
+; * Purpose: Perform a thread/coroutine context switch by swapping stack pointers.
+; * Parameters:
+; *   %1: [mem64] Location to save the current RSP
+; *   %2: [mem64] Location of the next task's RSP
  ;
 %macro switch_context 2
     push    rbp
@@ -133,8 +133,8 @@
 %endmacro
 
 ;*
- * [locals_start]
- * Purpose: Initialize a block for named local stack variables.
+; * [locals_start]
+; * Purpose: Initialize a block for named local stack variables.
  ;
 %macro locals_start 0
     %push   locals
@@ -142,11 +142,11 @@
 %endmacro
 
 ;*
- * [local_var]
- * Purpose: Define a named local variable at an offset from RBP.
- * Parameters:
- *   %1: [name] Variable name
- *   %2: [imm] Size in bytes
+; * [local_var]
+; * Purpose: Define a named local variable at an offset from RBP.
+; * Parameters:
+; *   %1: [name] Variable name
+; *   %2: [imm] Size in bytes
  ;
 %macro local_var 2
     %assign %$base_offset %$base_offset + %2
@@ -154,8 +154,8 @@
 %endmacro
 
 ;*
- * [locals_end]
- * Purpose: Reserve the calculated stack space for all defined locals.
+; * [locals_end]
+; * Purpose: Reserve the calculated stack space for all defined locals.
  ;
 %macro locals_end 0
     sub     rsp, %$base_offset
@@ -163,15 +163,15 @@
 %endmacro
 
 ;*
- * [try] / [catch] / [endtry]
- * Purpose: Structured exception handling via context-based labels.
- * Usage:
- *   try
- *     call do_risky_work
- *     check_err
- *   catch
- *     call handle_error
- *   endtry
+; * [try] / [catch] / [endtry]
+; * Purpose: Structured exception handling via context-based labels.
+; * Usage:
+; *   try
+; *     call do_risky_work
+; *     check_err
+; *   catch
+; *     call handle_error
+; *   endtry
  ;
 %macro try 0
     %push   try
@@ -196,10 +196,10 @@
 %endmacro
 
 ;*
- * [throw]
- * Purpose: Signal an error and branch to the nearest 'catch' block.
- * Parameters:
- *   %1: [imm/reg] Error code to place in RAX
+; * [throw]
+; * Purpose: Signal an error and branch to the nearest 'catch' block.
+; * Parameters:
+; *   %1: [imm/reg] Error code to place in RAX
  ;
 %macro throw 1
     mov     rax, %1
@@ -211,8 +211,8 @@
 ; ============================================================================
 
 ;*
- * [check_err]
- * Purpose: Branch to .error if RAX is non-zero (standard error convention).
+; * [check_err]
+; * Purpose: Branch to .error if RAX is non-zero (standard error convention).
  ;
 %macro check_err 0
     test    rax, rax
@@ -220,8 +220,8 @@
 %endmacro
 
 ;*
- * [check_err_to]
- * Purpose: Branch to a specific label if RAX is non-zero.
+; * [check_err_to]
+; * Purpose: Branch to a specific label if RAX is non-zero.
  ;
 %macro check_err_to 1
     test    rax, rax
@@ -229,8 +229,8 @@
 %endmacro
 
 ;*
- * [assert_tag]
- * Purpose: Verify that a structure at [%1] has the expected byte tag %2.
+; * [assert_tag]
+; * Purpose: Verify that a structure at [%1] has the expected byte tag %2.
  ;
 %macro assert_tag 2
     cmp     byte [%1], %2
@@ -238,9 +238,9 @@
 %endmacro
 
 ;*
- * [assert_aligned]
- * Purpose: Trap if address in %1 is not aligned to %2 bytes.
- * %2 must be a power of two.
+; * [assert_aligned]
+; * Purpose: Trap if address in %1 is not aligned to %2 bytes.
+; * %2 must be a power of two.
  ;
 %macro assert_aligned 2
     test    %1, (%2 - 1)
@@ -248,8 +248,8 @@
 %endmacro
 
 ;*
- * [assert_cache_aligned]
- * Purpose: Trap if address is not on a 64-byte cache line boundary.
+; * [assert_cache_aligned]
+; * Purpose: Trap if address is not on a 64-byte cache line boundary.
  ;
 %macro assert_cache_aligned 1
     test    %1, 63
@@ -257,8 +257,8 @@
 %endmacro
 
 ;*
- * [assert_not_zero]
- * Purpose: Trap if the value in %1 is zero (NULL check).
+; * [assert_not_zero]
+; * Purpose: Trap if the value in %1 is zero (NULL check).
  ;
 %macro assert_not_zero 1
     test    %1, %1
@@ -266,8 +266,8 @@
 %endmacro
 
 ;*
- * [assert_reg_range]
- * Purpose: Trap if %1 is not within the inclusive range [%2, %3].
+; * [assert_reg_range]
+; * Purpose: Trap if %1 is not within the inclusive range [%2, %3].
  ;
 %macro assert_reg_range 3
     cmp     %1, %2
@@ -277,8 +277,8 @@
 %endmacro
 
 ;*
- * [stack_align_check]
- * Purpose: Verify that the RSP is 16-byte aligned (required for SSE/ABI).
+; * [stack_align_check]
+; * Purpose: Verify that the RSP is 16-byte aligned (required for SSE/ABI).
  ;
 %macro stack_align_check 0
     test    rsp, 0xF
@@ -290,9 +290,9 @@
 ; ============================================================================
 
 ;*
- * [IF] / [ELSE] / [ENDIF]
- * Purpose: Structured conditional branching using NASM context stack.
- * Usage: IF rax, e, 0 ... ELSE ... ENDIF
+; * [IF] / [ELSE] / [ENDIF]
+; * Purpose: Structured conditional branching using NASM context stack.
+; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
  ;
 %macro IF 3
     %push   if
@@ -344,9 +344,9 @@
 %endmacro
 
 ;*
- * [WHILE] / [ENDWHILE]
- * Purpose: Structured loop control.
- * Usage: WHILE rcx, ne, 0 ... ENDWHILE
+; * [WHILE] / [ENDWHILE]
+; * Purpose: Structured loop control.
+; * Usage: WHILE rcx, ne, 0 ... ENDWHILE
  ;
 %macro WHILE 3
     %push   while
@@ -366,8 +366,8 @@
 %endmacro
 
 ;*
- * [j_likely] / [j_unlikely]
- * Purpose: Hints to the CPU (and maintainer) about branch probability.
+; * [j_likely] / [j_unlikely]
+; * Purpose: Hints to the CPU (and maintainer) about branch probability.
  ;
 %macro j_likely 2
     j%1     %2
@@ -382,11 +382,11 @@
 ; ============================================================================
 
 ;*
- * [zero_mem]
- * Purpose: Fast zero-initialization of memory using REP STOSQ.
- * Parameters:
- *   %1: [reg] Pointer to memory
- *   %2: [imm] Size in bytes (must be multiple of 8)
+; * [zero_mem]
+; * Purpose: Fast zero-initialization of memory using REP STOSQ.
+; * Parameters:
+; *   %1: [reg] Pointer to memory
+; *   %2: [imm] Size in bytes (must be multiple of 8)
  ;
 %macro zero_mem 2
     mov     rdi, %1
@@ -396,11 +396,11 @@
 %endmacro
 
 ;*
- * [alloc_on_arena]
- * Purpose: Allocate memory from the global arena.
- * Parameters:
- *   %1: [out] Register to receive the pointer
- *   %2: [in] Size in bytes
+; * [alloc_on_arena]
+; * Purpose: Allocate memory from the global arena.
+; * Parameters:
+; *   %1: [out] Register to receive the pointer
+; *   %2: [in] Size in bytes
  ;
 %macro alloc_on_arena 2
     mov     rdi, [rbx + PREP_arena]
@@ -412,8 +412,8 @@
 %endmacro
 
 ;*
- * [alloc_aligned_arena]
- * Purpose: Allocate memory from the arena with forced alignment.
+; * [alloc_aligned_arena]
+; * Purpose: Allocate memory from the arena with forced alignment.
  ;
 %macro alloc_aligned_arena 3
     mov     rdi, [rbx + PREP_arena]
@@ -424,9 +424,9 @@
 %endmacro
 
 ;*
- * [push_alloc] / [pop_alloc]
- * Purpose: Checkpoint and restore arena allocation pointers.
- * Useful for temporary allocations in nested parser logic.
+; * [push_alloc] / [pop_alloc]
+; * Purpose: Checkpoint and restore arena allocation pointers.
+; * Useful for temporary allocations in nested parser logic.
  ;
 %macro push_alloc 0
     %push   arena
@@ -445,9 +445,10 @@
 %endmacro
 
 ;*
- * [struc] / [field] / [endstruc]
- * Purpose: Automatic calculation of structure offsets and total size.
+; * [struc] / [field] / [endstruc]
+; * Purpose: Automatic calculation of structure offsets and total size.
  ;
+%undef struc
 %macro struc 1
     %push   struc
     %define %$struc_name %1
@@ -455,18 +456,19 @@
 %endmacro
 
 %macro field 2
-    %define %{$struc_name}_%1 %$offset
+    %xdefine %{%$struc_name}_%1 %$offset
     %assign %$offset %$offset + %2
 %endmacro
 
+%undef endstruc
 %macro endstruc 0
-    %define %{$struc_name}_SIZE %$offset
+    %xdefine %{%$struc_name}_SIZE %$offset
     %pop    struc
 %endmacro
 
 ;*
- * [vtable_begin] / [vmethod] / [vtable_end]
- * Purpose: Define a Virtual Method Table in .rodata.
+; * [vtable_begin] / [vmethod] / [vtable_end]
+; * Purpose: Define a Virtual Method Table in .rodata.
  ;
 %macro vtable_begin 1
     [SECTION .rodata]
@@ -483,8 +485,8 @@
 %endmacro
 
 ;*
- * [cbuf_push] / [cbuf_pop]
- * Purpose: Low-latency operations on a power-of-two circular buffer.
+; * [cbuf_push] / [cbuf_pop]
+; * Purpose: Low-latency operations on a power-of-two circular buffer.
  ;
 %macro cbuf_push 4
     mov     rax, [%2]
@@ -503,8 +505,8 @@
 %endmacro
 
 ;*
- * [bloom_add] / [bloom_check]
- * Purpose: Fast membership test kernel for Bloom Filters.
+; * [bloom_add] / [bloom_check]
+; * Purpose: Fast membership test kernel for Bloom Filters.
  ;
 %macro bloom_add 2
     mov     rax, %2
@@ -527,8 +529,8 @@
 %endmacro
 
 ;*
- * [jump_table] / [jt_entry] / [jump_table_end]
- * Purpose: Construct optimized jump tables for opcode dispatch.
+; * [jump_table] / [jt_entry] / [jump_table_end]
+; * Purpose: Construct optimized jump tables for opcode dispatch.
  ;
 %macro jt_entry 1
     dq      %1
@@ -549,8 +551,8 @@
 ; ============================================================================
 
 ;*
- * [memcpy]
- * Purpose: Standard memory copy.
+; * [memcpy]
+; * Purpose: Standard memory copy.
  ;
 %macro memcpy 3
     mov     rdi, %1
@@ -560,9 +562,9 @@
 %endmacro
 
 ;*
- * [memcpy_nt]
- * Purpose: Non-Temporal memory copy. Bypasses cache to prevent pollution.
- * Requirement: Source and Dest should be aligned for best performance.
+; * [memcpy_nt]
+; * Purpose: Non-Temporal memory copy. Bypasses cache to prevent pollution.
+; * Requirement: Source and Dest should be aligned for best performance.
  ;
 %macro memcpy_nt 3
     mov     rdi, %1
@@ -578,8 +580,8 @@
 %endmacro
 
 ;*
- * [memset]
- * Purpose: Fill a memory buffer with a specific byte value.
+; * [memset]
+; * Purpose: Fill a memory buffer with a specific byte value.
  ;
 %macro memset 3
     mov     rdi, %1
@@ -589,9 +591,9 @@
 %endmacro
 
 ;*
- * [strlen]
- * Purpose: Calculate the length of a null-terminated string.
- * Output: %2 = length in bytes.
+; * [strlen]
+; * Purpose: Calculate the length of a null-terminated string.
+; * Output: %2 = length in bytes.
  ;
 %macro strlen 2
     mov     rdi, %1
@@ -604,11 +606,11 @@
 %endmacro
 
 ;*
- * [encode_leb128]
- * Purpose: Encode a 64-bit integer into DWARF-standard Variable Length LEB128.
- * Parameters:
- *   %1: [reg] Source value
- *   %2: [out] Dest pointer (advanced after write)
+; * [encode_leb128]
+; * Purpose: Encode a 64-bit integer into DWARF-standard Variable Length LEB128.
+; * Parameters:
+; *   %1: [reg] Source value
+; *   %2: [out] Dest pointer (advanced after write)
  ;
 %macro encode_leb128 2
     mov     rax, %1
@@ -629,8 +631,8 @@
 %endmacro
 
 ;*
- * [swap_16/32/64]
- * Purpose: Endianness conversion via byte swapping.
+; * [swap_16/32/64]
+; * Purpose: Endianness conversion via byte swapping.
  ;
 %macro swap_16 1
     xchg    %h1, %l1
@@ -649,8 +651,8 @@
 ; ============================================================================
 
 ;*
- * [set_bit] / [clr_bit] / [toggle_bit]
- * Purpose: Single-bit manipulation kernels.
+; * [set_bit] / [clr_bit] / [toggle_bit]
+; * Purpose: Single-bit manipulation kernels.
  ;
 %macro set_bit 2
     bts     %1, %2
@@ -665,9 +667,9 @@
 %endmacro
 
 ;*
- * [extract_bits]
- * Purpose: Retrieve a bitfield from a 64-bit source.
- * Parameters: dest, src, start_bit, length
+; * [extract_bits]
+; * Purpose: Retrieve a bitfield from a 64-bit source.
+; * Parameters: dest, src, start_bit, length
  ;
 %macro extract_bits 4
     mov     %1, %2
@@ -678,8 +680,8 @@
 %endmacro
 
 ;*
- * [bit_reverse_64]
- * Purpose: Full bit-level reversal of a 64-bit register.
+; * [bit_reverse_64]
+; * Purpose: Full bit-level reversal of a 64-bit register.
  ;
 %macro bit_reverse_64 1
     mov     rax, %1
@@ -694,8 +696,8 @@
 %endmacro
 
 ;*
- * [popcnt_64] / [lzcnt_64] / [tzcnt_64]
- * Purpose: Advanced bit counting.
+; * [popcnt_64] / [lzcnt_64] / [tzcnt_64]
+; * Purpose: Advanced bit counting.
  ;
 %macro popcnt_64 2
     popcnt  %1, %2
@@ -710,8 +712,8 @@
 %endmacro
 
 ;*
- * [abs_64] / [min_64] / [max_64]
- * Purpose: Standard 64-bit arithmetic kernels.
+; * [abs_64] / [min_64] / [max_64]
+; * Purpose: Standard 64-bit arithmetic kernels.
  ;
 %macro abs_64 1
     mov     rax, %1
@@ -731,8 +733,8 @@
 %endmacro
 
 ;*
- * [clamp]
- * Purpose: Restrict a value to the inclusive range [%2, %3].
+; * [clamp]
+; * Purpose: Restrict a value to the inclusive range [%2, %3].
  ;
 %macro clamp 3
     max_64  %1, %2
@@ -740,9 +742,9 @@
 %endmacro
 
 ;*
- * [mul_128]
- * Purpose: 64x64 -> 128-bit unsigned multiplication.
- * Output: %3 (Lo), %4 (Hi)
+; * [mul_128]
+; * Purpose: 64x64 -> 128-bit unsigned multiplication.
+; * Output: %3 (Lo), %4 (Hi)
  ;
 %macro mul_128 4
     mov     rax, %1
@@ -752,10 +754,10 @@
 %endmacro
 
 ;*
- * [exp_mod]
- * Purpose: Modular Exponentiation kernel (Binary Exponentiation).
- * Input: %1 (Base), %2 (Exp), %3 (Mod)
- * Output: RAX
+; * [exp_mod]
+; * Purpose: Modular Exponentiation kernel (Binary Exponentiation).
+; * Input: %1 (Base), %2 (Exp), %3 (Mod)
+; * Output: RAX
  ;
 %macro exp_mod 3
     push    rax
@@ -790,8 +792,8 @@
 %endmacro
 
 ;*
- * [hash_fnv1a_64]
- * Purpose: Fast non-cryptographic FNV-1a hash of a null-terminated string.
+; * [hash_fnv1a_64]
+; * Purpose: Fast non-cryptographic FNV-1a hash of a null-terminated string.
  ;
 %macro hash_fnv1a_64 2
     mov     rax, 0xcbf29ce484222325 ; FNV offset basis
@@ -814,8 +816,8 @@
 ; ============================================================================
 
 ;*
- * [atomic_inc_64] / [atomic_add_64]
- * Purpose: Lock-prefixed atomic modifications.
+; * [atomic_inc_64] / [atomic_add_64]
+; * Purpose: Lock-prefixed atomic modifications.
  ;
 %macro atomic_inc_64 1
     lock inc qword [%1]
@@ -826,8 +828,8 @@
 %endmacro
 
 ;*
- * [atomic_cmpxchg_128]
- * Purpose: 128-bit atomic compare-and-swap (requires CMPXCHG16B support).
+; * [atomic_cmpxchg_128]
+; * Purpose: 128-bit atomic compare-and-swap (requires CMPXCHG16B support).
  ;
 %macro atomic_cmpxchg_128 5
     mov     rax, %2
@@ -838,8 +840,8 @@
 %endmacro
 
 ;*
- * [spin_lock] / [spin_unlock]
- * Purpose: Standard 32-bit TAS (Test-And-Set) spinlock.
+; * [spin_lock] / [spin_unlock]
+; * Purpose: Standard 32-bit TAS (Test-And-Set) spinlock.
  ;
 %macro spin_lock 1
 %%retry:
@@ -852,8 +854,8 @@
 %endmacro
 
 ;*
- * [pause_backoff]
- * Purpose: Execute a series of PAUSE instructions for exponential backoff.
+; * [pause_backoff]
+; * Purpose: Execute a series of PAUSE instructions for exponential backoff.
  ;
 %macro pause_backoff 1
     mov     rcx, %1
@@ -863,8 +865,8 @@
 %endmacro
 
 ;*
- * [xbegin_sync] / [xend_sync]
- * Purpose: TSX Transactional Memory boundaries.
+; * [xbegin_sync] / [xend_sync]
+; * Purpose: TSX Transactional Memory boundaries.
  ;
 %macro xbegin_sync 1
     xbegin  %1
@@ -879,9 +881,9 @@
 ; ============================================================================
 
 ;*
- * [require_cpu_feature]
- * Purpose: Verify CPUID feature bit before execution. Trap if missing.
- * Parameters: EAX leaf, Register (ecx=1, edx=0), Bit index
+; * [require_cpu_feature]
+; * Purpose: Verify CPUID feature bit before execution. Trap if missing.
+; * Parameters: EAX leaf, Register (ecx=1, edx=0), Bit index
  ;
 %macro require_cpu_feature 3
     mov     eax, %1
@@ -892,8 +894,8 @@
 %endmacro
 
 ;*
- * [rdmsr_64]
- * Purpose: Read Model Specific Register (Privileged).
+; * [rdmsr_64]
+; * Purpose: Read Model Specific Register (Privileged).
  ;
 %macro rdmsr_64 1
     mov     ecx, %1
@@ -901,8 +903,8 @@
 %endmacro
 
 ;*
- * [in_port_8] / [out_port_8]
- * Purpose: 8-bit Legacy Port I/O.
+; * [in_port_8] / [out_port_8]
+; * Purpose: 8-bit Legacy Port I/O.
  ;
 %macro in_port_8 2
     mov     dx, %2
@@ -917,8 +919,8 @@
 %endmacro
 
 ;*
- * [prefetch_read] / [prefetch_write]
- * Purpose: Software prefetch hints for memory controller.
+; * [prefetch_read] / [prefetch_write]
+; * Purpose: Software prefetch hints for memory controller.
  ;
 %macro prefetch_read 1
     prefetcht0 [%1]
@@ -929,8 +931,8 @@
 %endmacro
 
 ;*
- * [lfence_sync] / [sfence_sync]
- * Purpose: Serialization fences for memory ordering.
+; * [lfence_sync] / [sfence_sync]
+; * Purpose: Serialization fences for memory ordering.
  ;
 %macro lfence_sync 0
     lfence
@@ -941,8 +943,8 @@
 %endmacro
 
 ;*
- * [reset_bhb]
- * Purpose: Mitigate Spectre-V2 by clearing the Branch History Buffer.
+; * [reset_bhb]
+; * Purpose: Mitigate Spectre-V2 by clearing the Branch History Buffer.
  ;
 %macro reset_bhb 0
     %rep 32
@@ -956,16 +958,16 @@
 ; ============================================================================
 
 ;*
- * [aes_enc_round]
- * Purpose: Execute a single AES-NI encryption round.
+; * [aes_enc_round]
+; * Purpose: Execute a single AES-NI encryption round.
  ;
 %macro aes_enc_round 2
     aesenc  %1, %2
 %endmacro
 
 ;*
- * [rdrand_64] / [rdseed_64]
- * Purpose: Retrieve true hardware entropy. Loops until carry flag is set.
+; * [rdrand_64] / [rdseed_64]
+; * Purpose: Retrieve true hardware entropy. Loops until carry flag is set.
  ;
 %macro rdrand_64 1
 %%retry:
@@ -984,9 +986,9 @@
 ; ============================================================================
 
 ;*
- * [v_scan_quotes] / [v_scan_commas]
- * Purpose: Use SSE 4.2 PCMPISTRI to find delimiters in 16-byte chunks.
- * Output: ECX contains index.
+; * [v_scan_quotes] / [v_scan_commas]
+; * Purpose: Use SSE 4.2 PCMPISTRI to find delimiters in 16-byte chunks.
+; * Output: ECX contains index.
  ;
 %macro v_scan_quotes 1
     movdqu  xmm0, [%1]
@@ -1003,8 +1005,8 @@
 %endmacro
 
 ;*
- * [vstr_cmp]
- * Purpose: Fast 16-byte vectorized string comparison.
+; * [vstr_cmp]
+; * Purpose: Fast 16-byte vectorized string comparison.
  ;
 %macro vstr_cmp 3
     movdqu  xmm0, [%1]
@@ -1013,8 +1015,8 @@
 %endmacro
 
 ;*
- * [v_all_zero] / [v_any_set]
- * Purpose: Test vectorized state via PTEST.
+; * [v_all_zero] / [v_any_set]
+; * Purpose: Test vectorized state via PTEST.
  ;
 %macro v_all_zero 1
     ptest   %1, %1
@@ -1029,8 +1031,8 @@
 ; ============================================================================
 
 ;*
- * [syscall_0] through [syscall_6]
- * Purpose: Standard AMD64 SysV ABI System Call wrappers.
+; * [syscall_0] through [syscall_6]
+; * Purpose: Standard AMD64 SysV ABI System Call wrappers.
  ;
 %macro syscall_0 1
     mov     rax, %1
@@ -1055,8 +1057,8 @@
 %endmacro
 
 ;*
- * [mmap_anon]
- * Purpose: Allocate anonymous memory from the OS (RW, Private).
+; * [mmap_anon]
+; * Purpose: Allocate anonymous memory from the OS (RW, Private).
  ;
 %macro mmap_anon 2
     syscall_6 9, 0, %1, 3, 34, -1, 0
@@ -1068,8 +1070,8 @@
 ; ============================================================================
 
 ;*
- * [debug_dump_hex]
- * Purpose: Print a 64-bit value as a hexadecimal string to stderr.
+; * [debug_dump_hex]
+; * Purpose: Print a 64-bit value as a hexadecimal string to stderr.
  ;
 %macro debug_dump_hex 1
     push_volatile
@@ -1079,8 +1081,8 @@
 %endmacro
 
 ;*
- * [debug_break_on]
- * Purpose: Trigger INT3 breakpoint if %1 == %2.
+; * [debug_break_on]
+; * Purpose: Trigger INT3 breakpoint if %1 == %2.
  ;
 %macro debug_break_on 2
     cmp     %1, %2
@@ -1090,8 +1092,8 @@
 %endmacro
 
 ;*
- * [stack_trace]
- * Purpose: Walk the RBP frame chain and dump return addresses to stderr.
+; * [stack_trace]
+; * Purpose: Walk the RBP frame chain and dump return addresses to stderr.
  ;
 %macro stack_trace 0
     push    rbp
@@ -1108,8 +1110,8 @@
 %endmacro
 
 ;*
- * [bench_start] / [bench_end]
- * Purpose: Capture high-precision instruction counts via RDPMC.
+; * [bench_start] / [bench_end]
+; * Purpose: Capture high-precision instruction counts via RDPMC.
  ;
 %macro bench_start 0
     xor     ecx, ecx
@@ -1132,8 +1134,8 @@
 ; ============================================================================
 
 ;*
- * [static_assert]
- * Purpose: Preprocessor-time verification of constants or sizes.
+; * [static_assert]
+; * Purpose: Preprocessor-time verification of constants or sizes.
  ;
 %macro static_assert 3
     %if %1 %2 %3
@@ -1144,8 +1146,8 @@
 %endmacro
 
 ;*
- * [compile_time_hash]
- * Purpose: Calculate FNV-1a hash at assembly-time for literal strings.
+; * [compile_time_hash]
+; * Purpose: Calculate FNV-1a hash at assembly-time for literal strings.
  ;
 %macro compile_time_hash 2
     %assign %%hash 0xcbf29ce484222325
@@ -1160,8 +1162,8 @@
 %endmacro
 
 ;*
- * [mnc_ent]
- * Purpose: Build a compile-time hashed opcode lookup entry.
+; * [mnc_ent]
+; * Purpose: Build a compile-time hashed opcode lookup entry.
  ;
 %macro mnc_ent 3
     compile_time_hash %1, %%h
@@ -1172,8 +1174,8 @@
 %endmacro
 
 ;*
- * [is_reg_64]
- * Purpose: Preprocessor validation to ensure an operand is a 64-bit register.
+; * [is_reg_64]
+; * Purpose: Preprocessor validation to ensure an operand is a 64-bit register.
  ;
 %macro is_reg_64 1
     %assign %%is_reg 0
@@ -1220,8 +1222,8 @@
 ; ============================================================================
 
 ;*
- * [stack_canary_init] / [stack_canary_check]
- * Purpose: Detect stack smashing via guard values.
+; * [stack_canary_init] / [stack_canary_check]
+; * Purpose: Detect stack smashing via guard values.
  ;
 %macro stack_canary_init 1
     mov     rax, 0x55aa55aa55aa55aa
@@ -1235,8 +1237,8 @@
 %endmacro
 
 ;*
- * [jmp_obfuscate]
- * Purpose: Opaque jump target calculation to resist static disassembly.
+; * [jmp_obfuscate]
+; * Purpose: Opaque jump target calculation to resist static disassembly.
  ;
 %macro jmp_obfuscate 1
     push    rax
@@ -1248,8 +1250,8 @@
 %endmacro
 
 ;*
- * [rz_secure] / [rz_release]
- * Purpose: Explicit AMD64 Red Zone management.
+; * [rz_secure] / [rz_release]
+; * Purpose: Explicit AMD64 Red Zone management.
  ;
 %macro rz_secure 0
     sub     rsp, 128
@@ -1264,8 +1266,8 @@
 ; ============================================================================
 
 ;*
- * [plt_stub] / [got_entry]
- * Purpose: Generate standard ELF PLT/GOT indirection kernels.
+; * [plt_stub] / [got_entry]
+; * Purpose: Generate standard ELF PLT/GOT indirection kernels.
  ;
 %macro plt_stub 1
     jmp     [qword %1_GOT]
@@ -1276,8 +1278,8 @@
 %endmacro
 
 ;*
- * [opaque_jmp] / [opaque_constant]
- * Purpose: Antidebugging and obfuscation of control flow and constants.
+; * [opaque_jmp] / [opaque_constant]
+; * Purpose: Antidebugging and obfuscation of control flow and constants.
  ;
 %macro opaque_jmp 1
     push    rax
@@ -1296,8 +1298,8 @@
 %endmacro
 
 ;*
- * [self_check]
- * Purpose: Runtime integrity verification via additive section checksum.
+; * [self_check]
+; * Purpose: Runtime integrity verification via additive section checksum.
  ;
 %macro self_check 0
     push_volatile
@@ -1312,8 +1314,8 @@
 %endmacro
 
 ;*
- * [code_signature]
- * Purpose: Embed a searchable forensic signature in the binary.
+; * [code_signature]
+; * Purpose: Embed a searchable forensic signature in the binary.
  ;
 %macro code_signature 1
     db      "UTASM_SIG:", %1, 0

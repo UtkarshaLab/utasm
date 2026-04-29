@@ -207,7 +207,7 @@ aarch64_encode_instruction:
     epilogue
 
 ;*
- * [aarch64_encode_bitfield]
+; * [aarch64_encode_bitfield]
  ;
 aarch64_encode_bitfield:
     prologue

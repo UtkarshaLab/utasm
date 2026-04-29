@@ -137,7 +137,7 @@
 %define ID_RVC_NOP             3066
 
 ;*
- * [def_mnc]
+; * [def_mnc]
  ;
 %macro def_mnc 3
     mnc_ent %1, %2, %3

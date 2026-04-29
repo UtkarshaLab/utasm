@@ -13,11 +13,11 @@
 [SECTION .text]
 
 ;*
- * [amd64_encode_instruction]
- * Purpose: Encodes an AMD64 instruction into machine code.
- * Input:
- *   RDI: Pointer to AsmCtx
- *   RSI: Pointer to INST struct
+; * [amd64_encode_instruction]
+; * Purpose: Encodes an AMD64 instruction into machine code.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; *   RSI: Pointer to INST struct
  ;
 global amd64_encode_instruction
 amd64_encode_instruction:
@@ -857,8 +857,8 @@ amd64_encode_instruction:
     epilogue
 
 ;*
- * [amd64_encode_mov]
- * Handles various MOV encodings.
+; * [amd64_encode_mov]
+; * Handles various MOV encodings.
  ;
 amd64_encode_mov:
     prologue
@@ -1076,10 +1076,10 @@ amd64_encode_mov:
     epilogue
 
 ;*
- * [amd64_encode_arithmetic]
- * Input:
- *   R13: Base Opcode (for reg-reg)
- *   R14: Extension Digit (for imm)
+; * [amd64_encode_arithmetic]
+; * Input:
+; *   R13: Base Opcode (for reg-reg)
+; *   R14: Extension Digit (for imm)
  ;
 amd64_encode_arithmetic:
     prologue
@@ -1270,7 +1270,7 @@ amd64_encode_arithmetic:
     epilogue
 
 ;*
- * [amd64_encode_syscall]
+; * [amd64_encode_syscall]
  ;
 amd64_encode_syscall:
     mov     al, 0x0F | call amd64_emit_byte
@@ -1278,7 +1278,7 @@ amd64_encode_syscall:
     ret
 
 ;*
- * [amd64_encode_sysret]
+; * [amd64_encode_sysret]
  ;
 amd64_encode_sysret:
     mov     al, 0x48 | call amd64_emit_byte
@@ -1287,7 +1287,7 @@ amd64_encode_sysret:
     ret
 
 ;*
- * [amd64_encode_push]
+; * [amd64_encode_push]
  ;
 amd64_encode_push:
     prologue
@@ -1353,8 +1353,8 @@ amd64_encode_pop:
     epilogue
 
 ;*
- * [amd64_encode_branch]
- * Input: R13 = Opcode for REL32 form
+; * [amd64_encode_branch]
+; * Input: R13 = Opcode for REL32 form
  ;
 amd64_encode_branch:
     prologue
@@ -1387,7 +1387,7 @@ amd64_encode_branch:
     jmp     .done
 
 ;*
- * [amd64_encode_ret]
+; * [amd64_encode_ret]
  ;
 amd64_encode_ret:
     prologue
@@ -1407,7 +1407,7 @@ amd64_encode_ret:
     jmp     .done
 
 ;*
- * [amd64_encode_jcc]
+; * [amd64_encode_jcc]
  ;
 amd64_encode_jcc:
     prologue
@@ -1433,8 +1433,8 @@ amd64_encode_jcc:
     jmp     .done
 
 ;*
- * [amd64_encode_branch_short]
- * R13 = Opcode (0xEB for JMP, etc)
+; * [amd64_encode_branch_short]
+; * R13 = Opcode (0xEB for JMP, etc)
  ;
 amd64_encode_branch_short:
     prologue
@@ -1453,7 +1453,7 @@ amd64_encode_branch_short:
     jmp     .done
 
 ;*
- * [amd64_encode_jcc_short]
+; * [amd64_encode_jcc_short]
  ;
 amd64_encode_jcc_short:
     prologue
@@ -1475,7 +1475,7 @@ amd64_encode_jcc_short:
     jmp     .done
 
 ;*
- * [amd64_encode_lea]
+; * [amd64_encode_lea]
  ;
 amd64_encode_lea:
     prologue
@@ -1497,7 +1497,7 @@ amd64_encode_lea:
     jmp     .done
 
 ;*
- * [amd64_encode_test]
+; * [amd64_encode_test]
  ;
 amd64_encode_test:
     prologue
@@ -1527,8 +1527,8 @@ amd64_encode_test:
     jmp     .done
 
 ;*
- * [amd64_encode_unary]
- * INC/DEC/NEG/NOT
+; * [amd64_encode_unary]
+; * INC/DEC/NEG/NOT
  ;
 amd64_encode_unary:
     prologue
@@ -1556,8 +1556,8 @@ amd64_encode_unary:
     jmp     .done
 
 ;*
- * [amd64_encode_shift]
- * SHL/SHR/SAR/ROL/ROR
+; * [amd64_encode_shift]
+; * SHL/SHR/SAR/ROL/ROR
  ;
 amd64_encode_shift:
     prologue
@@ -1594,7 +1594,7 @@ amd64_encode_shift:
     jmp     .done
 
 ;*
- * [amd64_encode_imul]
+; * [amd64_encode_imul]
  ;
 amd64_encode_imul:
     prologue
@@ -1637,8 +1637,8 @@ amd64_encode_imul:
     jmp .done
 
 ;*
- * [amd64_encode_unary_math]
- * MUL/DIV/IDIV/etc.
+; * [amd64_encode_unary_math]
+; * MUL/DIV/IDIV/etc.
  ;
 amd64_encode_unary_math:
     prologue
@@ -1663,7 +1663,7 @@ amd64_encode_unary_math:
     jmp     .done
 
 ;*
- * [amd64_encode_cmovcc]
+; * [amd64_encode_cmovcc]
  ;
 amd64_encode_cmovcc:
     prologue
@@ -1697,7 +1697,7 @@ amd64_encode_cmovcc:
     jmp     .done
 
 ;*
- * [amd64_encode_setcc]
+; * [amd64_encode_setcc]
  ;
 amd64_encode_setcc:
     prologue
@@ -1726,7 +1726,7 @@ amd64_encode_setcc:
     jmp     .done
 
 ;*
- * [amd64_encode_enter]
+; * [amd64_encode_enter]
  ;
 amd64_encode_enter:
     prologue
@@ -1745,7 +1745,7 @@ amd64_encode_enter:
     jmp     .done
 
 ;*
- * [amd64_emit_branch_rel8]
+; * [amd64_emit_branch_rel8]
  ;
 amd64_emit_branch_rel8:
     call    amd64_emit_byte
@@ -1758,7 +1758,7 @@ amd64_emit_branch_rel8:
     ret
 
 ;*
- * [amd64_encode_int]
+; * [amd64_encode_int]
  ;
 amd64_encode_int:
     prologue
@@ -1770,8 +1770,8 @@ amd64_encode_int:
     jmp     .done
 
 ;*
- * [amd64_encode_system_m]
- * LGDT/LIDT
+; * [amd64_encode_system_m]
+; * LGDT/LIDT
  ;
 amd64_encode_system_m:
     prologue
@@ -1787,8 +1787,8 @@ amd64_encode_system_m:
     jmp     .done
 
 ;*
- * [amd64_encode_system_00]
- * R14 = Digit
+; * [amd64_encode_system_00]
+; * R14 = Digit
  ;
 amd64_encode_system_00:
     prologue
@@ -1801,7 +1801,7 @@ amd64_encode_system_00:
     jmp     .done
 
 ;*
- * [amd64_encode_in]
+; * [amd64_encode_in]
  ;
 amd64_encode_in:
     prologue
@@ -1828,7 +1828,7 @@ amd64_encode_in:
     jmp     .done
 
 ;*
- * [amd64_encode_out]
+; * [amd64_encode_out]
  ;
 amd64_encode_out:
     prologue
@@ -1857,8 +1857,8 @@ amd64_encode_out:
     jmp     .done
 
 ;*
- * [amd64_encode_fpu]
- * FLD/FST/FADD/etc.
+; * [amd64_encode_fpu]
+; * FLD/FST/FADD/etc.
  ;
 amd64_encode_fpu:
     prologue
@@ -1880,15 +1880,15 @@ amd64_encode_fpu:
     jmp     .done
 
 ;*
- * [amd64_encode_sse]
- * R13 = Opcode
- * R14 = Format (0=0F, 1=66 0F, 2=0F 38, 3=0F 3A)
+; * [amd64_encode_sse]
+; * R13 = Opcode
+; * R14 = Format (0=0F, 1=66 0F, 2=0F 38, 3=0F 3A)
  ;
 ;*
- * [amd64_encode_sse_crypto]
- * R13 = Opcode
- * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
- * R15 = Mandatory Prefix (0=None, 0x66, 0xF2, 0xF3)
+; * [amd64_encode_sse_crypto]
+; * R13 = Opcode
+; * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
+; * R15 = Mandatory Prefix (0=None, 0x66, 0xF2, 0xF3)
  ;
 amd64_encode_sse_crypto:
     prologue
@@ -2066,10 +2066,10 @@ amd64_encode_vex:
     jmp .done
 
 ;*
- * [amd64_encode_evex]
- * R13 = Opcode
- * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
- * R15 = W (0 or 1) | LL (0, 1, 2) << 2
+; * [amd64_encode_evex]
+; * R13 = Opcode
+; * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
+; * R15 = W (0 or 1) | LL (0, 1, 2) << 2
  ;
 amd64_encode_evex:
     prologue
@@ -2167,8 +2167,8 @@ amd64_encode_evex:
     jmp     .done
 
 ;*
- * [amd64_encode_string]
- * R13 = Base Opcode (e.g. 0xA4 for MOVSB)
+; * [amd64_encode_string]
+; * R13 = Base Opcode (e.g. 0xA4 for MOVSB)
  ;
 amd64_encode_string:
     prologue
@@ -2221,8 +2221,8 @@ amd64_encode_string:
     jmp     .done
 
 ;*
- * [amd64_encode_bin0f]
- * R13 = Opcode (after 0x0F)
+; * [amd64_encode_bin0f]
+; * R13 = Opcode (after 0x0F)
  ;
 amd64_encode_bin0f:
     prologue
@@ -2247,8 +2247,8 @@ amd64_encode_bin0f:
     jmp     .done
 
 ;*
- * [amd64_encode_cmpxchg_nb]
- * CMPXCHG8B / CMPXCHG16B
+; * [amd64_encode_cmpxchg_nb]
+; * CMPXCHG8B / CMPXCHG16B
  ;
 amd64_encode_cmpxchg_nb:
     prologue
@@ -2270,8 +2270,8 @@ amd64_encode_cmpxchg_nb:
     jmp     .done
 
 ;*
- * [amd64_encode_sec_r]
- * RDRAND/RDSEED
+; * [amd64_encode_sec_r]
+; * RDRAND/RDSEED
  ;
 amd64_encode_sec_r:
     prologue
@@ -2298,9 +2298,9 @@ amd64_encode_sec_r:
     jmp     .done
 
 ;*
- * [amd64_encode_vm_m]
- * R13 = Prefix (0 if none)
- * R14 = Digit
+; * [amd64_encode_vm_m]
+; * R13 = Prefix (0 if none)
+; * R14 = Digit
  ;
 amd64_encode_vm_m:
     prologue
@@ -2319,8 +2319,8 @@ amd64_encode_vm_m:
     jmp     .done
 
 ;*
- * [amd64_encode_vm_rm_r]
- * R13 = Opcode (0x78 or 0x79)
+; * [amd64_encode_vm_rm_r]
+; * R13 = Opcode (0x78 or 0x79)
  ;
 amd64_encode_vm_rm_r:
     prologue
@@ -2339,9 +2339,9 @@ amd64_encode_vm_rm_r:
     jmp     .done
 
 ;*
- * [amd64_encode_bt]
- * R13 = Base Opcode for REG form (e.g. 0xA3)
- * R14 = Digit for IMM form (e.g. 4)
+; * [amd64_encode_bt]
+; * R13 = Base Opcode for REG form (e.g. 0xA3)
+; * R14 = Digit for IMM form (e.g. 4)
  ;
 amd64_encode_bt:
     prologue
@@ -2365,8 +2365,8 @@ amd64_encode_bt:
     jmp     .done
 
 ;*
- * [amd64_encode_mem_sync]
- * CLFLUSH/etc.
+; * [amd64_encode_mem_sync]
+; * CLFLUSH/etc.
  ;
 amd64_encode_mem_sync:
     prologue
@@ -2383,8 +2383,8 @@ amd64_encode_mem_sync:
     jmp     .done
 
 ;*
- * [amd64_encode_rm_r]
- * R13 = Opcode (multi-byte)
+; * [amd64_encode_rm_r]
+; * R13 = Opcode (multi-byte)
  ;
 amd64_encode_rm_r:
     prologue
@@ -2414,11 +2414,11 @@ amd64_encode_rm_r:
     jmp     .done
 
 ;*
- * [amd64_emit_reloc]
- * Input:
- *   AL: Relocation Type (RELOC_REL32, etc)
- *   RSI: Pointer to Symbol String
- *   EDX: PC Adjustment (bytes from reloc site to end of instruction)
+; * [amd64_emit_reloc]
+; * Input:
+; *   AL: Relocation Type (RELOC_REL32, etc)
+; *   RSI: Pointer to Symbol String
+; *   EDX: PC Adjustment (bytes from reloc site to end of instruction)
  ;
 amd64_emit_reloc:
     prologue
@@ -2465,11 +2465,11 @@ amd64_emit_reloc:
     epilogue
 
 ;*
- * [amd64_emit_prefixes]
- * Input:
- *   AL: Operation Size (8, 16, 32, 64)
- *   RSI: Pointer to Op0 (Dest)
- *   RDX: Pointer to Op1 (Src/Index)
+; * [amd64_emit_prefixes]
+; * Input:
+; *   AL: Operation Size (8, 16, 32, 64)
+; *   RSI: Pointer to Op0 (Dest)
+; *   RDX: Pointer to Op1 (Src/Index)
  ;
 amd64_emit_prefixes:
     prologue
@@ -2559,11 +2559,11 @@ amd64_emit_prefixes:
     epilogue
 
 ;*
- * [amd64_emit_modrm_sib]
- * Emits ModR/M, SIB, and Displacement.
- * Input:
- *   AL  = Reg field value (3 bits)
- *   RDI = Pointer to memory OPERAND
+; * [amd64_emit_modrm_sib]
+; * Emits ModR/M, SIB, and Displacement.
+; * Input:
+; *   AL  = Reg field value (3 bits)
+; *   RDI = Pointer to memory OPERAND
  ;
 amd64_emit_modrm_sib:
     push    rbx
@@ -2705,7 +2705,7 @@ amd64_emit_modrm_sib:
     ret
 
 ;*
- * [amd64_emit_byte]
+; * [amd64_emit_byte]
  ;
 amd64_emit_byte:
     extern asm_ctx_emit_byte
@@ -2726,8 +2726,8 @@ amd64_emit_byte:
     ret
 
 ;*
- * [amd64_emit_dword]
- * Input: RDI = 32-bit value
+; * [amd64_emit_dword]
+; * Input: RDI = 32-bit value
  ;
 amd64_emit_dword:
     push    rax
@@ -2743,7 +2743,7 @@ amd64_emit_dword:
     ret
 
 ;*
- * [amd64_encode_jmp]
+; * [amd64_encode_jmp]
  ;
 amd64_encode_jmp:
     prologue
@@ -2758,7 +2758,7 @@ amd64_encode_jmp:
     epilogue
 
 ;*
- * [amd64_encode_call]
+; * [amd64_encode_call]
  ;
 amd64_encode_call:
     prologue
@@ -2773,7 +2773,7 @@ amd64_encode_call:
     epilogue
 
 ;*
- * [amd64_encode_jcc]
+; * [amd64_encode_jcc]
  ;
 amd64_encode_jcc:
     prologue
@@ -2795,7 +2795,7 @@ amd64_encode_jcc:
     epilogue
 
 ;*
- * [amd64_encode_ret]
+; * [amd64_encode_ret]
  ;
 amd64_encode_ret:
     prologue
@@ -2810,10 +2810,10 @@ amd64_encode_ret:
     epilogue
 
 ;*
- * [amd64_encode_push_pop]
- * r13 = base opcode (0x50 for PUSH, 0x58 for POP)
- * r14 = extended opcode (0xFF /6 for PUSH, 0x8F /0 for POP)
- * r15 = reg field for ModRM
+; * [amd64_encode_push_pop]
+; * r13 = base opcode (0x50 for PUSH, 0x58 for POP)
+; * r14 = extended opcode (0xFF /6 for PUSH, 0x8F /0 for POP)
+; * r15 = reg field for ModRM
  ;
 amd64_encode_push_pop:
     prologue
@@ -2847,8 +2847,8 @@ amd64_encode_push_pop:
     epilogue
 
 ;*
- * [amd64_encode_shift]
- * r14 = extension (4 for SHL, 5 for SHR, 7 for SAR)
+; * [amd64_encode_shift]
+; * r14 = extension (4 for SHL, 5 for SHR, 7 for SAR)
  ;
 amd64_encode_shift:
     prologue
@@ -2891,7 +2891,7 @@ amd64_encode_shift:
     epilogue
 
 ;*
- * [amd64_encode_imul]
+; * [amd64_encode_imul]
  ;
 amd64_encode_imul:
     prologue
@@ -2906,7 +2906,7 @@ amd64_encode_imul:
     epilogue
 
 ;*
- * [amd64_encode_cmovcc]
+; * [amd64_encode_cmovcc]
  ;
 amd64_encode_cmovcc:
     prologue
@@ -2930,7 +2930,7 @@ amd64_encode_cmovcc:
     epilogue
 
 ;*
- * [amd64_encode_setcc]
+; * [amd64_encode_setcc]
  ;
 amd64_encode_setcc:
     prologue
@@ -2947,8 +2947,8 @@ amd64_encode_setcc:
     epilogue
 
 ;*
- * [amd64_encode_mpx]
- * Handles BNDMK, BNDCL, BNDCU, BNDCN, BNDMOV, BNDLDX, BNDSTX
+; * [amd64_encode_mpx]
+; * Handles BNDMK, BNDCL, BNDCU, BNDCN, BNDMOV, BNDLDX, BNDSTX
  ;
 amd64_encode_mpx:
     prologue
@@ -2987,9 +2987,9 @@ amd64_encode_mpx:
     epilogue
 
 ;*
- * [amd64_emit_nop]
- * Purpose: Emits an optimal NOP sequence of length RAX.
- * Maximum supported in one call: 9 bytes.
+; * [amd64_emit_nop]
+; * Purpose: Emits an optimal NOP sequence of length RAX.
+; * Maximum supported in one call: 9 bytes.
  ;
 amd64_emit_nop:
     prologue
@@ -3040,7 +3040,7 @@ amd64_emit_nop:
     epilogue
 
 ;*
- * [amd64_emit_word]
+; * [amd64_emit_word]
  ;
 amd64_emit_word:
     push    rax
@@ -3056,7 +3056,7 @@ amd64_emit_word:
     ret
 
 ;*
- * [amd64_emit_dword]
+; * [amd64_emit_dword]
  ;
 amd64_emit_dword:
     push    rax
@@ -3072,7 +3072,7 @@ amd64_emit_dword:
     ret
 
 ;*
- * [amd64_emit_qword]
+; * [amd64_emit_qword]
  ;
 amd64_emit_qword:
     push    rax
@@ -3088,11 +3088,11 @@ amd64_emit_qword:
     ret
 
 ;*
- * [amd64_encode_avx]
- * Encodes 3-operand AVX instructions.
- * Input:
- *   r13 = Opcode
- *   r14 = Type (0=None, 1=66, 2=F3, 3=F2)
+; * [amd64_encode_avx]
+; * Encodes 3-operand AVX instructions.
+; * Input:
+; *   r13 = Opcode
+; *   r14 = Type (0=None, 1=66, 2=F3, 3=F2)
  ;
 amd64_encode_avx:
     prologue
@@ -3151,7 +3151,7 @@ amd64_encode_avx:
     call    amd64_emit_byte
     
     epilogue
- * Optimized 2-byte VEX (0xC5)
+; * Optimized 2-byte VEX (0xC5)
  ;
 amd64_emit_vex2:
     push    rax
@@ -3172,8 +3172,8 @@ amd64_emit_vex2:
     ret
 
 ;*
- * [amd64_emit_vex3]
- * Full 3-byte VEX (0xC4)
+; * [amd64_emit_vex3]
+; * Full 3-byte VEX (0xC4)
  ;
 amd64_emit_vex3:
     push    rax
@@ -3203,9 +3203,9 @@ amd64_emit_vex3:
     ret
 
 ;*
- * [amd64_emit_prefixes]
- * RDI = Op0 (Dest), RSI = Op1 (Src)
- * Purpose: Emits 0x66 and/or REX based on sizes and register indices.
+; * [amd64_emit_prefixes]
+; * RDI = Op0 (Dest), RSI = Op1 (Src)
+; * Purpose: Emits 0x66 and/or REX based on sizes and register indices.
  ;
 amd64_emit_prefixes:
     prologue

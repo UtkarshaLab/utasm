@@ -988,11 +988,11 @@ error_new_from_errno:
     ret
 
 ;*
- * [error_struct_bounds]
- * Input:
- *   RDI = field name string
- *   RSI = field size (bytes)
- *   RDX = access size (bytes)
+; * [error_struct_bounds]
+; * Input:
+; *   RDI = field name string
+; *   RSI = field size (bytes)
+; *   RDX = access size (bytes)
  ;
 global error_struct_bounds
 error_struct_bounds:

@@ -83,8 +83,8 @@
 %define ID_AARCH64_EOR_V       2804
 
 ;*
- * [def_mnc]
- * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
+; * [def_mnc]
+; * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
  ;
 %macro def_mnc 3
     mnemonic_entry %1, %2, %3

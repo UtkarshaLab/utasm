@@ -16,8 +16,8 @@ extern lexer_next_token
 [SECTION .text]
 
 ;*
- * [linker_script_parse]
- * Purpose: Parses a .ld script to configure the linker's memory map.
+; * [linker_script_parse]
+; * Purpose: Parses a .ld script to configure the linker's memory map.
  ;
 global linker_script_parse
 linker_script_parse:

@@ -13,10 +13,10 @@
 [SECTION .text]
 
 ;*
- * [parser_parse_instruction]
- * Purpose: Parses an instruction and dispatches to the correct architectural table.
- * Parameters:
- *   RBX: [in] Pointer to PrepState
+; * [parser_parse_instruction]
+; * Purpose: Parses an instruction and dispatches to the correct architectural table.
+; * Parameters:
+; *   RBX: [in] Pointer to PrepState
  ;
 global parser_parse_instruction
 parser_parse_instruction:
@@ -176,8 +176,8 @@ parser_parse_instruction:
     epilogue
 
 ;*
- * [parser_parse_operand]
- * Purpose: Parses an operand using the current architectural register table.
+; * [parser_parse_operand]
+; * Purpose: Parses an operand using the current architectural register table.
  ;
 parser_parse_operand:
     prologue
@@ -273,9 +273,9 @@ parser_parse_operand:
     epilogue
 
 ;*
- * [parser_parse_reg_info]
- * Input: RSI = Name String, RDI = Table Pointer, R12 = OPERAND Pointer
- * Output: AL = Reg ID, RAX = ERR if not found
+; * [parser_parse_reg_info]
+; * Input: RSI = Name String, RDI = Table Pointer, R12 = OPERAND Pointer
+; * Output: AL = Reg ID, RAX = ERR if not found
  ;
 parser_parse_reg_info:
     prologue
@@ -303,8 +303,8 @@ parser_parse_reg_info:
     epilogue
 
 ;*
- * [parser_evaluate_expression]
- * Purpose: Entry point for expression evaluation (Additive level: + -)
+; * [parser_evaluate_expression]
+; * Purpose: Entry point for expression evaluation (Additive level: + -)
  ;
 parser_evaluate_expression:
     prologue
@@ -368,8 +368,8 @@ parser_evaluate_expression:
     epilogue
 
 ;*
- * [parser_evaluate_term]
- * Purpose: Multiplicative level (* / << >> & | ^)
+; * [parser_evaluate_term]
+; * Purpose: Multiplicative level (* / << >> & | ^)
  ;
 parser_evaluate_term:
     prologue
@@ -450,8 +450,8 @@ parser_evaluate_term:
     epilogue
 
 ;*
- * [parser_evaluate_factor]
- * Purpose: Primary level (Numbers, Symbols, Parens)
+; * [parser_evaluate_factor]
+; * Purpose: Primary level (Numbers, Symbols, Parens)
  ;
 parser_evaluate_factor:
     prologue
@@ -533,7 +533,7 @@ parser_evaluate_factor:
     epilogue
 
 ;*
- * [parser_handle_reloc_modifier]
+; * [parser_handle_reloc_modifier]
  ;
 parser_handle_reloc_modifier:
     prologue
@@ -587,11 +587,11 @@ parser_handle_reloc_modifier:
     epilogue
 
 ;*
- * [parser_get_arch_tables]
- * Purpose: Resolves mnemonic and register tables based on AsmCtx target.
- * Output:
- *   RAX: Mnemonic Table Pointer
- *   RDX: Register Table Pointer
+; * [parser_get_arch_tables]
+; * Purpose: Resolves mnemonic and register tables based on AsmCtx target.
+; * Output:
+; *   RAX: Mnemonic Table Pointer
+; *   RDX: Register Table Pointer
  ;
 parser_get_arch_tables:
     prologue
@@ -620,8 +620,8 @@ parser_get_arch_tables:
     epilogue
 
 ;*
- * [parser_parse_mem_operand]
- * Purpose: Technical SIB Parser.
+; * [parser_parse_mem_operand]
+; * Purpose: Technical SIB Parser.
  ;
 parser_parse_mem_operand:
     prologue
@@ -758,8 +758,8 @@ parser_parse_mem_operand:
 str_rel: db "rel", 0
 
 ;*
- * [parser_is_register]
- * Input: RSI = String, RDI = Table Pointer
+; * [parser_is_register]
+; * Input: RSI = String, RDI = Table Pointer
  ;
 parser_is_register:
     prologue
@@ -782,8 +782,8 @@ parser_is_register:
     epilogue
 
 ;*
- * [parser_lookup_mnemonic]
- * Input: RDI = Hash, RSI = Table Pointer
+; * [parser_lookup_mnemonic]
+; * Input: RDI = Hash, RSI = Table Pointer
  ;
 parser_lookup_mnemonic:
     prologue
@@ -805,9 +805,9 @@ parser_lookup_mnemonic:
     epilogue
 
 ;*
- * [parser_check_prefix]
- * Input: RSI = String pointer
- * Output: AL = Prefix byte or 0
+; * [parser_check_prefix]
+; * Input: RSI = String pointer
+; * Output: AL = Prefix byte or 0
  ;
 parser_check_prefix:
     prologue
@@ -844,21 +844,21 @@ str_lock:   db "lock", 0
 ; ============================================================================
 
 ;*
- * [parser_parse_struc]
- * Purpose: Parse a `struc` ... `endstruc` block.
- *   For each `field name, size` line, registers a SYMBOL with:
- *     kind  = SYM_STRUCT_FIELD
- *     value = byte offset within the struct
- *     size  = declared field byte width
- *   At `endstruc`, registers the struct name itself with:
- *     kind  = SYM_STRUCT
- *     value = 0
- *     size  = total struct size in bytes
- * Input:
- *   RBX: pointer to PrepState
- *   RDI: pointer to the struct-name Token (the token after 'struc')
- * Output:
- *   RAX = EXIT_OK or error code
+; * [parser_parse_struc]
+; * Purpose: Parse a `struc` ... `endstruc` block.
+; *   For each `field name, size` line, registers a SYMBOL with:
+; *     kind  = SYM_STRUCT_FIELD
+; *     value = byte offset within the struct
+; *     size  = declared field byte width
+; *   At `endstruc`, registers the struct name itself with:
+; *     kind  = SYM_STRUCT
+; *     value = 0
+; *     size  = total struct size in bytes
+; * Input:
+; *   RBX: pointer to PrepState
+; *   RDI: pointer to the struct-name Token (the token after 'struc')
+; * Output:
+; *   RAX = EXIT_OK or error code
  ;
 global parser_parse_struc
 parser_parse_struc:
@@ -1028,8 +1028,8 @@ parser_parse_struc:
     epilogue
 
 ;*
- * [parser_define_label]
- * Input: RSI = name string
+; * [parser_define_label]
+; * Input: RSI = name string
  ;
 parser_define_label:
     prologue
@@ -1069,9 +1069,9 @@ parser_define_label:
     epilogue
 
 ;*
- * [parser_concat_local_name]
- * Input: R14 = global name, RSI = local name
- * Output: RDX = concatenated name in arena
+; * [parser_concat_local_name]
+; * Input: R14 = global name, RSI = local name
+; * Output: RDX = concatenated name in arena
  ;
 parser_concat_local_name:
     prologue
@@ -1108,12 +1108,12 @@ parser_concat_local_name:
     epilogue
 
 ;*
- * [error_struct_bounds]
- * Purpose: Print a diagnostic for a struct bounds violation and abort.
- * Input:
- *   RDI = pointer to field name string
- *   RSI = declared field byte size
- *   RDX = attempted access byte size
+; * [error_struct_bounds]
+; * Purpose: Print a diagnostic for a struct bounds violation and abort.
+; * Input:
+; *   RDI = pointer to field name string
+; *   RSI = declared field byte size
+; *   RDX = attempted access byte size
  ;
 global error_struct_bounds
 error_struct_bounds:
@@ -1125,9 +1125,9 @@ error_struct_bounds:
     epilogue
 
 ;*
- * [parser_handle_pseudo_op]
- * Input: RSI = mnemonic string
- * Output: RAX = 1 if handled, 0 if unknown
+; * [parser_handle_pseudo_op]
+; * Input: RSI = mnemonic string
+; * Output: RAX = 1 if handled, 0 if unknown
  ;
 parser_handle_pseudo_op:
     prologue
@@ -1254,9 +1254,9 @@ parser_handle_pseudo_op:
     epilogue
 
 ;*
- * [parser_check_aarch64_shift]
- * Input: RDI = Name String
- * Output: RAX = SHIFT_* or ERR
+; * [parser_check_aarch64_shift]
+; * Input: RDI = Name String
+; * Output: RAX = SHIFT_* or ERR
  ;
 parser_check_aarch64_shift:
     prologue
@@ -1286,7 +1286,7 @@ parser_check_aarch64_shift:
 .done:
     pop     rbx
     epilogue
- * RSI = type (0 = byte, 1 = p2)
+; * RSI = type (0 = byte, 1 = p2)
  ;
 parser_handle_align:
     prologue
@@ -1364,7 +1364,7 @@ parser_handle_align:
     epilogue
 
 ;*
- * [parser_handle_org]
+; * [parser_handle_org]
  ;
 parser_handle_org:
     prologue
@@ -1379,7 +1379,7 @@ parser_handle_org:
     epilogue
 
 ;*
- * [parser_handle_equ]
+; * [parser_handle_equ]
  ;
 parser_handle_equ:
     prologue
@@ -1492,8 +1492,8 @@ parser_emit_data_64:
     epilogue
 
 ;*
- * [parser_handle_section_directive]
- * Input: None (reads from preprocessor)
+; * [parser_handle_section_directive]
+; * Input: None (reads from preprocessor)
  ;
 parser_handle_section_directive:
     prologue
@@ -1704,8 +1704,8 @@ parser_handle_section_directive:
     epilogue
 
 ;*
- * [parser_handle_visibility]
- * RSI = Target visibility (SYM_GLOBAL, SYM_WEAK)
+; * [parser_handle_visibility]
+; * RSI = Target visibility (SYM_GLOBAL, SYM_WEAK)
  ;
 parser_handle_visibility:
     prologue
@@ -1764,8 +1764,8 @@ parser_handle_visibility:
     epilogue
 
 ;*
- * [parser_handle_comm]
- * Purpose: Parses .comm name, size, [align]
+; * [parser_handle_comm]
+; * Purpose: Parses .comm name, size, [align]
  ;
 parser_handle_comm:
     prologue

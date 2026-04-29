@@ -220,8 +220,8 @@ reloc_resolve_all:
     epilogue
 
 ;*
- * [reloc_apply_one]
- * Purpose: Unified relocation applier for all targets.
+; * [reloc_apply_one]
+; * Purpose: Unified relocation applier for all targets.
  ;
 global reloc_apply_one
 reloc_apply_one:

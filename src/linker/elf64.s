@@ -131,7 +131,7 @@ elf64_emit:
     epilogue
 
 ;*
- * [elf64_write_debug_line]
+; * [elf64_write_debug_line]
  ;
 elf64_write_debug_line:
     prologue
@@ -160,8 +160,8 @@ elf64_write_debug_line:
     epilogue
 
 ;*
- * [elf64_write_debug_info]
- * Writes a minimal DWARF v5 Compile Unit header.
+; * [elf64_write_debug_info]
+; * Writes a minimal DWARF v5 Compile Unit header.
  ;
 elf64_write_debug_info:
     prologue
@@ -201,8 +201,8 @@ elf64_write_debug_info:
     epilogue
 
 ;*
- * [elf64_write_debug_abbrev]
- * Writes a minimal DWARF v5 abbreviation table.
+; * [elf64_write_debug_abbrev]
+; * Writes a minimal DWARF v5 abbreviation table.
  ;
 elf64_write_debug_abbrev:
     prologue
@@ -356,7 +356,7 @@ elf64_write_ehdr:
     epilogue
 
 ;*
- * [elf64_write_phdrs]
+; * [elf64_write_phdrs]
  ;
 elf64_write_phdrs:
     prologue
@@ -798,8 +798,8 @@ elf64_write_strtab:
     epilogue
 
 ;*
- * [elf64_write_groups]
- * Purpose: Emits SHT_GROUP data for each unique section group.
+; * [elf64_write_groups]
+; * Purpose: Emits SHT_GROUP data for each unique section group.
  ;
 elf64_write_groups:
     prologue
@@ -1197,11 +1197,11 @@ elf64_write_shdrs:
     epilogue
 
 ;*
- * [elf64_align_file]
- * Writes padding to FD until current offset is aligned to RSI.
- * Input:
- *   RDI: FD
- *   RSI: Alignment (Power of 2)
+; * [elf64_align_file]
+; * Writes padding to FD until current offset is aligned to RSI.
+; * Input:
+; *   RDI: FD
+; *   RSI: Alignment (Power of 2)
  ;
 elf64_align_file:
     prologue

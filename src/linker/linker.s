@@ -19,12 +19,12 @@ extern error_emit
 [SECTION .text]
 
 ;*
- * [linker_run]
- * Purpose: The main entry point for the linking stage.
- * Input:
- *   RDI: Pointer to AsmCtx
- * Output:
- *   RAX: EXIT_OK or error code
+; * [linker_run]
+; * Purpose: The main entry point for the linking stage.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; * Output:
+; *   RAX: EXIT_OK or error code
  ;
 global linker_run
 linker_run:
@@ -68,9 +68,9 @@ linker_run:
     epilogue
 
 ;*
- * [linker_check_overlaps]
- * Input: RDI = AsmCtx
- * Checks all section VA ranges for intersections.
+; * [linker_check_overlaps]
+; * Input: RDI = AsmCtx
+; * Checks all section VA ranges for intersections.
  ;
 linker_check_overlaps:
     prologue

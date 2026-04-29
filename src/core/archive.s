@@ -14,14 +14,14 @@
 [SECTION .text]
 
 ;*
- * [archive_init]
- * Purpose: Initializes an ARCHIVE struct from a mapped buffer.
- * Input:
- *   RDI: [out] Pointer to ARCHIVE struct
- *   RSI: [in]  Pointer to mapped buffer
- *   RDX: [in]  Total size of buffer
- * Output:
- *   RAX: EXIT_OK or error code
+; * [archive_init]
+; * Purpose: Initializes an ARCHIVE struct from a mapped buffer.
+; * Input:
+; *   RDI: [out] Pointer to ARCHIVE struct
+; *   RSI: [in]  Pointer to mapped buffer
+; *   RDX: [in]  Total size of buffer
+; * Output:
+; *   RAX: EXIT_OK or error code
  ;
 global archive_init
 archive_init:
@@ -76,7 +76,7 @@ archive_init:
     jmp     .done
 
 ;*
- * [archive_scan_special]
+; * [archive_scan_special]
  ;
 archive_scan_special:
     prologue
@@ -126,9 +126,9 @@ archive_scan_special:
     epilogue
 
 ;*
- * [archive_get_member_size]
- * Input: RSI = pointer to ARHDR
- * Output: RAX = size of member data
+; * [archive_get_member_size]
+; * Input: RSI = pointer to ARHDR
+; * Output: RAX = size of member data
  ;
 archive_get_member_size:
     prologue
@@ -159,13 +159,13 @@ archive_get_member_size:
     epilogue
 
 ;*
- * [archive_resolve_symbol]
- * Purpose: Finds a symbol in the archive's internal index (the '/' member).
- * Input:
- *   RBX: [in] Pointer to ARCHIVE struct
- *   RSI: [in] Pointer to symbol name string (null-terminated)
- * Output:
- *   RAX: File offset to the member containing the symbol, or 0 if not found.
+; * [archive_resolve_symbol]
+; * Purpose: Finds a symbol in the archive's internal index (the '/' member).
+; * Input:
+; *   RBX: [in] Pointer to ARCHIVE struct
+; *   RSI: [in] Pointer to symbol name string (null-terminated)
+; * Output:
+; *   RAX: File offset to the member containing the symbol, or 0 if not found.
  ;
 global archive_resolve_symbol
 archive_resolve_symbol:
@@ -237,14 +237,14 @@ archive_resolve_symbol:
     epilogue
 
 ;*
- * [archive_get_member_data]
- * Purpose: Retrieves a pointer to the data and the size of a member at a given offset.
- * Input:
- *   RBX: [in] Pointer to ARCHIVE struct
- *   RSI: [in] File offset to the member header
- * Output:
- *   RAX: Pointer to member data
- *   RDX: Size of member data
+; * [archive_get_member_data]
+; * Purpose: Retrieves a pointer to the data and the size of a member at a given offset.
+; * Input:
+; *   RBX: [in] Pointer to ARCHIVE struct
+; *   RSI: [in] File offset to the member header
+; * Output:
+; *   RAX: Pointer to member data
+; *   RDX: Size of member data
  ;
 global archive_get_member_data
 archive_get_member_data:

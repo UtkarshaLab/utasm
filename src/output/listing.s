@@ -18,12 +18,12 @@ extern error_uint_to_str
 [SECTION .text]
 
 ;*
- * [listing_generate]
- * Purpose: Iterates through all sections and produces a listing file.
- * Input:
- *   RDI: Pointer to AsmCtx
- * Output:
- *   RAX: EXIT_OK or error
+; * [listing_generate]
+; * Purpose: Iterates through all sections and produces a listing file.
+; * Input:
+; *   RDI: Pointer to AsmCtx
+; * Output:
+; *   RAX: EXIT_OK or error
  ;
 global listing_generate
 listing_generate:

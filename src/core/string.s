@@ -1103,12 +1103,12 @@ str_int_to_str:
     ret
 
 ;*
- * [str_concat]
- * Purpose: Concatenates two null-terminated strings into a destination.
- * Input:
- *   RDI: Destination buffer
- *   RSI: String A
- *   RDX: String B
+; * [str_concat]
+; * Purpose: Concatenates two null-terminated strings into a destination.
+; * Input:
+; *   RDI: Destination buffer
+; *   RSI: String A
+; *   RDX: String B
  ;
 global str_concat
 str_concat:
@@ -1141,14 +1141,14 @@ str_concat:
     xor     rax, rax
     epilogue
 ;*
- * [str_find_str]
- * Purpose: Finds a substring within a string.
- * Input:
- *   RDI: Haystack (null-terminated)
- *   RSI: Needle (null-terminated)
- * Output:
- *   RAX: EXIT_OK if found, EXIT_ERROR if not
- *   RDX: Pointer to start of needle in haystack
+; * [str_find_str]
+; * Purpose: Finds a substring within a string.
+; * Input:
+; *   RDI: Haystack (null-terminated)
+; *   RSI: Needle (null-terminated)
+; * Output:
+; *   RAX: EXIT_OK if found, EXIT_ERROR if not
+; *   RDX: Pointer to start of needle in haystack
  ;
 global str_find_str
 str_find_str:

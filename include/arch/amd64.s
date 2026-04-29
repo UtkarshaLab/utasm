@@ -98,7 +98,7 @@
 %define ID_VXORPS              3002
 
 ;*
- * [def_mnc]
+; * [def_mnc]
  ;
 %macro def_mnc 3
     mnc_ent %1, %2, %3

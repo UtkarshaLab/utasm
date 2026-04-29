@@ -14,14 +14,14 @@
 [SECTION .text]
 
 ;*
- * [archive_gen_header]
- * Purpose: Fills an ARHDR structure with member metadata.
- * Input:
- *   RDI: Pointer to ARHDR (60 bytes)
- *   RSI: Filename string
- *   RDX: Member size (integer)
- * Output:
- *   None
+; * [archive_gen_header]
+; * Purpose: Fills an ARHDR structure with member metadata.
+; * Input:
+; *   RDI: Pointer to ARHDR (60 bytes)
+; *   RSI: Filename string
+; *   RDX: Member size (integer)
+; * Output:
+; *   None
  ;
 global archive_gen_header
 archive_gen_header:
@@ -85,15 +85,15 @@ archive_gen_header:
     epilogue
 
 ;*
- * [archive_write_member]
- * Purpose: Writes a member (header + data + optional padding) to a buffer.
- * Input:
- *   RDI: Output Buffer Pointer (current write position)
- *   RSI: Filename
- *   RDX: Data Pointer
- *   RCX: Data Size
- * Output:
- *   RAX: Number of bytes written
+; * [archive_write_member]
+; * Purpose: Writes a member (header + data + optional padding) to a buffer.
+; * Input:
+; *   RDI: Output Buffer Pointer (current write position)
+; *   RSI: Filename
+; *   RDX: Data Pointer
+; *   RCX: Data Size
+; * Output:
+; *   RAX: Number of bytes written
  ;
 global archive_write_member
 archive_write_member:
@@ -127,16 +127,16 @@ archive_write_member:
     JZ      .done
     
 ;*
- * [archive_gen_index]
- * Purpose: Generates the SysV-style symbol index member ('/').
- * Input:
- *   RDI: Output Buffer Pointer
- *   RSI: Number of Symbols (32-bit)
- *   RDX: Pointer to array of 32-bit offsets (Big-Endian)
- *   RCX: Pointer to concatenated symbol string table
- *   R8:  Size of string table
- * Output:
- *   RAX: Total size of member (header + data)
+; * [archive_gen_index]
+; * Purpose: Generates the SysV-style symbol index member ('/').
+; * Input:
+; *   RDI: Output Buffer Pointer
+; *   RSI: Number of Symbols (32-bit)
+; *   RDX: Pointer to array of 32-bit offsets (Big-Endian)
+; *   RCX: Pointer to concatenated symbol string table
+; *   R8:  Size of string table
+; * Output:
+; *   RAX: Total size of member (header + data)
  ;
 global archive_gen_index
 archive_gen_index:
@@ -203,14 +203,14 @@ archive_gen_index:
     epilogue
 
 ;*
- * [archive_gen_strtab]
- * Purpose: Generates the long filename string table member (';').
- * Input:
- *   RDI: Output Buffer
- *   RSI: Pointer to long names table
- *   RDX: Size of long names table
- * Output:
- *   RAX: Total size of member
+; * [archive_gen_strtab]
+; * Purpose: Generates the long filename string table member (';').
+; * Input:
+; *   RDI: Output Buffer
+; *   RSI: Pointer to long names table
+; *   RDX: Size of long names table
+; * Output:
+; *   RAX: Total size of member
  ;
 global archive_gen_strtab
 archive_gen_strtab:
