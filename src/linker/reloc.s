@@ -256,6 +256,13 @@ reloc_apply_one:
     cmp     r11d, R_AARCH64_CALL26
     je      .aarch64_jmp26
 
+    cmp     r11d, R_RISCV_HI20
+    je      .riscv_hi20
+    cmp     r11d, R_RISCV_PCREL_LO12_I
+    je      .riscv_lo12_i
+    cmp     r11d, R_RISCV_PCREL_LO12_S
+    je      .riscv_lo12_s
+
     // Default: PC-relative (x86_64 PC32, etc)
     sub     rax, r9                // Target - Patch_VA
     movsx   r10, dword [rbx + RELOC_pc_adjust]
@@ -349,6 +356,52 @@ reloc_apply_one:
     mov     edx, [r8]
     and     edx, 0xFFC003FF
     or      edx, eax
+    mov     [r8], edx
+    jmp     .done_patch
+
+.riscv_hi20:
+    add     rax, r10               // S + A
+    sub     rax, r9                // S + A - P
+    add     rax, 0x800             // handle sign-extension of lo12
+    shr     rax, 12                // extract bits [31:12]
+    and     eax, 0xFFFFF
+    shl     eax, 12
+    mov     edx, [r8]
+    and     edx, 0x00000FFF        // clear hi20
+    or      edx, eax
+    mov     [r8], edx
+    jmp     .done_patch
+
+.riscv_lo12_i:
+    add     rax, r10
+    sub     rax, r9
+    and     eax, 0xFFF             // [11:0]
+    shl     eax, 20
+    mov     edx, [r8]
+    and     edx, 0x000FFFFF        // clear imm[31:20]
+    or      edx, eax
+    mov     [r8], edx
+    jmp     .done_patch
+
+.riscv_lo12_s:
+    add     rax, r10
+    sub     rax, r9
+    and     eax, 0xFFF
+    
+    mov     ecx, eax
+    and     ecx, 0x1F              // [4:0]
+    shl     ecx, 7
+    mov     edx, [r8]
+    and     edx, 0xFFFFF07F        // clear imm[4:0]
+    or      edx, ecx
+    
+    mov     ecx, eax
+    shr     ecx, 5
+    and     ecx, 0x7F              // [11:5]
+    shl     ecx, 25
+    and     edx, 0x01FFFFFF        // clear imm[11:5]
+    or      edx, ecx
+    
     mov     [r8], edx
     jmp     .done_patch
 
