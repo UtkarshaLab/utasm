@@ -78,14 +78,14 @@ Industrializing the `utasm` assembler pipeline for multi-arch sovereign kernel d
 
 ### Phase 11-20: Core Lexical & Preprocessor Integrity
 - [x] A01: Lexer - Buffer Boundary Hardening.
-- [>] A02: Lexer - UTF-8 Identifier Sanitization. (IN PROGRESS)
+- [x] A02: Lexer - UTF-8 Identifier Sanitization.
 - [x] A03: Lexer - Numeric Literal Precision.
 - [x] A04: Preprocessor - Macro Recursion Depth Limit.
 - [x] A05: Preprocessor - %inc Path Traversal Protection.
 - [x] A06: Preprocessor - Token Expansion Atomicity.
 - [x] A07: Preprocessor - Symbol Table Load Factor Safety (50k limit).
 - [x] A08: Preprocessor - Variadic Argument Edge Cases (Greedy capture fix).
-- [ ] A09: Preprocessor - Context Switching Stability.
+- [>] A09: Preprocessor - Context Switching Stability. (IN PROGRESS)
 - [ ] A10: Arena Memory - Fragmentation & Leak Audit.
 
 ### Phase 21-40: Syntax Parsing & ISA Dispatch

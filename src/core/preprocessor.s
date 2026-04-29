@@ -742,6 +742,23 @@ prep_handle_inc:
     cmp     byte [r12 + TOKEN_kind], TOK_STRING
     jne     .expected_string
 
+    // 0. Check include depth
+    mov     r8, [rbx + PREP_ctx]
+    mov     r9, [r8 + ASMCTX_inc_ctx]
+    xor     eax, eax               // default depth = 0
+    test    r9, r9
+    jz      .depth_ok
+    movzx   eax, byte [r9 + INCLUDECTX_depth]
+    inc     eax
+    cmp     eax, MAX_INCLUDES
+    jge     .error_too_deep
+
+.depth_ok:
+    movzx   r15d, al               // save new depth in r15 (will be overwritten later, but we need it for context)
+    // Actually, r15 is used for buffer pointer later. 
+    // Let's use the stack but be careful to pop.
+    push    rax
+
     // 1. Path traversal protection (Check for "..")
     mov     rdi, [r12 + TOKEN_value]
     lea     rsi, [str_dotdot]
@@ -805,6 +822,9 @@ prep_handle_inc:
     mov     r9, rdx                // r9 = new IncludeCtx
 
     mov     byte [r9 + INCLUDECTX_tag], TAG_INCLUDE_CTX
+    pop     rax                    // restore new depth
+    mov     byte [r9 + INCLUDECTX_depth], al
+    
     mov     r10, [r12 + ASMCTX_inc_ctx]
     mov     [r9 + INCLUDECTX_parent], r10 // link to previous
     mov     [r12 + ASMCTX_inc_ctx], r9    // update current in AsmCtx
@@ -826,14 +846,28 @@ prep_handle_inc:
     xor     rax, rax
     jmp     .done
 
+.error_too_deep:
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, [rbx + PREP_lexer]
+    mov     rsi, [rsi + LEXER_file]
+    mov     edx, dword [rbx + PREP_lexer]
+    mov     edx, dword [rdx + LEXER_line]
+    movzx   rcx, word [rbx + PREP_lexer]
+    movzx   rcx, word [rcx + LEXER_col]
+    lea     r8,  [msg_include_too_deep]
+    call    error_emit
+    mov     rax, EXIT_MACRO_RECURSION // reuse recursion exit code
+    jmp     .done
+
 .error_open:
-    // ... emit error ...
+    pop     rax
     mov     rax, EXIT_FILE_NOT_FOUND
     jmp     .done
 
 .error_size:
 .error_mmap:
 .error_oom:
+    pop     rax
     mov     rax, EXIT_ERROR
     jmp     .done
 
@@ -884,6 +918,7 @@ dir_struc:  db "struc", 0
 dir_endstruc: db "endstruc", 0
 str_dotdot: db "..", 0
 msg_path_traversal: db "path traversal detected in %inc: usage of '..' is prohibited", 0
+msg_include_too_deep: db "maximum include nesting depth exceeded", 0
 
 // ---- prep_handle_struc ------------------
 /*
