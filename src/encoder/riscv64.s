@@ -286,12 +286,41 @@ riscv64_encode_i_type:
         shl     edi, 15
         or      eax, edi
         mov     edi, [r11 + OPERAND_imm]
+        
+        // Record relocation if symbol is present (A75)
+        IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+            push    rax
+            push    rdi
+            mov     rdi, rbx               // AsmCtx
+            mov     rsi, [r12 + INST_offset]
+            mov     rdx, [r11 + OPERAND_sym]
+            mov     rcx, [r11 + OPERAND_imm] // addend
+            mov     r8, R_RISCV_PCREL_LO12_I
+            extern  reloc_record
+            call    reloc_record
+            pop     rdi
+            pop     rax
+        ENDIF
     ELSE
         movzx   edi, byte [r11 + OPERAND_reg]
         shl     edi, 15
         or      eax, edi
         lea     r9, [r12 + INST_op2]
         mov     edi, [r9 + OPERAND_imm]
+        
+        // Record relocation for ADDI-style if symbol is present (A75)
+        IF byte [r9 + OPERAND_kind], e, OP_SYMBOL
+            push    rax
+            push    rdi
+            mov     rdi, rbx
+            mov     rsi, [r12 + INST_offset]
+            mov     rdx, [r9 + OPERAND_sym]
+            mov     rcx, [r9 + OPERAND_imm]
+            mov     r8, R_RISCV_PCREL_LO12_I
+            call    reloc_record
+            pop     rdi
+            pop     rax
+        ENDIF
     ENDIF
     
     and     edi, 0xFFF
@@ -346,6 +375,22 @@ riscv64_encode_s_type:
     or      eax, edi
     
     mov     edi, [r11 + OPERAND_imm]
+    
+    // Record relocation if symbol is present (A75)
+    IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
+        push    rax
+        push    rdi
+        mov     rdi, rbx               // AsmCtx
+        mov     rsi, [r12 + INST_offset]
+        mov     rdx, [r11 + OPERAND_sym]
+        mov     rcx, [r11 + OPERAND_imm] // addend
+        mov     r8, R_RISCV_PCREL_LO12_S
+        extern  reloc_record
+        call    reloc_record
+        pop     rdi
+        pop     rax
+    ENDIF
+
     mov     ecx, edi
     and     ecx, 0x1F              // imm[4:0]
     shl     ecx, 7
