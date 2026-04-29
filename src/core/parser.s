@@ -1123,10 +1123,24 @@ parser_handle_align:
     
     // If p2, convert to byte
     IF r12, e, 1
+        // Safety: Limit exponent to 16 (64KB max alignment for industrial stability)
+        IF r13, g, 16
+            mov rax, EXIT_INVALID_ALIGN
+            jmp .error
+        ENDIF
         mov     rcx, r13
         mov     rax, 1
         shl     rax, cl
         mov     r13, rax
+    ELSE
+        // Safety: Validate power-of-2 for standard alignment
+        mov     rax, r13
+        test    rax, rax
+        jz      .error_invalid_align
+        mov     rcx, rax
+        dec     rcx
+        test    rax, rcx
+        jnz     .error_invalid_align
     ENDIF
     
     // Check for optional fill
@@ -1157,10 +1171,18 @@ parser_handle_align:
     mov     rdx, r14
     call    asm_ctx_align
     
+    pop     r12
+    mov     rax, OK
+    epilogue
+
+.error_invalid_align:
+    mov     rax, EXIT_INVALID_ALIGN
+    jmp     .error
+
+.error:
     pop     r14
     pop     r13
     pop     r12
-    mov     rax, OK
     epilogue
 
 /**
@@ -1458,6 +1480,15 @@ parser_handle_comm:
             mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
         ENDIF
         mov     r14, [r11 + TOKEN_value]
+        
+        // VALIDATION: Alignment must be power of 2
+        mov     rax, r14
+        test    rax, rax
+        jz      .error_align
+        mov     rcx, rax
+        dec     rcx
+        test    rax, rcx
+        jnz     .error_align
     ENDIF
     
     // 5. Create / Update Symbol
@@ -1484,6 +1515,12 @@ parser_handle_comm:
     mov     [r11 + SYMBOL_size], r13            // st_size = size
     
     mov     rax, OK
+    jmp     .done
+
+.error_align:
+    mov     rax, EXIT_INVALID_ALIGN
+    jmp     .done
+
 .done:
     pop     r14
     pop     r13

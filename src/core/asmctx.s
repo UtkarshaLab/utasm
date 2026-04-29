@@ -376,6 +376,14 @@ asm_ctx_align:
     test    r13, r13
     jz      .done
     
+    // Safety: ignore zero or non-power-of-2 alignment (caller should have validated)
+    test    r12, r12
+    jz      .done
+    mov     rax, r12
+    dec     rax
+    test    rax, r12               // (n & (n-1)) == 0
+    jnz     .done
+    
     // 2. Calculate padding
     mov     rax, [r13 + SECTION_size]
     mov     rcx, r12
