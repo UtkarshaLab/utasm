@@ -571,17 +571,29 @@ elf64_prepare_strtab:
     add     r15, rax
     inc     r15
     
+    // A98: ELF 32-bit String Table Limit Validation
+    IF r15, g, 0xFFFFFFFF
+        mov rax, EXIT_ENCODE_FAIL // Reusing ENCODE_FAIL for simplicity or specific string overflow
+        jmp .error_bounds
+    ENDIF
+    
 .next_outer:
     inc     r14
     jmp     .outer_loop
     
 .done:
+    xor     rax, rax
+    jmp     .epilogue
+
+.error_bounds:
+    // Error code already in rax
+
+.epilogue:
     pop     r15
     pop     r14
     pop     r13
     pop     r12
     pop     rbx
-    xor     rax, rax
     epilogue
 
 // ============================================================================
