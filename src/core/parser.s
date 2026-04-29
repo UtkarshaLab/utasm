@@ -1634,7 +1634,17 @@ parser_handle_visibility:
     call    symbol_find
     
     IF rax, e, OK
-        // Symbol exists, update visibility
+        // A91: Audit symbol binding visibility conflicts
+        movzx   eax, byte [rdx + SYMBOL_vis]
+        IF al, ne, r12b
+            // If already Global/Weak, don't allow demotion to Local if defined
+            IF al, e, VIS_GLOBAL | OR al, e, VIS_WEAK
+                IF r12b, e, VIS_LOCAL
+                    // Symbol is already visible to the linker; demotion is unsafe
+                    mov rax, EXIT_VISIBILITY_CONFLICT | jmp .done
+                ENDIF
+            ENDIF
+        ENDIF
         mov     byte [rdx + SYMBOL_vis], r12b
     ELSE
         // Symbol doesn't exist, create it as UNDEFINED for now
