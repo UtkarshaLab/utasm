@@ -18,9 +18,19 @@ mkdir -p build/gen1
 # ----------------------------------------------------------------------------
 echo "[+] PHASE 1: Assembling Gen0 Compiler via NASM..."
 
-# We compile the main entry point which %includes all other components
-nasm -f elf64 src/main.s -o build/gen0/utasm.o
-ld -o build/gen0/utasm build/gen0/utasm.o
+# Find all .s files in src/ and its subdirectories
+src_files=$(find src -name "*.s")
+obj_files=""
+
+for src_file in $src_files; do
+    # Skip main.s if we want to handle it specifically, or just include it in the loop
+    obj_file="build/gen0/$(basename "${src_file%.s}.o")"
+    nasm -f elf64 "$src_file" -o "$obj_file"
+    obj_files="$obj_files $obj_file"
+done
+
+# Link all object files into the Gen0 binary
+ld -o build/gen0/utasm $obj_files
 
 echo "[+] Gen0 Compilation Successful."
 ls -l build/gen0/utasm
@@ -30,9 +40,16 @@ ls -l build/gen0/utasm
 # ----------------------------------------------------------------------------
 echo "[+] PHASE 2: Initiating Self-Hosting Ascent (Gen1)..."
 
-# Use the newly built utasm to compile itself
-./build/gen0/utasm -f elf64 src/main.s -o build/gen1/utasm.o
-ld -o build/gen1/utasm build/gen1/utasm.o
+obj_files_gen1=""
+for src_file in $src_files; do
+    obj_file="build/gen1/$(basename "${src_file%.s}.o")"
+    # Use the Gen0 binary to compile the source
+    ./build/gen0/utasm -f elf64 "$src_file" -o "$obj_file"
+    obj_files_gen1="$obj_files_gen1 $obj_file"
+done
+
+# Link the Gen1 object files
+ld -o build/gen1/utasm $obj_files_gen1
 
 echo "[+] Gen1 Compilation Successful."
 ls -l build/gen1/utasm
