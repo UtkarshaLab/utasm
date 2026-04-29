@@ -1708,6 +1708,10 @@ parser_handle_comm:
     ENDIF
     mov     r13, [r11 + TOKEN_value]
     
+    // A95: Strong validation for .comm size
+    test    r13, r13
+    jz      .error_size
+    
     // 4. Expect Comma (optional align)
     mov     r14, 1                 // Default align = 1
     call    preprocessor_next_token
@@ -1756,6 +1760,10 @@ parser_handle_comm:
     mov     [r11 + SYMBOL_size], r13            // st_size = size
     
     mov     rax, OK
+    jmp     .done
+
+.error_size:
+    mov     rax, EXIT_INVALID_SIZE
     jmp     .done
 
 .error_align:
