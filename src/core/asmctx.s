@@ -10,6 +10,11 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+extern io_mmap
+extern io_munmap
+extern arena_alloc_struct
+extern str_cmp
+
 [SECTION .text]
 
 ;*

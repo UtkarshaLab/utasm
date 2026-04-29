@@ -68,7 +68,7 @@ endstruc
 
 struc SECTION
     field tag,      1       ; always TAG_SECTION
-    field kind,     1       ; SEC_* internal kind
+    field type,     1       ; SEC_* internal type (was kind)
     field flags,    2       ; SHF_* flags
     field elf_type, 4       ; SHT_* ELF type
     field name,     8       ; pointer to section name
