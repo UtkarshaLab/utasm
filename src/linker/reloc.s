@@ -238,6 +238,19 @@ reloc_apply_one:
     // ---- Dispatch ----
     cmp     r11d, R_X86_64_64
     je      .abs64
+    cmp     r11d, R_AARCH64_ADR_PREL_PG_HI21
+    je      .aarch64_adrp
+    cmp     r11d, R_AARCH64_ADD_ABS_LO12_NC
+    je      .aarch64_lo12
+    cmp     r11d, R_AARCH64_LDST64_ABS_LO12_NC
+    je      .aarch64_ldst64
+    cmp     r11d, R_AARCH64_LDST32_ABS_LO12_NC
+    je      .aarch64_ldst32
+    cmp     r11d, R_AARCH64_LDST16_ABS_LO12_NC
+    je      .aarch64_ldst16
+    cmp     r11d, R_AARCH64_LDST8_ABS_LO12_NC
+    je      .aarch64_ldst8
+
     cmp     r11d, R_AARCH64_JMP26
     je      .aarch64_jmp26
     cmp     r11d, R_AARCH64_CALL26
@@ -274,6 +287,67 @@ reloc_apply_one:
     and     eax, 0x03FFFFFF
     mov     edx, [r8]
     and     edx, 0xFC000000
+    or      edx, eax
+    mov     [r8], edx
+    jmp     .done_patch
+
+.aarch64_adrp:
+    add     rax, r10               // S + A
+    and     rax, -4096             // Page(S + A)
+    mov     rcx, r9
+    and     rcx, -4096             // Page(P)
+    sub     rax, rcx               // Page(S + A) - Page(P)
+    sar     rax, 12                // Delta in pages
+    
+    mov     edx, [r8]              // original instruction
+    and     edx, 0x9F00001F        // clear imm bits
+    
+    mov     ecx, eax
+    and     ecx, 0x03              // immlo
+    shl     ecx, 29
+    or      edx, ecx
+    
+    mov     ecx, eax
+    shr     ecx, 2
+    and     ecx, 0x7FFFF           // immhi
+    shl     ecx, 5
+    or      edx, ecx
+    
+    mov     [r8], edx
+    jmp     .done_patch
+
+.aarch64_lo12:
+    add     rax, r10               // S + A
+    and     eax, 0xFFF             // LO12
+    shl     eax, 10
+    mov     edx, [r8]
+    and     edx, 0xFFC003FF        // clear imm12 [21:10]
+    or      edx, eax
+    mov     [r8], edx
+    jmp     .done_patch
+
+.aarch64_ldst64:
+    add     rax, r10
+    and     eax, 0xFFF
+    shr     eax, 3
+    jmp     .aarch64_ldst_finish
+.aarch64_ldst32:
+    add     rax, r10
+    and     eax, 0xFFF
+    shr     eax, 2
+    jmp     .aarch64_ldst_finish
+.aarch64_ldst16:
+    add     rax, r10
+    and     eax, 0xFFF
+    shr     eax, 1
+    jmp     .aarch64_ldst_finish
+.aarch64_ldst8:
+    add     rax, r10
+    and     eax, 0xFFF
+.aarch64_ldst_finish:
+    shl     eax, 10
+    mov     edx, [r8]
+    and     edx, 0xFFC003FF
     or      edx, eax
     mov     [r8], edx
     jmp     .done_patch
