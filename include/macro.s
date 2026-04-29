@@ -297,12 +297,12 @@
 ; * Purpose: Structured conditional branching using NASM context stack.
 ; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
 ; ;
-%assign %utasm_if_global_counter 0
+%assign utasm_if_global_counter 0
 
 %macro IF 3-4
-    %assign %utasm_if_global_counter %utasm_if_global_counter + 1
+    %assign utasm_if_global_counter utasm_if_global_counter + 1
     %push if
-    %assign %$if_id %utasm_if_global_counter
+    %assign %$if_id utasm_if_global_counter
     %assign %$elseif_count 0
     
     %if %0 == 4
