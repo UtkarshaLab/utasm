@@ -299,6 +299,7 @@
 ; ;
 %macro IF 3-4
     %push   if
+    %assign %$else_defined 0
     %if %0 == 4
         cmp     %1, %4
     %else
@@ -346,7 +347,9 @@
     %ifctx if
         jmp     %$endif
         %$else:
+        %assign %$else_defined 1
         %push   if
+        %assign %$else_defined 0
         %if %0 == 4
             cmp     %1, %4
         %else
@@ -397,6 +400,7 @@
     %ifctx if
         jmp     %$endif
         %$else:
+        %assign %$else_defined 1
         %push   else
     %else
         %error "ELSE without IF"
@@ -410,7 +414,9 @@
             %pop    else
             %pop    if
         %elifctx if
-            %$else:
+            %if %$else_defined == 0
+                %$else:
+            %endif
             %$endif:
             %pop    if
         %else
