@@ -135,3 +135,10 @@
 %def ID_RVC_ADDI            3038
 %def ID_RVC_MV              3065
 %def ID_RVC_NOP             3066
+
+/**
+ * [def_mnc]
+ */
+%macro def_mnc 3
+    mnc_ent %1, %2, %3
+%endmacro

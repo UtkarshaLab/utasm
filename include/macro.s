@@ -1160,10 +1160,10 @@
 %endmacro
 
 /**
- * [mnemonic_entry]
+ * [mnc_ent]
  * Purpose: Build a compile-time hashed opcode lookup entry.
  */
-%macro mnemonic_entry 3
+%macro mnc_ent 3
     compile_time_hash %1, %%h
     dq      %%h
     db      %2
