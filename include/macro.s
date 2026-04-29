@@ -298,8 +298,8 @@
 ; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
 ; ;
 %macro IF 3-4
-    %push if_root
-    %push if_branch
+    %push   if
+    %define %$block_exit %$endif
     %if %0 == 4
         cmp     %1, %4
     %else
@@ -344,12 +344,18 @@
 %endmacro
 
 %macro ELSEIF 3-4
-    %ifctx if_branch
-        jmp %$$endif
+    %assign %%ok 0
+    %ifctx if
+        %assign %%ok 1
+    %elifctx elseif
+        %assign %%ok 1
+    %endif
+    
+    %if %%ok
+        jmp %$block_exit
         %$else:
-        %pop
-        %push if_branch
-        
+        %push   elseif
+        %define %$block_exit %$block_exit
         %if %0 == 4
             cmp     %1, %4
         %else
@@ -397,24 +403,37 @@
 %endmacro
 
 %macro ELSE 0
-    %ifctx if_branch
-        jmp %$$endif
+    %assign %%ok 0
+    %ifctx if
+        %assign %%ok 1
+    %elifctx elseif
+        %assign %%ok 1
+    %endif
+    
+    %if %%ok
+        jmp %$block_exit
         %$else:
-        %pop
-        %push else_branch
+        %push   else
+        %define %$block_exit %$block_exit
     %else
         %error "ELSE without IF"
     %endif
 %endmacro
 
 %macro ENDIF 0
-    %ifctx if_branch
+    %rep 128
+        %ifctx elseif
+            %$else:
+            %pop
+        %elifctx else
+            %pop
+        %else
+            %exitrep
+        %endif
+    %endrep
+    
+    %ifctx if
         %$else:
-        %pop
-        %$endif:
-        %pop
-    %elifctx else_branch
-        %pop
         %$endif:
         %pop
     %else
