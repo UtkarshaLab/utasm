@@ -215,6 +215,21 @@ struc LEXER
 endstruc
 
 // ============================================================================
+// STRUCT: Archive
+// ============================================================================
+struc ARCHIVE
+    field tag,          1       // TAG_ARCHIVE
+    field pad0,         7       // alignment padding
+    field buf,          8       // pointer to mapped library
+    field size,         8       // total size
+    field curr,         8       // current iterator position
+    field symtab,       8       // pointer to '/' member (symbols)
+    field strtab,       8       // pointer to '//' member (long names)
+    field nmembers,     4       // total members found
+    field pad1,         4       // alignment padding
+endstruc
+
+// ============================================================================
 // STRUCT: PrepState
 // ============================================================================
 
