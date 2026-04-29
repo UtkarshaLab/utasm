@@ -50,17 +50,36 @@ for test_file in $test_files; do
 
     echo -n "    [*] [$arch] Assembling $basename... "
     
-    # We compile the test payload to an ELF64 relocatable object
-    # Force the machine type if detected
-    if $UTASM_BIN -m "$arch" -f elf64 "$test_file" -o "build/tests/$basename.o" > /dev/null 2>&1; then
-        echo -e "${GREEN}OK${NC}"
-        ((PASSED++))
+    # Run utasm
+    set +e
+    $UTASM_BIN -m "$arch" -f elf64 "$test_file" -o "build/tests/$basename.o" > /dev/null 2>&1
+    exit_code=$?
+    set -e
+
+    # Determine if this is a negative test (expected to fail)
+    is_negative=0
+    if [[ "$basename" == "error_"* ]]; then
+        is_negative=1
+    fi
+
+    if [ $is_negative -eq 1 ]; then
+        if [ $exit_code -ne 0 ]; then
+            echo -e "${GREEN}OK (Expected Failure)${NC}"
+            ((PASSED++))
+        else
+            echo -e "${RED}FAILED (Should have failed)${NC}"
+            ((FAILED++))
+        fi
     else
-        echo -e "${RED}FAILED${NC}"
-        ((FAILED++))
-        echo -e "${RED}    [!] Diagnostic Output for $test_file:${NC}"
-        # Rerun without silencing to display the strict error formatting
-        $UTASM_BIN -m "$arch" -f elf64 "$test_file" -o "build/tests/$basename.o" || true
+        if [ $exit_code -eq 0 ]; then
+            echo -e "${GREEN}OK${NC}"
+            ((PASSED++))
+        else
+            echo -e "${RED}FAILED${NC}"
+            ((FAILED++))
+            echo -e "${RED}    [!] Diagnostic Output for $test_file:${NC}"
+            $UTASM_BIN -m "$arch" -f elf64 "$test_file" -o "build/tests/$basename.o" || true
+        fi
     fi
 done
 
