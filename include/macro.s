@@ -420,7 +420,7 @@
 %endmacro
 
 %macro ENDIF 0
-    %rep 16
+    %rep 128
         %ifctx elseif
             %if %$else_defined == 0
                 %$else:

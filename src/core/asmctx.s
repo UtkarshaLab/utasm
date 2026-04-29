@@ -15,6 +15,11 @@ extern io_munmap
 extern arena_alloc_struct
 extern str_cmp
 
+extern io_mmap
+extern io_munmap
+extern arena_alloc_struct
+extern str_cmp
+
 [SECTION .text]
 
 ;*
@@ -180,7 +185,7 @@ asm_ctx_create_section:
     mov     rdx, r14
     jmp     .done
 
-.done_error:
+.error:
     ; A97: Unmap the buffer to prevent memory leak on overflow
     mov     rdi, [r14 + SECTION_data]
     mov     rsi, [r14 + SECTION_cap]
