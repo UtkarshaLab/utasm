@@ -124,8 +124,10 @@ elf64_write_debug_line:
     push    rbx
     sub     rsp, 16
     
-    // 1. Unit Length
-    mov     dword [rsp], 32
+    // 1. Unit Length (Length of data after this field)
+    // 2 (version) + 1 (type) + 1 (addr_size) + 4 (abbrev) = 8
+    // Note: Line info stub here is even simpler.
+    mov     dword [rsp], 0
     mov     rdi, r13d
     mov     rsi, rsp
     mov     rdx, 4
@@ -152,8 +154,8 @@ elf64_write_debug_info:
     push    rbx
     sub     rsp, 16
     
-    // 1. Unit Length (Dummy 12 bytes for header)
-    mov     dword [rsp], 12
+    // 1. Unit Length (Version + Type + AddrSize + AbbrevOffset = 8)
+    mov     dword [rsp], 8
     mov     rdi, r13d
     mov     rsi, rsp
     mov     rdx, 4
@@ -349,10 +351,15 @@ elf64_write_phdrs:
     mov     rsi, 112
     call    mem_zero
     
+    // 1. Calculate Code Offset: Immediately after Headers
+    mov     rax, ELF64_EHDR_SIZE
+    add     rax, 112               // 2 PHDRs * 56 bytes
+    mov     r15, rax               // r15 = code_offset
+    
     // CODE Segment
     mov     dword [r14 + PHDR_type],   PT_LOAD
     mov     dword [r14 + PHDR_flags],  (PF_R | PF_X)
-    mov     qword [r14 + PHDR_offset], 176
+    mov     qword [r14 + PHDR_offset], r15
     mov     rax, [r12 + ASMCTX_entry_point]
     mov     qword [r14 + PHDR_vaddr],  rax
     mov     qword [r14 + PHDR_paddr],  rax
@@ -365,14 +372,23 @@ elf64_write_phdrs:
     mov     qword [r14 + PHDR_memsz],  rax
     mov     qword [r14 + PHDR_align],  0x1000
     
+    // 2. Calculate Data Offset: Align(Code_Offset + Code_Size, 4096)
+    add     r15, rax               // r15 = code_offset + code_size
+    add     r15, 4095
+    and     r15, -4096             // r15 = data_offset (aligned)
+    
     // DATA Segment
     add     r14, 56
     mov     dword [r14 + PHDR_type],   PT_LOAD
     mov     dword [r14 + PHDR_flags],  (PF_R | PF_W)
-    // Simplified offset for now
-    mov     qword [r14 + PHDR_offset], 4096
+    mov     qword [r14 + PHDR_offset], r15
+    
+    // Virtual Address for data segment: Entry + (Data_Offset - Code_Offset)
     mov     rax, [r12 + ASMCTX_entry_point]
-    add     rax, 4096
+    mov     rcx, r15               // data_offset
+    sub     rcx, [r14 - 56 + PHDR_offset] // code_offset
+    add     rax, rcx
+    
     mov     qword [r14 + PHDR_vaddr],  rax
     mov     qword [r14 + PHDR_paddr],  rax
     
