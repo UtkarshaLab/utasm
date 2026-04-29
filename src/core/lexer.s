@@ -231,6 +231,8 @@ lexer_next:
     je      .lex_lshift
     cmp     rcx, '>'
     je      .lex_rshift
+    cmp     rcx, '$'
+    je      .emit_single_dollar
 
     // unknown character — emit error and skip
     jmp     .unknown_char

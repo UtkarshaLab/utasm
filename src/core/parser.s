@@ -480,6 +480,18 @@ parser_evaluate_factor:
         mov     rdx, rax
         xor     rax, rax
         epilogue
+    ELSEIF al, e, TOK_DOLLAR
+        // Current location counter ($)
+        mov     rax, [rbx + PREP_ctx]
+        mov     rax, [rax + ASMCTX_curr_sec]
+        IF rax, e, 0
+            // If no section, return 0 (or error?)
+            xor rax, rax
+            epilogue
+        ENDIF
+        mov     rdx, [rax + SECTION_size]
+        xor     rax, rax
+        epilogue
     ELSEIF al, e, TOK_IDENT
         // Symbol lookup
         mov     rdi, [rbx + PREP_ctx]
@@ -1035,13 +1047,21 @@ parser_define_label:
     mov     byte [rdi + SYMBOL_kind], SYM_LABEL
     mov     [rdi + SYMBOL_name], rsi
     
-    // Note: Value and section are resolved during back-end pass or here if we track current section
-    // In this MVP, we assume global_ctx is being updated by main.s
-    
+    // Set value to current section location
+    mov     rax, [rbx + ASMCTX_curr_sec]
+    IF rax, ne, 0
+        mov     rcx, [rax + SECTION_size]
+        mov     [rdi + SYMBOL_value], rcx
+        movzx   ecx, word [rax + SECTION_index]
+        mov     [rdi + SYMBOL_section], cx
+    ENDIF
+
     mov     rdi, rbx
     mov     rsi, rsp
     extern  symbol_add
     call    symbol_add
+    check_err
+    mov     [rbx + ASMCTX_last_symbol], rdx    // Store for potential equ override
     
     add     rsp, SYMBOL_SIZE
     pop     rsi
@@ -1216,6 +1236,15 @@ parser_handle_pseudo_op:
         mov     rax, OK
         jmp     .done
     ENDIF
+    
+    mov     rdi, rbx
+    lea     rsi, [str_equ]
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_equ
+        mov     rax, OK
+        jmp     .done
+    ENDIF
 
     xor     rax, rax               // Not a pseudo-op
 
@@ -1344,8 +1373,45 @@ parser_handle_org:
     
     mov     rdi, [rbx + PREP_ctx]
     mov     r10, [rdi + ASMCTX_curr_sec]
+    mov     rdi, [rbx + PREP_ctx]
+    mov     r10, [rdi + ASMCTX_curr_sec]
     mov     [r10 + SECTION_addr], rdx
     epilogue
+
+/**
+ * [parser_handle_equ]
+ */
+parser_handle_equ:
+    prologue
+    push    r12
+    
+    // Evaluate expression
+    call    parser_evaluate_expression
+    check_err
+    mov     r12, rdx               // r12 = value
+    
+    // Get last symbol
+    mov     rax, [rbx + PREP_ctx]
+    mov     rax, [rax + ASMCTX_last_symbol]
+    IF rax, e, 0
+        mov     rax, EXIT_UNDEF_SYMBOL
+        jmp     .error
+    ENDIF
+    
+    // Override value and make it absolute (SHN_ABS = 0xFFF1)
+    mov     [rax + SYMBOL_value], r12
+    mov     word [rax + SYMBOL_section], 0xFFF1
+    
+    pop     r12
+    mov     rax, OK
+    epilogue
+
+.error:
+    pop     r12
+    epilogue
+
+[SECTION .rodata]
+str_equ:    db "equ", 0
 
 parser_emit_data_8:
     prologue

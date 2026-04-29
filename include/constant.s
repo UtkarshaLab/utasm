@@ -175,7 +175,10 @@
  %def TOK_DIRECTIVE          0x20
  %def TOK_COMMENT            0x21
  %def TOK_FLOAT              0x22
- %def TOK_MACRO_LOCAL         0x23
+ %def TOK_MACRO_LOCAL        0x23
+ %def TOK_DOLLAR             0x24
+ 
+ %def OP_FLAG_REL            0x01
  
  // ============================================================================
  // SYMBOL KINDS AND VISIBILITY

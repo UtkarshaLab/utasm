@@ -191,6 +191,7 @@ struc ASMCTX
     field symhash,     8       // pointer to symbol hash table (64k entries)
     field expr_depth,  4       // expression recursion depth sentinel
     field mac_exp_id,  4       // global macro expansion counter (A70)
+    field last_symbol, 8       // pointer to last defined SYMBOL (for equ)
 endstruc
 
 // ============================================================================
@@ -259,6 +260,7 @@ struc OPERAND
     field is_high,  1       // 1 if AH/CH/DH/BH
     field mask,     1       // AVX-512 k-register mask (0-7)
     field ctrl,     1       // AVX-512 rounding/broadcast control
+    field flags,    1       // OP_FLAG_* value
     field reloc,    4       // relocation type (e.g. :lo12:)
     field imm,      8       // immediate or displacement
     field base,     1       // base register
