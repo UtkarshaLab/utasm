@@ -703,6 +703,28 @@ lexer_next:
     jge     .lex_string_unterminated
 
     movzx   rcx, byte [r11]
+    
+    // Check for line continuation (A66)
+    IF rcx, e, 10
+        inc     qword [rbx + LEXER_pos]
+        inc     dword [rbx + LEXER_line]
+        mov     word  [rbx + LEXER_col], 1
+        jmp     .lex_string_loop
+    ELSEIF rcx, e, 13
+        // Check for CR+LF
+        mov     rax, [rbx + LEXER_pos]
+        inc     rax
+        cmp     rax, [rbx + LEXER_end]
+        jge     .lex_string_loop       // Just ignore CR at EOF
+        
+        IF byte [rax], e, 10
+            add     qword [rbx + LEXER_pos], 2
+            inc     dword [rbx + LEXER_line]
+            mov     word  [rbx + LEXER_col], 1
+            jmp     .lex_string_loop
+        ENDIF
+    ENDIF
+
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
