@@ -111,7 +111,7 @@ symbol_add:
     // Copy symbol data
     mov     rdi, r13
     mov     rsi, r12
-    mov     rcx, 6                 // SYMBOL_SIZE / 8
+    mov     rcx, (SYMBOL_SIZE / 8)
     rep movsq
 
     // 3. Index in Hash Table (Quadratic Probing)

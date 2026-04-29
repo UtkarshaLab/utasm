@@ -682,12 +682,7 @@ elf64_write_symtab:
     pop     rdx
     pop     rsi
     pop     rdi
-    mov     rdx, ELF64_SYM_SIZE
-    call    io_write
-    check_err
-
-    inc     r15
-    jmp     .loop
+    ret
 
 .done:
     add     rsp, ELF64_SYM_SIZE
@@ -706,8 +701,11 @@ elf64_write_symtab:
 */
 elf64_write_strtab:
     prologue
-    push    rbx
     push    r14
+    push    r15
+
+    // Start at offset 1 (0 is null)
+    mov     r15, 1
 
     // Write leading null byte
     sub     rsp, 8
@@ -729,19 +727,24 @@ elf64_write_strtab:
     jge     .done
 
     lea     rdi, [rbx + rcx * SYMBOL_SIZE]
-    mov     rsi, [rdi + SYMBOL_name]
-    test    rsi, rsi
-    jz      .next
-
-    mov     rdi, rsi
-    call    str_len                // rax = length
-    mov     rdx, rax
-    inc     rdx                    // include null terminator
-
-    mov     rdi, r13d
-    // rsi still points to the name
-    call    io_write
-    check_err
+    mov     eax, [rdi + SYMBOL_name_idx]
+    
+    // Only write if this is the first occurrence (idx == r15)
+    IF eax, e, r15d
+        mov     rsi, [rdi + SYMBOL_name]
+        push    rax
+        mov     rdi, rsi
+        call    str_len
+        mov     rdx, rax
+        inc     rdx
+        
+        mov     rdi, r13d
+        call    io_write
+        check_err
+        pop     rax
+        
+        add     r15, rdx
+    ENDIF
 
 .next:
     inc     ecx

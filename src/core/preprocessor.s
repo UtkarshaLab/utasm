@@ -296,6 +296,7 @@ prep_expand_start:
 
     mov     byte [r13 + MACROEXP_tag], TAG_MACRO_EXP
     mov     [r13 + MACROEXP_macro], r12
+    mov     qword [r13 + MACROEXP_rep_count], 1 // Default: expand once
     // Check arity
     movzx   rax, byte [r12 + MACRO_min_params]
     movzx   rdx, byte [r12 + MACRO_max_params]
@@ -539,6 +540,16 @@ prep_expand_next:
     jmp     .done
 
 .expansion_end:
+    // Check for %rep loop
+    cmp     dword [r13 + MACROEXP_rep_count], 1
+    jle     .do_pop
+    
+    dec     dword [r13 + MACROEXP_rep_count]
+    mov     qword [r13 + MACROEXP_body], 0
+    mov     rax, 1                 // try again (retry expansion from start of loop)
+    jmp     .done
+
+.do_pop:
     call    prep_expand_pop
     // we finished this expansion, but there might be a parent
     // we return non-zero to tell caller to try again (which will check mac_exp again)
@@ -648,7 +659,17 @@ prep_handle_directive:
     test    rax, rax
     jz      .do_struc
 
-    // ... handle other directives ...
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_rep]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_rep
+
+    mov     rdi, [r12 + TOKEN_value]
+    lea     rsi, [dir_endrep]
+    call    str_cmp
+    test    rax, rax
+    jz      .do_endrep
 
     xor     rax, rax
     jmp     .done
@@ -695,9 +716,15 @@ prep_handle_directive:
     call    macro_handle_def
     jmp     .done
 
-.do_struc:
+.do_rep:
     mov     rdi, rbx
-    call    prep_handle_struc
+    call    prep_handle_rep
+    jmp     .done
+
+.do_endrep:
+    // %endrep is handled by the capture loop in prep_handle_rep
+    // if we hit it here, it's an orphan %endrep
+    mov     rax, EXIT_ERROR
     jmp     .done
 
 .error:
@@ -1524,6 +1551,107 @@ macro_handle_def:
     pop     r12
     pop     rbx
     ret
+
+/**
+ * [prep_handle_rep]
+ * Input: RDI = PrepState
+ */
+prep_handle_rep:
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    mov     rbx, rdi
+
+    // 1. Get repeat count
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     rsi, rsp
+    call    lexer_next
+    IF byte [rsp + TOKEN_kind], ne, TOK_NUMBER
+        mov rax, EXIT_ERROR | jmp .error
+    ENDIF
+    mov     rdi, [rsp + TOKEN_value]
+    call    str_to_int
+    mov     r14, rax               // r14 = count
+    add     rsp, TOKEN_SIZE
+
+    IF r14, g, MAX_REP_COUNT
+        mov rax, EXIT_ERROR | jmp .error
+    ENDIF
+
+    // 2. Allocate anonymous MACRO struct
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, MACRO_SIZE
+    call    arena_alloc
+    check_err
+    mov     r15, rdx
+    mov     byte [r15 + MACRO_tag], TAG_MACRO
+    mov     qword [r15 + MACRO_name], 0
+    mov     byte [r15 + MACRO_min_params], 0
+    mov     byte [r15 + MACRO_max_params], 0
+
+    // 3. Capture tokens until %endrep
+    mov     rdi, [rbx + PREP_arena]
+    mov     rax, [rdi + ARENA_ptr]
+    mov     [r15 + MACRO_tokens], rax
+    xor     r13, r13               // token count
+
+.capture:
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    check_err
+    mov     r12, rdx
+    
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, r12
+    call    lexer_next
+    check_err
+
+    // Check for %endrep
+    IF byte [r12 + TOKEN_kind], e, TOK_PERCENT
+        sub     rsp, TOKEN_SIZE
+        mov     rdi, [rbx + PREP_lexer]
+        mov     rsi, rsp
+        call    lexer_next
+        check_err
+        
+        mov     rdi, [rsp + TOKEN_value]
+        lea     rsi, [dir_endrep]
+        call    str_cmp
+        IF rax, e, 0
+            add rsp, TOKEN_SIZE
+            jmp .captured
+        ENDIF
+        add rsp, TOKEN_SIZE
+        // If not %endrep, we keep the percent token and continue
+    ENDIF
+
+    inc     r13
+    jmp     .capture
+
+.captured:
+    mov     [r15 + MACRO_ntokens], r13d
+    
+    // 4. Start expansion
+    mov     rdi, rbx
+    mov     rsi, r15
+    call    prep_expand_start
+    mov     [rdx + MACROEXP_rep_count], r14 // set the actual count
+    
+    xor     rax, rax
+.done:
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.error:
+    jmp .done
 
 .error_expected_ident:
 .error_eof:

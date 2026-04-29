@@ -17,6 +17,12 @@
 %def REG_XZR                31
 %def REG_SP                 32
 
+// ---- Shift Types -------------------------
+%def SHIFT_LSL              0
+%def SHIFT_LSR              1
+%def SHIFT_ASR              2
+%def SHIFT_ROR              3
+
 // ---- Mnemonic IDs (AArch64 Specific) -----
 // These must match the IDs in src/isa/aarch64.s exactly.
 %def ID_AARCH64_ABS         2000

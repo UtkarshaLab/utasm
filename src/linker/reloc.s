@@ -135,12 +135,18 @@ reloc_resolve_all:
     extern  symbol_find
     call    symbol_find
     test    rax, rax
-    jnz     .undef
-    
+    jnz     .check_undef
     mov     r10, rdx                       // r10 = SYMBOL*
     
-    // sym_va = symbol.section.addr + symbol.value
-    movzx   eax, word [r10 + SYMBOL_section] // section index
+    // Check if symbol is undefined
+    movzx   eax, word [r10 + SYMBOL_section]
+    IF ax, e, 0                            // SHN_UNDEF
+        // Only error if we are in binary mode
+        mov     rax, [rbx + ASMCTX_flags]
+        test    rax, CTX_FLAG_FORMAT_BIN
+        jnz     .undef
+        jmp     .next                      // Skip patching, keep for .rela
+    ENDIF
     
     // Check for special sections
     IF ax, e, 0xFFFF // SHN_ABS
@@ -191,6 +197,12 @@ reloc_resolve_all:
 .done:
     xor     rax, rax
     jmp     .ret
+
+.check_undef:
+    mov     rax, [rbx + ASMCTX_flags]
+    test    rax, CTX_FLAG_FORMAT_BIN
+    jnz     .undef
+    jmp     .next
 
 .undef:
     mov     rax, EXIT_UNDEF_REF

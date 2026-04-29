@@ -136,7 +136,8 @@ struc MACROEXP
     field tag,      1       // always TAG_MACRO_EXP
     field depth,    1       // nesting depth
     field nparams,  1       // parameter count
-    field pad0,      5       // alignment padding
+    field rep_count, 4      // repetitions remaining (for %rep)
+    field pad0,      1       // alignment padding
     field macro,    8       // pointer to Macro symbol
     field parent,   8       // parent MacroExpansion
     field params,   8       // parameter string array
@@ -246,7 +247,9 @@ struc OPERAND
     field scale,    1       // scale factor
     field pad0,     5       // alignment padding
     field sym,      8       // pointer to Symbol
-    field pad1,     16      // future reservation
+    field shift_type, 1     // AArch64 shift type (LSL, LSR, etc)
+    field shift_imm,  1     // shift immediate amount
+    field pad1,      14      // future reservation
 endstruc
 
 // ============================================================================

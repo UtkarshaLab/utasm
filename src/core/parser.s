@@ -199,6 +199,47 @@ parser_parse_operand:
             jmp     .success
         ENDIF
         // Not a register, fall through to expression (it's a symbol)
+        // BUT FIRST: check for AArch64 shift keywords
+        mov     rax, [rbx + PREP_ctx]
+        cmp     byte [rax + ASMCTX_target], TARGET_AARCH64
+        jne     .not_shift
+        
+        mov     rdi, [r13 + TOKEN_value]
+        call    parser_check_aarch64_shift
+        IF rax, ne, ERR
+            // It's a shift! (RAX = SHIFT_*)
+            mov     [r12 + OPERAND_shift_type], al
+            // Expect TOK_HASH or just expression
+            call    preprocessor_peek_token
+            IF byte [rdx + TOKEN_kind], e, TOK_HASH
+                call preprocessor_next_token
+            ENDIF
+            call    parser_evaluate_expression
+            check_err
+            mov     [r12 + OPERAND_shift_imm], dl
+            // This shift applies to the PREVIOUS register operand if this was just "lsl #1"
+            // But usually it's "x2, lsl #1". The parser sees "x2" as op2, then "lsl" as op3.
+            // Wait, our parser handles operands separated by commas.
+            // "add x0, x1, x2, lsl #1" => 4 operands.
+            // The encoder for ADD expects 3 operands, where op2 might have a shift.
+            // So I should actually "merge" this shift into the previous operand.
+            movzx   rax, byte [r15 + INST_nops]
+            IF al, g, 0
+                dec al
+                imul rax, OPERAND_SIZE
+                lea  rdi, [r15 + INST_op0 + rax]
+                mov  cl, [r12 + OPERAND_shift_type]
+                mov  [rdi + OPERAND_shift_type], cl
+                mov  cl, [r12 + OPERAND_shift_imm]
+                mov  [rdi + OPERAND_shift_imm], cl
+                
+                // Discard this temporary operand
+                xor  rax, rax
+                epilogue
+            ENDIF
+        ENDIF
+
+.not_shift:
         call    preprocessor_putback_token // put back the ident
     ENDIF
 
@@ -1107,7 +1148,38 @@ parser_handle_pseudo_op:
     epilogue
 
 /**
- * [parser_handle_align]
+ * [parser_check_aarch64_shift]
+ * Input: RDI = Name String
+ * Output: RAX = SHIFT_* or ERR
+ */
+parser_check_aarch64_shift:
+    prologue
+    push    rbx
+    mov     rbx, rdi
+    
+    lea     rsi, [str_lsl]
+    call    str_cmp
+    IF rax, e, 0 | mov rax, SHIFT_LSL | jmp .done | ENDIF
+    
+    mov     rdi, rbx
+    lea     rsi, [str_lsr]
+    call    str_cmp
+    IF rax, e, 0 | mov rax, SHIFT_LSR | jmp .done | ENDIF
+    
+    mov     rdi, rbx
+    lea     rsi, [str_asr]
+    call    str_cmp
+    IF rax, e, 0 | mov rax, SHIFT_ASR | jmp .done | ENDIF
+    
+    mov     rdi, rbx
+    lea     rsi, [str_ror]
+    call    str_cmp
+    IF rax, e, 0 | mov rax, SHIFT_ROR | jmp .done | ENDIF
+    
+    mov     rax, ERR
+.done:
+    pop     rbx
+    epilogue
  * RSI = type (0 = byte, 1 = p2)
  */
 parser_handle_align:
@@ -1539,3 +1611,7 @@ str_endstruc:  db "endstruc", 0
 str_field:     db "field", 0
 str_rel:       db "rel", 0
 str_comm:      db "comm", 0
+str_lsl:       db "lsl", 0
+str_lsr:       db "lsr", 0
+str_asr:       db "asr", 0
+str_ror:       db "ror", 0

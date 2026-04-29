@@ -159,7 +159,8 @@ _start:
 
     // 6.4 Main Assembly Loop
 .assembly_loop:
-    mov     rdi, r15                         // PrepState
+    push_alloc                       // Checkpoint arena state (Macro in include/macro.s)
+    mov     rdi, r15                 // PrepState
     call    parser_parse_instruction
     test    rax, rax
     jnz     .error_in_parser
@@ -203,6 +204,7 @@ _start:
     ENDIF
     check_err
     
+    pop_alloc                        // Rollback arena (reclaim INST and temporary allocations)
     jmp     .assembly_loop
 
 .error_in_parser:

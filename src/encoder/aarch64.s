@@ -326,7 +326,17 @@ aarch64_encode_dp_reg:
         movzx   edi, byte [r9 + OPERAND_reg] // Rm
         shl     edi, 16
         or      eax, edi
-        // TODO: Handle shift (LSL, LSR, ASR)
+
+        // Handle shift (LSL, LSR, ASR, ROR)
+        movzx   edi, byte [r9 + OPERAND_shift_type]
+        and     edi, 0x03
+        shl     edi, 22            // shift type bits [23:22]
+        or      eax, edi
+        
+        movzx   edi, byte [r9 + OPERAND_shift_imm]
+        and     edi, 0x3F
+        shl     edi, 10            // imm6 bits [15:10]
+        or      eax, edi
     ELSEIF byte [r9 + OPERAND_kind], e, OP_IMM
         // ADD/SUB (immediate) uses different format: sf | op | 1 | sh | imm12 | Rn | Rd
         // We detect this and adjust the opcode base
