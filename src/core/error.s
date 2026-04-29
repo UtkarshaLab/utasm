@@ -941,6 +941,15 @@ msg_caret:
 msg_indent:
     db      "    "
 
+msg_struct_bounds:
+    db      "access to struct field exceeds declared width", 0
+msg_note_field_name:
+    db      "field name: ", 0
+msg_note_field_size:
+    db      "field width: ", 0
+msg_note_access_size:
+    db      "access width: ", 0
+
 // ---- error_new_from_errno ----------------
 /*
  error_new_from_errno
@@ -977,6 +986,72 @@ error_new_from_errno:
 
     xor     rax, rax
     ret
+
+/**
+ * [error_struct_bounds]
+ * Input:
+ *   RDI = field name string
+ *   RSI = field size (bytes)
+ *   RDX = access size (bytes)
+ */
+global error_struct_bounds
+error_struct_bounds:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    mov     rbx, rdi               // field name
+    mov     r12, rsi               // field size
+    mov     r13, rdx               // access size
+    
+    // 1. Emit the main error
+    mov     rdi, [global_ctx]      // We'll need a way to get AsmCtx. 
+                                   // In utasm, we usually pass it or keep it global.
+    mov     rsi, 0                 // filename (will be filled by error_emit if we find it)
+    xor     rdx, rdx               // line
+    xor     rcx, rcx               // col
+    lea     r8, [msg_struct_bounds]
+    call    error_emit
+    
+    // 2. Emit notes for details
+    mov     rdi, [global_ctx]
+    lea     r8, [msg_note_field_name]
+    call    error_note
+    mov     rdi, STDERR_FILENO
+    mov     rsi, rbx
+    call    error_write_str
+    call    .print_newline
+    
+    mov     rdi, [global_ctx]
+    lea     r8, [msg_note_field_size]
+    call    error_note
+    mov     rdi, r12
+    call    error_uint_to_str
+    mov     rdi, STDERR_FILENO
+    mov     rsi, rdx
+    call    error_write_str
+    call    .print_newline
+    
+    mov     rdi, [global_ctx]
+    lea     r8, [msg_note_access_size]
+    call    error_note
+    mov     rdi, r13
+    call    error_uint_to_str
+    mov     rdi, STDERR_FILENO
+    mov     rsi, rdx
+    call    error_write_str
+    call    .print_newline
+    
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
+.print_newline:
+    mov     rdi, STDERR_FILENO
+    lea     rsi, [msg_newline]
+    mov     rdx, 1
+    jmp     error_write_raw
 
 // ---- integer conversion buffer -----------
 
