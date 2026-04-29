@@ -126,12 +126,81 @@ archive_write_member:
     test    r14, 1
     JZ      .done
     
-    mov     byte [rdi], 0x0A       // Newline padding
+/**
+ * [archive_gen_index]
+ * Purpose: Generates the SysV-style symbol index member ('/').
+ * Input:
+ *   RDI: Output Buffer Pointer
+ *   RSI: Number of Symbols (32-bit)
+ *   RDX: Pointer to array of 32-bit offsets (Big-Endian)
+ *   RCX: Pointer to concatenated symbol string table
+ *   R8:  Size of string table
+ * Output:
+ *   RAX: Total size of member (header + data)
+ */
+global archive_gen_index
+archive_gen_index:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    
+    mov     rbx, rdi               // out
+    mov     r12d, esi              // num_syms
+    mov     r13, rdx               // offsets
+    mov     r14, rcx               // strings
+    mov     r15, r8                // str_size
+    
+    // 1. Calculate Data Size
+    // size = 4 (count) + 4 * num_syms + str_size
+    mov     rax, r12
+    shl     rax, 2
+    add     rax, 4
+    add     rax, r15
+    push    rax                    // save data size
+    
+    // 2. Generate Header
+    mov     rdi, rbx
+    lea     rsi, [str_ar_symtab]
+    mov     rdx, rax               // data size
+    call    archive_gen_header
+    
+    // 3. Write Count (Big-Endian)
+    lea     rdi, [rbx + AR_HDR_SIZE]
+    mov     eax, r12d
+    bswap   eax
+    mov     [rdi], eax
+    
+    // 4. Write Offsets
+    add     rdi, 4
+    mov     rsi, r13
+    mov     ecx, r12d
+    shl     rcx, 2
+    rep movsb
+    
+    // 5. Write String Table
+    mov     rsi, r14
+    mov     rcx, r15
+    rep movsb
+    
+    pop     rax                    // restore data size
+    add     rax, AR_HDR_SIZE
+    
+    // 6. Padding
+    test    al, 1
+    JZ      .done
+    mov     byte [rdi], 0x0A
     inc     rax
     
 .done:
+    pop     r15
     pop     r14
     pop     r13
     pop     r12
     pop     rbx
     epilogue
+
+[SECTION .rodata]
+str_ar_symtab: db "/", 0
