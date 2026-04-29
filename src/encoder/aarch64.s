@@ -36,6 +36,11 @@ aarch64_encode_instruction:
     mov     rbx, rdi               // RBX = AsmCtx
     mov     r12, rsi               // R12 = INST*
 
+    // A96: Dispatch Integrity - Validate operand count
+    IF byte [r12 + INST_nops], g, 4
+        mov rax, EXIT_ENCODE_FAIL | jmp .done
+    ENDIF
+
     // Reset length counter (AArch64 is always 4 bytes per instruction)
     mov     dword [rbx + ASMCTX_inst_len], 4
 

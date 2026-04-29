@@ -28,6 +28,11 @@ amd64_encode_instruction:
     
     mov     rbx, rdi               // RBX = AsmCtx
     mov     r12, rsi               // R12 = INST
+
+    // A96: Dispatch Integrity - Validate operand count
+    IF byte [r12 + INST_nops], g, 4
+        mov rax, EXIT_ENCODE_FAIL | jmp .error
+    ENDIF
     
     // Reset length counter
     mov     dword [rbx + ASMCTX_inst_len], 0

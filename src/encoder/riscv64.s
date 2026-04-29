@@ -36,6 +36,11 @@ riscv64_encode_instruction:
     mov     rbx, rdi               // RBX = AsmCtx
     mov     r12, rsi               // R12 = INST*
 
+    // A96: Dispatch Integrity - Validate operand count
+    IF byte [r12 + INST_nops], g, 4
+        mov rax, EXIT_ENCODE_FAIL | jmp .done
+    ENDIF
+
     // Reset length counter (RISC-V 32-bit instructions)
     mov     dword [rbx + ASMCTX_inst_len], 4
 
