@@ -236,5 +236,40 @@ archive_resolve_symbol:
     pop     r12
     epilogue
 
+/**
+ * [archive_get_member_data]
+ * Purpose: Retrieves a pointer to the data and the size of a member at a given offset.
+ * Input:
+ *   RBX: [in] Pointer to ARCHIVE struct
+ *   RSI: [in] File offset to the member header
+ * Output:
+ *   RAX: Pointer to member data
+ *   RDX: Size of member data
+ */
+global archive_get_member_data
+archive_get_member_data:
+    prologue
+    
+    mov     r8, [rbx + ARCHIVE_buf]
+    mov     r9, [rbx + ARCHIVE_size]
+    
+    // Validate offset
+    IF rsi, ge, r9
+        xor rax, rax | xor rdx, rdx | epilogue
+    ENDIF
+    
+    lea     r10, [r8 + rsi]        // r10 = ARHDR*
+    
+    // 1. Parse size from header
+    push    rsi
+    mov     rsi, r10
+    call    archive_get_member_size
+    pop     rsi
+    
+    mov     rdx, rax               // rdx = data size
+    lea     rax, [r10 + AR_HDR_SIZE] // rax = data start
+    
+    epilogue
+
 [SECTION .rodata]
 str_ar_mag:     db "!<arch>", 10
