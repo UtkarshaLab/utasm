@@ -379,6 +379,10 @@ asm_ctx_align:
     // Safety: ignore zero or non-power-of-2 alignment (caller should have validated)
     test    r12, r12
     jz      .done
+    // A93: Industrial sanity limit (Max 64KB alignment)
+    IF r12, g, 0x10000
+        jmp .done
+    ENDIF
     mov     rax, r12
     dec     rax
     test    rax, r12               // (n & (n-1)) == 0
