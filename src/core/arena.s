@@ -21,7 +21,7 @@
 // How it works:
 //   - mmap reserves a large contiguous block of memory upfront
 //   - every allocation just moves a pointer forward
-//   - no individual free — entire arena drops at end of pass
+//   - no individual free — checkpoint/rollback mechanisms available
 //   - no fragmentation, no use-after-free, no double-free
 //
 // This is our Rust-style memory discipline in assembly.
@@ -61,9 +61,11 @@ arena_init:
     // align size up to PAGE_SIZE boundary
     mov     rax, PAGE_SIZE
     sub     rax, 1                  // rax = 0xFFF
-    add     r12, rax               // size + 4095
-    not     rax                    // rax = ~0xFFF = 0xFFFFF...000
-    and     r12, rax               // round down = page aligned size
+    add     rsi, rax               // size + 4095
+    jc      .mmap_failed           // overflow
+    not     rax                    // rax = ~0xFFF
+    and     rsi, rax               // page aligned size
+    mov     r12, rsi
 
     // mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
     xor     rdi, rdi               // addr = NULL
@@ -175,16 +177,6 @@ arena_alloc:
     mov     rax, EXIT_INTERNAL
     xor     rdx, rdx
     pop     rbx
-    ret
-
-.out_of_memory:
-    mov     rax, EXIT_OOM
-    xor     rdx, rdx
-    ret
-
-.bad_arena:
-    mov     rax, EXIT_INTERNAL
-    xor     rdx, rdx
     ret
 
 // ---- arena_alloc_struct ------------------
@@ -387,6 +379,59 @@ arena_remaining:
 .bad_arena:
     mov     rax, EXIT_INTERNAL
     xor     rdx, rdx
+    ret
+
+// ---- arena_checkpoint --------------------
+/*
+ arena_checkpoint
+ Returns the current allocation pointer.
+ Use with arena_rollback to free temporary allocations.
+ Input    : rdi = pointer to Arena struct
+ Output   : rax = EXIT_OK or EXIT_INTERNAL
+             rdx = current pointer (checkpoint)
+*/
+global arena_checkpoint
+arena_checkpoint:
+    cmp     byte [rdi + ARENA_tag], TAG_ARENA
+    jne     .bad_arena
+    mov     rdx, [rdi + ARENA_ptr]
+    xor     rax, rax
+    ret
+.bad_arena:
+    mov     rax, EXIT_INTERNAL
+    ret
+
+// ---- arena_rollback ----------------------
+/*
+ arena_rollback
+ Restores the allocation pointer to a previous checkpoint.
+ All memory allocated after the checkpoint becomes invalid.
+ Input    : rdi = pointer to Arena struct
+             rsi = pointer to restore to (from arena_checkpoint)
+ Output   : rax = EXIT_OK or EXIT_INTERNAL
+*/
+global arena_rollback
+arena_rollback:
+    cmp     byte [rdi + ARENA_tag], TAG_ARENA
+    jne     .bad_arena
+    
+    // Safety check: rsi must be within [base, ptr]
+    mov     rax, [rdi + ARENA_base]
+    cmp     rsi, rax
+    jb      .invalid_rollback
+    mov     rax, [rdi + ARENA_ptr]
+    cmp     rsi, rax
+    ja      .invalid_rollback
+    
+    mov     [rdi + ARENA_ptr], rsi
+    xor     rax, rax
+    ret
+
+.invalid_rollback:
+    mov     rax, EXIT_INTERNAL
+    ret
+.bad_arena:
+    mov     rax, EXIT_INTERNAL
     ret
 
 // ---- arena_zero (internal) ---------------
