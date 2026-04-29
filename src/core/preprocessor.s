@@ -324,6 +324,11 @@ prep_expand_start:
     IF al, ne, 0xFF
         cmp r15b, al
         jge .check_trailing
+    ELSE
+        // Variadic limit (hardcoded to 32 slots in allocation)
+        IF r15, ge, 32
+            mov rax, EXIT_MACRO_ARITY_FAIL | jmp .error
+        ENDIF
     ENDIF
     
     // Peek to see if we have more arguments (comma or not)
