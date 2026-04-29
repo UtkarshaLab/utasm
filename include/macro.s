@@ -351,7 +351,11 @@
         %assign %%ok 1
     %endif
     %if %%ok
-        jmp     %$endif
+        %ifctx if
+            jmp %$endif
+        %else
+            jmp %$$endif
+        %endif
         %$else:
         %assign %$else_defined 1
         %push   elseif
@@ -410,7 +414,11 @@
         %assign %%ok 1
     %endif
     %if %%ok
-        jmp     %$endif
+        %ifctx if
+            jmp %$endif
+        %else
+            jmp %$$endif
+        %endif
         %$else:
         %assign %$else_defined 1
         %push   else
