@@ -142,6 +142,7 @@ arena_alloc:
     // check if enough space remains
     mov     rdx, rax
     add     rdx, rcx               // rdx = new ptr after alloc
+    jc      .out_of_memory         // carry = integer overflow
     cmp     rdx, r8
     ja      .out_of_memory         // new ptr > end = no space
 
