@@ -377,7 +377,7 @@ parser_evaluate_term:
         jz      .div_zero
         mov     r13, rdx           // R13 = divisor
         mov     rax, rbx           // RAX = dividend
-        cdq                        // Sign-extend EAX into EDX
+        cqo                        // Sign-extend RAX into RDX (A64)
         idiv    r13
         mov     rbx, rax
         jmp     .loop
@@ -438,6 +438,20 @@ parser_evaluate_factor:
     mov     r12, rdx
     mov     al, [r12 + TOKEN_kind]
     
+    IF al, e, TOK_MINUS
+        call    parser_evaluate_factor
+        check_err
+        neg     rdx
+        xor     rax, rax
+        epilogue
+    ELSEIF al, e, TOK_TILDE
+        call    parser_evaluate_factor
+        check_err
+        not     rdx
+        xor     rax, rax
+        epilogue
+    ENDIF
+
     IF al, e, TOK_NUMBER
         mov     rsi, [r12 + TOKEN_value]
         call    str_to_int

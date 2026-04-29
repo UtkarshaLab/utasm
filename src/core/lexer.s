@@ -712,6 +712,16 @@ lexer_next:
     je      .esc_tab
     cmp     rcx, 'r'
     je      .esc_cr
+    cmp     rcx, 'a'
+    je      .esc_alert
+    cmp     rcx, 'b'
+    je      .esc_backspace
+    cmp     rcx, 'f'
+    je      .esc_formfeed
+    cmp     rcx, 'v'
+    je      .esc_vtab
+    cmp     rcx, 'e'
+    je      .esc_escape
     cmp     rcx, '\'
     je      .esc_backslash
     cmp     rcx, '"'
@@ -794,6 +804,31 @@ lexer_next:
 
 .esc_cr:
     mov     byte [r13 + r10], 13
+    inc     r10
+    jmp     .lex_string_loop
+
+.esc_alert:
+    mov     byte [r13 + r10], 7
+    inc     r10
+    jmp     .lex_string_loop
+
+.esc_backspace:
+    mov     byte [r13 + r10], 8
+    inc     r10
+    jmp     .lex_string_loop
+
+.esc_formfeed:
+    mov     byte [r13 + r10], 12
+    inc     r10
+    jmp     .lex_string_loop
+
+.esc_vtab:
+    mov     byte [r13 + r10], 11
+    inc     r10
+    jmp     .lex_string_loop
+
+.esc_escape:
+    mov     byte [r13 + r10], 27
     inc     r10
     jmp     .lex_string_loop
 
