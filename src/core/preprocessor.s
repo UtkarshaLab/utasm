@@ -621,11 +621,6 @@ prep_expand_next:
         ENDIF
     ENDIF
 
-                jmp     .produced
-            ENDIF
-        ENDIF
-    ENDIF
-
     // CASE 4: Macro Local Label %% (A70)
     IF byte [r12 + TOKEN_kind], e, TOK_MACRO_LOCAL
         // Expand to ..@ID_label
@@ -1664,11 +1659,13 @@ macro_handle_def:
     mov     [r15 + MACRO_min_params], r14b
     mov     [r15 + MACRO_max_params], r15b
 
-    // 4. Capture tokens until %endmacro
+
+    // 4. Capture tokens until %endmacro (A100.1: Nesting-Aware Capture)
     mov     rdi, [rbx + PREP_arena]
     mov     rax, [rdi + ARENA_ptr]
     mov     [r15 + MACRO_tokens], rax
-    xor     r14, r14               // token count
+    xor     r14, r14               // r14 = token count
+    mov     r13, 1                 // r13 = nesting depth
 
 .capture_loop:
     mov     rdi, [rbx + PREP_arena]
@@ -1676,51 +1673,76 @@ macro_handle_def:
     call    arena_alloc
     test    rax, rax
     jnz     .error
-    mov     r13, rdx               // r13 = next token slot
+    mov     r12, rdx               // r12 = current token slot
 
     mov     rdi, [rbx + PREP_lexer]
-    mov     rsi, r13
+    mov     rsi, r12
     call    lexer_next
     test    rax, rax
     jnz     .error
 
-    // Check for % directive
-    cmp     byte [r13 + TOKEN_kind], TOK_PERCENT
-    jne     .not_endmacro
+    cmp     byte [r12 + TOKEN_kind], TOK_EOF
+    je      .error_eof
 
-    // Peek next to see if it's endmacro
-    // Actually, we can just lex it and check.
-    // If it's not endmacro, we just store it as part of the macro.
-    // But wait, %directives are special.
-    
+    // Check for % directive
+    cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
+    jne     .store_token
+
+    // It's a %. Peek next to check for nesting.
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error
+    mov     r8, rdx                // r8 = next token slot
+
     mov     rdi, [rbx + PREP_lexer]
-    sub     rsp, TOKEN_SIZE
-    mov     rsi, rsp
-    call    lexer_next             // get the identifier after %
-    
-    mov     rdi, [rsp + TOKEN_value]
-    lea     rsi, [dir_endm]        // "endmacro"
+    mov     rsi, r8
+    call    lexer_next
+    test    rax, rax
+    jnz     .error
+
+    cmp     byte [r8 + TOKEN_kind], TOK_IDENT
+    jne     .store_percent_and_next
+
+    // Check for "macro" or "endmacro"
+    mov     rdi, [r8 + TOKEN_value]
+    lea     rsi, [dir_macro]
     call    str_cmp
     test    rax, rax
-    jz      .found_endmacro
+    jz      .nest_in
 
-    // Not endmacro. We need to "unlex" or just handle this.
-    // Simpler: macros cannot contain other %directives for now?
-    // NASM allows it. But for bootstrap, let's keep it simple.
-    // If we want to support it, we'd need to store both tokens.
-    
-    add     rsp, TOKEN_SIZE
+    mov     rdi, [r8 + TOKEN_value]
+    lea     rsi, [dir_endm]
+    call    str_cmp
+    test    rax, rax
+    jz      .nest_out
+
+.store_percent_and_next:
+    inc     r14                    // counted %
+    inc     r14                    // counted next token
+    jmp     .capture_loop
+
+.nest_in:
+    inc     r13                    // found nested %macro
+    inc     r14
     inc     r14
     jmp     .capture_loop
 
-.not_endmacro:
-    cmp     byte [r13 + TOKEN_kind], TOK_EOF
-    je      .error_eof
+.nest_out:
+    dec     r13
+    test    r13, r13
+    jz      .found_endmacro        // Outermost %endmacro found!
+    
+    inc     r14
+    inc     r14
+    jmp     .capture_loop
+
+.store_token:
     inc     r14
     jmp     .capture_loop
 
 .found_endmacro:
-    add     rsp, TOKEN_SIZE        // clean up temp token
     mov     [r15 + MACRO_ntokens], r14d
 
     // 5. Register in symbol table
@@ -1788,57 +1810,107 @@ prep_handle_rep:
     mov     byte [r15 + MACRO_min_params], 0
     mov     byte [r15 + MACRO_max_params], 0
 
-    // 3. Capture tokens until %endrep
+    // 3. Capture tokens until %endrep (A100.1: Nesting-Aware Capture)
     mov     rdi, [rbx + PREP_arena]
     mov     rax, [rdi + ARENA_ptr]
     mov     [r15 + MACRO_tokens], rax
-    xor     r13, r13               // token count
+    push    0                      // [rsp] = token count (preserve r14)
+    mov     r13, 1                 // r13 = nesting depth
 
 .capture:
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, TOKEN_SIZE
     call    arena_alloc
-    check_err
-    mov     r12, rdx
+    test    rax, rax
+    jnz     .error_pop
+    mov     r12, rdx               // r12 = current token slot
     
     mov     rdi, [rbx + PREP_lexer]
     mov     rsi, r12
     call    lexer_next
-    check_err
+    test    rax, rax
+    jnz     .error_pop
 
-    // Check for %endrep
-    IF byte [r12 + TOKEN_kind], e, TOK_PERCENT
-        sub     rsp, TOKEN_SIZE
-        mov     rdi, [rbx + PREP_lexer]
-        mov     rsi, rsp
-        call    lexer_next
-        check_err
-        
-        mov     rdi, [rsp + TOKEN_value]
-        lea     rsi, [dir_endrep]
-        call    str_cmp
-        IF rax, e, 0
-            add rsp, TOKEN_SIZE
-            jmp .captured
-        ENDIF
-        add rsp, TOKEN_SIZE
-        // If not %endrep, we keep the percent token and continue
-    ENDIF
+    cmp     byte [r12 + TOKEN_kind], TOK_EOF
+    je      .error_eof_pop
 
-    inc     r13
+    // Check for % directive
+    cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
+    jne     .store_token
+
+    // It's a %. Peek next to check for nesting.
+    mov     rdi, [rbx + PREP_arena]
+    mov     rsi, TOKEN_SIZE
+    call    arena_alloc
+    test    rax, rax
+    jnz     .error_pop
+    mov     r8, rdx                // r8 = next token slot
+
+    mov     rdi, [rbx + PREP_lexer]
+    mov     rsi, r8
+    call    lexer_next
+    test    rax, rax
+    jnz     .error_pop
+
+    // Check for "rep" or "endrep"
+    cmp     byte [r8 + TOKEN_kind], TOK_IDENT
+    jne     .store_percent_and_next
+
+    mov     rdi, [r8 + TOKEN_value]
+    lea     rsi, [dir_rep]
+    call    str_cmp
+    test    rax, rax
+    jz      .nest_in
+
+    mov     rdi, [r8 + TOKEN_value]
+    lea     rsi, [dir_endrep]
+    call    str_cmp
+    test    rax, rax
+    jz      .nest_out
+
+.store_percent_and_next:
+    add     qword [rsp], 2         // counted % and next token
+    jmp     .capture
+
+.nest_in:
+    inc     r13                    // found nested %rep
+    add     qword [rsp], 2
+    jmp     .capture
+
+.nest_out:
+    dec     r13
+    test    r13, r13
+    jz      .captured              // Outermost %endrep found!
+    
+    add     qword [rsp], 2
+    jmp     .capture
+
+.store_token:
+    inc     qword [rsp]
     jmp     .capture
 
 .captured:
-    mov     [r15 + MACRO_ntokens], r13d
+    pop     rax                    // rax = total token count
+    mov     [r15 + MACRO_ntokens], eax
     
     // 4. Start expansion
     mov     rdi, rbx
     mov     rsi, r15
     call    prep_expand_start
     check_err
-    mov     [rdx + MACROEXP_rep_count], r14 // set the actual count
+    mov     [rdx + MACROEXP_rep_count], r14 // set the actual count (preserved!)
     
     xor     rax, rax
+    jmp     .done
+
+.error_pop:
+    add     rsp, 8
+    jmp     .error
+
+.error_eof_pop:
+    add     rsp, 8
+    jmp     .error_eof
+
 .done:
     pop     r15
     pop     r14
