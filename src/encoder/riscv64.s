@@ -440,6 +440,13 @@ riscv64_encode_b_type:
     or      eax, edi
     
     mov     edi, [r9 + OPERAND_imm]
+    // Validation: Check if immediate fits in 13-bit signed (bits 12:1)
+    mov     rax, rdi
+    sar     rax, 12                // Keep sign bit if within range
+    IF rax, ne, 0 | IF rax, ne, -1
+        mov rax, EXIT_INVALID_IMM | jmp riscv64_encode_instruction.done
+    ENDIF
+    
     // Scramble bits
     mov     ecx, edi
     and     ecx, 0x800             // imm[11]
@@ -521,6 +528,13 @@ riscv64_encode_j_type:
     or      eax, edi
     
     mov     edi, [r11 + OPERAND_imm]
+    // Validation: Check if immediate fits in 21-bit signed (bits 20:1)
+    mov     rax, rdi
+    sar     rax, 20
+    IF rax, ne, 0 | IF rax, ne, -1
+        mov rax, EXIT_INVALID_IMM | jmp riscv64_encode_instruction.done
+    ENDIF
+    
     // Scramble bits
     mov     ecx, edi
     and     ecx, 0xFF000           // imm[19:12]
