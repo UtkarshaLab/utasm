@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/core/archive.s
- Project     : utasm
- Description : Unix Archive (.a) Parser Implementation.
- ============================================================================
+; ============================================================================
+; File        : src/core/archive.s
+; Project     : utasm
+; Description : Unix Archive (.a) Parser Implementation.
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -22,7 +22,7 @@
 ; *   RDX: [in]  Total size of buffer
 ; * Output:
 ; *   RAX: EXIT_OK or error code
- ;
+; ;
 global archive_init
 archive_init:
     prologue
@@ -77,7 +77,7 @@ archive_init:
 
 ;*
 ; * [archive_scan_special]
- ;
+; ;
 archive_scan_special:
     prologue
     push    r12
@@ -129,7 +129,7 @@ archive_scan_special:
 ; * [archive_get_member_size]
 ; * Input: RSI = pointer to ARHDR
 ; * Output: RAX = size of member data
- ;
+; ;
 archive_get_member_size:
     prologue
     push    r12
@@ -166,7 +166,7 @@ archive_get_member_size:
 ; *   RSI: [in] Pointer to symbol name string (null-terminated)
 ; * Output:
 ; *   RAX: File offset to the member containing the symbol, or 0 if not found.
- ;
+; ;
 global archive_resolve_symbol
 archive_resolve_symbol:
     prologue
@@ -245,7 +245,7 @@ archive_resolve_symbol:
 ; * Output:
 ; *   RAX: Pointer to member data
 ; *   RDX: Size of member data
- ;
+; ;
 global archive_get_member_data
 archive_get_member_data:
     prologue

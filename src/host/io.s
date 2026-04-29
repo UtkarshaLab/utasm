@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/host/io.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/host/io.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -30,14 +30,14 @@ extern error_new_from_errno
 
 ; ---- io_write ---------------------------------
 ;
- io_write
- Writes a buffer to a file descriptor.
- Input    : rdi = file descriptor (i32)
+; io_write
+; Writes a buffer to a file descriptor.
+; Input    : rdi = file descriptor (i32)
             rsi = buffer pointer (*const u8)
             rdx = buffer size (usize)
- Output   : rax = EXIT_OK or EXIT_FILE_WRITE
+; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
             rdx = number of bytes written (on success)
- Clobbers : rcx, r11
+; Clobbers : rcx, r11
 ;
 global io_write
 io_write:
@@ -62,14 +62,14 @@ io_write:
 
 ; ---- io_read ----------------------------------
 ;
- io_read
- Reads from a file descriptor into a buffer.
- Input    : rdi = file descriptor (i32)
+; io_read
+; Reads from a file descriptor into a buffer.
+; Input    : rdi = file descriptor (i32)
             rsi = buffer pointer (*mut u8)
             rdx = buffer size (usize)
- Output   : rax = EXIT_OK or EXIT_FILE_READ
+; Output   : rax = EXIT_OK or EXIT_FILE_READ
             rdx = number of bytes read (0 on EOF)
- Clobbers : rcx, r11
+; Clobbers : rcx, r11
 ;
 global io_read
 io_read:
@@ -99,14 +99,14 @@ io_read:
 
 ; ---- io_open ----------------------------------
 ;
- io_open
- Opens or creates a file.
- Input    : rdi = pointer to filename string
+; io_open
+; Opens or creates a file.
+; Input    : rdi = pointer to filename string
             rsi = open flags (AMD64_O_* values)
             rdx = file mode (permissions) when creating
- Output   : rax = EXIT_OK or EXIT_FILE_NOT_FOUND or EXIT_FILE_PERM
+; Output   : rax = EXIT_OK or EXIT_FILE_NOT_FOUND or EXIT_FILE_PERM
             rdx = file descriptor (on success)
- Clobbers : rcx, r11
+; Clobbers : rcx, r11
 ;
 global io_open
 io_open:
@@ -145,11 +145,11 @@ io_open:
 
 ; ---- io_close ---------------------------------
 ;
- io_close
- Closes a file descriptor.
- Input    : rdi = file descriptor (i32)
- Output   : rax = EXIT_OK or EXIT_ERROR
- Clobbers : rcx, r11
+; io_close
+; Closes a file descriptor.
+; Input    : rdi = file descriptor (i32)
+; Output   : rax = EXIT_OK or EXIT_ERROR
+; Clobbers : rcx, r11
 ;
 global io_close
 io_close:
@@ -171,14 +171,14 @@ io_close:
 
 ; ---- io_lseek ---------------------------------
 ;
- io_lseek
- Repositions the file offset.
- Input    : rdi = file descriptor (i32)
+; io_lseek
+; Repositions the file offset.
+; Input    : rdi = file descriptor (i32)
             rsi = offset (i64)
             rdx = whence (0=SEEK_SET, 1=SEEK_CUR, 2=SEEK_END)
- Output   : rax = EXIT_OK or EXIT_ERROR
+; Output   : rax = EXIT_OK or EXIT_ERROR
             rdx = new file offset (on success)
- Clobbers : rcx, r11
+; Clobbers : rcx, r11
 ;
 global io_lseek
 io_lseek:
@@ -202,17 +202,17 @@ io_lseek:
 
 ; ---- io_mmap ----------------------------------
 ;
- io_mmap
- Maps files or devices into memory.
- Input    : rdi = desired address (or NULL)
+; io_mmap
+; Maps files or devices into memory.
+; Input    : rdi = desired address (or NULL)
             rsi = length (usize)
             rdx = protection (PROT_* flags)
             rcx = flags (MAP_* flags)
             r8  = file descriptor (i32)
             r9  = offset (usize)
- Output   : rax = EXIT_OK or EXIT_OOM
+; Output   : rax = EXIT_OK or EXIT_OOM
             rdx = pointer to mapped memory (on success)
- Clobbers : rcx, r10, r11
+; Clobbers : rcx, r10, r11
 ;
 global io_mmap
 io_mmap:
@@ -237,12 +237,12 @@ io_mmap:
 
 ; ---- io_munmap --------------------------------
 ;
- io_munmap
- Unmaps a memory region.
- Input    : rdi = pointer to mapped memory
+; io_munmap
+; Unmaps a memory region.
+; Input    : rdi = pointer to mapped memory
             rsi = length (usize)
- Output   : rax = EXIT_OK or EXIT_ERROR
- Clobbers : rcx, r11
+; Output   : rax = EXIT_OK or EXIT_ERROR
+; Clobbers : rcx, r11
 ;
 global io_munmap
 io_munmap:
@@ -264,12 +264,12 @@ io_munmap:
 
 ; ---- io_ftruncate -----------------------------
 ;
- io_ftruncate
- Changes the size of a file.
- Input    : rdi = file descriptor (i32)
+; io_ftruncate
+; Changes the size of a file.
+; Input    : rdi = file descriptor (i32)
             rsi = new length (usize)
- Output   : rax = EXIT_OK or EXIT_ERROR
- Clobbers : rcx, r11
+; Output   : rax = EXIT_OK or EXIT_ERROR
+; Clobbers : rcx, r11
 ;
 global io_ftruncate
 io_ftruncate:
@@ -291,11 +291,11 @@ io_ftruncate:
 
 ; ---- io_exists --------------------------------
 ;
- io_exists
- Checks if a file exists and is accessible.
- Input    : rdi = pointer to filename string
- Output   : rax = EXIT_OK (exists) or EXIT_FILE_NOT_FOUND
- Clobbers : rcx, r11
+; io_exists
+; Checks if a file exists and is accessible.
+; Input    : rdi = pointer to filename string
+; Output   : rax = EXIT_OK (exists) or EXIT_FILE_NOT_FOUND
+; Clobbers : rcx, r11
 ;
 global io_exists
 io_exists:
@@ -324,12 +324,12 @@ io_exists:
 
 ; ---- io_file_size -----------------------------
 ;
- io_file_size
- Gets the size of an open file.
- Input    : rdi = file descriptor (i32)
- Output   : rax = EXIT_OK or EXIT_ERROR
+; io_file_size
+; Gets the size of an open file.
+; Input    : rdi = file descriptor (i32)
+; Output   : rax = EXIT_OK or EXIT_ERROR
             rdx = file size in bytes (on success)
- Clobbers : rcx, r10, r11
+; Clobbers : rcx, r10, r11
 ;
 global io_file_size
 io_file_size:
@@ -367,14 +367,14 @@ io_file_size:
 
 ; ---- io_read_full -----------------------------
 ;
- io_read_full
- Reads exactly n bytes from a file (retries on short reads).
- Input    : rdi = file descriptor (i32)
+; io_read_full
+; Reads exactly n bytes from a file (retries on short reads).
+; Input    : rdi = file descriptor (i32)
             rsi = buffer pointer (*mut u8)
             rdx = bytes to read (usize)
- Output   : rax = EXIT_OK or EXIT_FILE_READ
+; Output   : rax = EXIT_OK or EXIT_FILE_READ
             rdx = actual bytes read (should equal input rdx on success)
- Clobbers : rcx, r10, r11
+; Clobbers : rcx, r10, r11
 ;
 global io_read_full
 io_read_full:
@@ -430,13 +430,13 @@ io_read_full:
 
 ; ---- io_write_full ----------------------------
 ;
- io_write_full
- Writes exactly n bytes to a file (retries on short writes).
- Input    : rdi = file descriptor (i32)
+; io_write_full
+; Writes exactly n bytes to a file (retries on short writes).
+; Input    : rdi = file descriptor (i32)
             rsi = buffer pointer (*const u8)
             rdx = bytes to write (usize)
- Output   : rax = EXIT_OK or EXIT_FILE_WRITE
- Clobbers : rcx, r10, r11
+; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
+; Clobbers : rcx, r10, r11
 ;
 global io_write_full
 io_write_full:

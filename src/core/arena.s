@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/core/arena.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/core/arena.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -41,14 +41,14 @@
 
 ; ---- arena_init -------------------------
 ;
- arena_init
- Allocates a fresh arena of the requested size using mmap.
- Initializes the Arena struct at the beginning of the mapping.
- Input    : rdi = pointer to Arena struct
+; arena_init
+; Allocates a fresh arena of the requested size using mmap.
+; Initializes the Arena struct at the beginning of the mapping.
+; Input    : rdi = pointer to Arena struct
             rsi = size in bytes to reserve
- Output   : rax = EXIT_OK or EXIT_OOM
+; Output   : rax = EXIT_OK or EXIT_OOM
              rdx = pointer to Arena struct (same as rdi)
- Clobbers : rcx, r8, r9, r10, r11
+; Clobbers : rcx, r8, r9, r10, r11
 ;
 global arena_init
 arena_init:
@@ -114,14 +114,14 @@ arena_init:
 
 ; ---- arena_alloc -------------------------
 ;
- arena_alloc
- Allocates n bytes from the arena, aligned to 8 bytes.
- Never returns unaligned memory.
- Input    : rdi = pointer to Arena struct
+; arena_alloc
+; Allocates n bytes from the arena, aligned to 8 bytes.
+; Never returns unaligned memory.
+; Input    : rdi = pointer to Arena struct
             rsi = number of bytes to allocate
- Output   : rax = EXIT_OK or EXIT_OOM
+; Output   : rax = EXIT_OK or EXIT_OOM
              rdx = pointer to allocated memory (zeroed)
- Clobbers : rcx, r8
+; Clobbers : rcx, r8
 ;
 global arena_alloc
 arena_alloc:
@@ -181,15 +181,15 @@ arena_alloc:
 
 ; ---- arena_alloc_struct ------------------
 ;
- arena_alloc_struct
- Allocates exactly n bytes and writes a type tag at offset 0.
- Convenience wrapper around arena_alloc for typed structs.
- Input    : rdi = pointer to Arena struct
+; arena_alloc_struct
+; Allocates exactly n bytes and writes a type tag at offset 0.
+; Convenience wrapper around arena_alloc for typed structs.
+; Input    : rdi = pointer to Arena struct
             rsi = number of bytes to allocate
             rdx = TAG_* value to write at offset 0
- Output   : rax = EXIT_OK or EXIT_OOM
+; Output   : rax = EXIT_OK or EXIT_OOM
              rdx = pointer to allocated struct
- Clobbers : rcx, r8, r9
+; Clobbers : rcx, r8, r9
 ;
 global arena_alloc_struct
 arena_alloc_struct:
@@ -214,15 +214,15 @@ arena_alloc_struct:
 
 ; ---- arena_alloc_string ------------------
 ;
- arena_alloc_string
- Copies a string of known length into the arena.
- Appends a null terminator.
- Input    : rdi = pointer to Arena struct
+; arena_alloc_string
+; Copies a string of known length into the arena.
+; Appends a null terminator.
+; Input    : rdi = pointer to Arena struct
             rsi = pointer to source string
             rdx = string length in bytes (not including null)
- Output   : rax = EXIT_OK or EXIT_OOM
+; Output   : rax = EXIT_OK or EXIT_OOM
              rdx = pointer to null-terminated copy in arena
- Clobbers : rcx, r8, r9, r10
+; Clobbers : rcx, r8, r9, r10
 ;
 global arena_alloc_string
 arena_alloc_string:
@@ -265,13 +265,13 @@ arena_alloc_string:
 
 ; ---- arena_reset -------------------------
 ;
- arena_reset
- Resets the arena to its initial state without unmapping memory.
- All previously allocated memory becomes invalid immediately.
- Use at the start of a new compilation pass to reuse the arena.
- Input    : rdi = pointer to Arena struct
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : rcx
+; arena_reset
+; Resets the arena to its initial state without unmapping memory.
+; All previously allocated memory becomes invalid immediately.
+; Use at the start of a new compilation pass to reuse the arena.
+; Input    : rdi = pointer to Arena struct
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : rcx
 ;
 global arena_reset
 arena_reset:
@@ -292,12 +292,12 @@ arena_reset:
 
 ; ---- arena_destroy -----------------------
 ;
- arena_destroy
- Unmaps the arena memory and zeroes the Arena struct.
- Call once at utasm shutdown.
- Input    : rdi = pointer to Arena struct
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : rcx, rdx, r8
+; arena_destroy
+; Unmaps the arena memory and zeroes the Arena struct.
+; Call once at utasm shutdown.
+; Input    : rdi = pointer to Arena struct
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : rcx, rdx, r8
 ;
 global arena_destroy
 arena_destroy:
@@ -333,12 +333,12 @@ arena_destroy:
 
 ; ---- arena_used --------------------------
 ;
- arena_used
- Returns the number of bytes currently allocated in the arena.
- Input    : rdi = pointer to Arena struct
- Output   : rax = EXIT_OK or EXIT_INTERNAL
+; arena_used
+; Returns the number of bytes currently allocated in the arena.
+; Input    : rdi = pointer to Arena struct
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
              rdx = bytes used (0 if error)
- Clobbers : rcx
+; Clobbers : rcx
 ;
 global arena_used
 arena_used:
@@ -358,12 +358,12 @@ arena_used:
 
 ; ---- arena_remaining ---------------------
 ;
- arena_remaining
- Returns the number of bytes still available in the arena.
- Input    : rdi = pointer to Arena struct
- Output   : rax = EXIT_OK or EXIT_INTERNAL
+; arena_remaining
+; Returns the number of bytes still available in the arena.
+; Input    : rdi = pointer to Arena struct
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
              rdx = bytes remaining (0 if error)
- Clobbers : rcx
+; Clobbers : rcx
 ;
 global arena_remaining
 arena_remaining:
@@ -383,11 +383,11 @@ arena_remaining:
 
 ; ---- arena_checkpoint --------------------
 ;
- arena_checkpoint
- Returns the current allocation pointer.
- Use with arena_rollback to free temporary allocations.
- Input    : rdi = pointer to Arena struct
- Output   : rax = EXIT_OK or EXIT_INTERNAL
+; arena_checkpoint
+; Returns the current allocation pointer.
+; Use with arena_rollback to free temporary allocations.
+; Input    : rdi = pointer to Arena struct
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
              rdx = current pointer (checkpoint)
 ;
 global arena_checkpoint
@@ -403,12 +403,12 @@ arena_checkpoint:
 
 ; ---- arena_rollback ----------------------
 ;
- arena_rollback
- Restores the allocation pointer to a previous checkpoint.
- All memory allocated after the checkpoint becomes invalid.
- Input    : rdi = pointer to Arena struct
+; arena_rollback
+; Restores the allocation pointer to a previous checkpoint.
+; All memory allocated after the checkpoint becomes invalid.
+; Input    : rdi = pointer to Arena struct
              rsi = pointer to restore to (from arena_checkpoint)
- Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ;
 global arena_rollback
 arena_rollback:
@@ -436,12 +436,12 @@ arena_rollback:
 
 ; ---- arena_zero (internal) ---------------
 ;
- arena_zero
- Zeroes a region of memory. Internal helper only.
- Input    : rdi = pointer to region
+; arena_zero
+; Zeroes a region of memory. Internal helper only.
+; Input    : rdi = pointer to region
             rsi = size in bytes
- Output   : none
- Clobbers : rax, rcx, rdi
+; Output   : none
+; Clobbers : rax, rcx, rdi
 ;
 arena_zero:
     xor     rax, rax               ; zero value

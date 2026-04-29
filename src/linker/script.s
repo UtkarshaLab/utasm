@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/linker/script.s
- Project     : utasm
- Description : Linker Script Parser. 
- ============================================================================
+; ============================================================================
+; File        : src/linker/script.s
+; Project     : utasm
+; Description : Linker Script Parser. 
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -18,7 +18,7 @@ extern lexer_next_token
 ;*
 ; * [linker_script_parse]
 ; * Purpose: Parses a .ld script to configure the linker's memory map.
- ;
+; ;
 global linker_script_parse
 linker_script_parse:
     prologue

@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : include/constant.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : include/constant.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 ; ============================================================================
@@ -116,163 +116,163 @@
 %define BUF_TOKEN              4096        ; token accumulation workspace
 %define BUF_ERROR              1024        ; formatted error message buffer
 %define BUF_LINE               1024        ; single line processing buffer
- 
- ; ============================================================================
- ; TYPE TAGS
- ; ============================================================================
- ; Every struct in utasm has a 1-byte type tag at offset 0.
- 
- %define TAG_TOKEN              0x01
- %define TAG_SYMBOL             0x02
- %define TAG_SECTION            0x03
- %define TAG_RELOC              0x04
- %define TAG_MACRO              0x05
- %define TAG_MACRO_EXP          0x06
- %define TAG_INCLUDE_CTX        0x07
- %define TAG_ASM_CTX            0x08
- %define TAG_ARENA              0x09
- %define TAG_LEXER              0x0A
- %define TAG_PREPROCESSOR       0x0B
- %define TAG_OPERAND            0x0C
- %define TAG_INSTRUCTION        0x0D
- 
- ; ============================================================================
- ; TOKEN TYPES
- ; ============================================================================
- 
- %define TOK_UNKNOWN            0x00
- %define TOK_EOF                0x01
- %define TOK_NEWLINE            0x02
- %define TOK_IDENT              0x03
- %define TOK_NUMBER             0x04
- %define TOK_STRING             0x05
- %define TOK_CHAR               0x06
- %define TOK_LABEL              0x07
- %define TOK_LOCAL_LABEL        0x08
- %define TOK_REGISTER           0x09
- %define TOK_COMMA              0x0A
- %define TOK_COLON              0x0B
- %define TOK_LBRACKET           0x0C
- %define TOK_RBRACKET           0x0D
- %define TOK_LBRACE             0x0E
- %define TOK_RBRACE             0x0F
- %define TOK_LPAREN             0x10
- %define TOK_RPAREN             0x11
- %define TOK_PLUS               0x12
- %define TOK_MINUS              0x13
- %define TOK_STAR               0x14
- %define TOK_SLASH              0x15
- %define TOK_PERCENT            0x16
- %define TOK_AMPERSAND          0x17
- %define TOK_PIPE               0x18
- %define TOK_CARET              0x19
- %define TOK_TILDE              0x1A
- %define TOK_LSHIFT             0x1B
- %define TOK_RSHIFT             0x1C
- %define TOK_HASH               0x1D
- %define TOK_CONCAT             0x1E
- %define TOK_AT                 0x1F
- %define TOK_DIRECTIVE          0x20
- %define TOK_COMMENT            0x21
- %define TOK_FLOAT              0x22
- %define TOK_MACRO_LOCAL        0x23
- %define TOK_DOLLAR             0x24
- 
- %define OP_FLAG_REL            0x01
- 
- ; ============================================================================
- ; SYMBOL KINDS AND VISIBILITY
- ; ============================================================================
- 
- %define SYM_UNKNOWN            0x00
- %define SYM_LABEL              0x01
- %define SYM_DATA               0x02
- %define SYM_CONSTANT           0x03
- %define SYM_MACRO              0x04
- %define SYM_EXTERN             0x05
- %define SYM_SECTION            0x06
- %define SYM_STRUCT             0x07  ; a struc definition (name -> total_size)
- %define SYM_STRUCT_FIELD       0x08  ; a struct field   (name -> offset, size = field byte width)
- 
- %define VIS_LOCAL              0x00
- %define VIS_GLOBAL             0x01
- %define VIS_WEAK               0x02
- 
- ; ============================================================================
- ; SECTION TYPES
- ; ============================================================================
- 
- %define SEC_TEXT               0x01
- %define SEC_DATA               0x02
- %define SEC_BSS                0x03
- %define SEC_RODATA             0x04
- %define SEC_CUSTOM             0x05
- 
- ; ============================================================================
- ; OPERAND KINDS
- ; ============================================================================
- 
- %define OP_NONE                0x00
- %define OP_REG                 0x01
- %define OP_IMM                 0x02
- %define OP_MEM                 0x03
- %define OP_SYMBOL              0x04
- 
- ; ============================================================================
- ; CONTEXT FLAGS
- ; ============================================================================
- 
- %define CTX_FLAG_DEBUG         0x01
- %define CTX_FLAG_VERBOSE       0x02
- %define CTX_FLAG_WERROR        0x04
- %define CTX_FLAG_COLOR         0x08
- %define CTX_FLAG_LISTING       0x10
- %define CTX_FLAG_MAPFILE       0x20
- %define CTX_FLAG_STRIP         0x40
- 
- ; ============================================================================
- ; CPU FEATURE BITS (AMD64)
- ; ============================================================================
- 
- %define FEAT_AVX               (1 << 0)
- %define FEAT_AVX2              (1 << 1)
- %define FEAT_AVX512F           (1 << 2)
- %define FEAT_AVX512DQ          (1 << 3)
- %define FEAT_AVX512BW          (1 << 4)
- %define FEAT_AVX512VL          (1 << 5)
- %define FEAT_AMX_TILE          (1 << 6)
- %define FEAT_AMX_INT8          (1 << 7)
- %define FEAT_AMX_BF16          (1 << 8)
- %define FEAT_SGX               (1 << 9)
- %define FEAT_AES               (1 << 10)
- %define FEAT_SHA               (1 << 11)
- %define FEAT_KL                (1 << 12)
- 
- ; ============================================================================
- ; INSTRUCTION FLAGS
- ; ============================================================================
- 
- %define F_VEX                  (1 << 0)    ; uses VEX encoding
- %define F_EVEX                 (1 << 1)    ; uses EVEX encoding
- %define F_MODRM                (1 << 2)    ; requires ModRM byte
- %define F_REX                  (1 << 3)    ; requires REX prefix in 64-bit
- %define F_MMX                  (1 << 4)    ; uses MMX registers
- %define F_XMM                  (1 << 5)    ; uses XMM/SSE registers
- %define F_FPU                  (1 << 6)    ; uses x87 FPU registers
- %define F_LOCK                 (1 << 7)    ; supports LOCK prefix
- 
- ; ============================================================================
- ; OPERAND SIZES (BITS)
- ; ============================================================================
- 
- %define SZ_8                   8
- %define SZ_16                  16
- %define SZ_32                  32
- %define SZ_64                  64
- %define SZ_128                 128
- %define SZ_256                 256
- %define SZ_512                 512
- 
+; 
+; ; ============================================================================
+; ; TYPE TAGS
+; ; ============================================================================
+; ; Every struct in utasm has a 1-byte type tag at offset 0.
+; 
+%define TAG_TOKEN              0x01
+%define TAG_SYMBOL             0x02
+%define TAG_SECTION            0x03
+%define TAG_RELOC              0x04
+%define TAG_MACRO              0x05
+%define TAG_MACRO_EXP          0x06
+%define TAG_INCLUDE_CTX        0x07
+%define TAG_ASM_CTX            0x08
+%define TAG_ARENA              0x09
+%define TAG_LEXER              0x0A
+%define TAG_PREPROCESSOR       0x0B
+%define TAG_OPERAND            0x0C
+%define TAG_INSTRUCTION        0x0D
+; 
+; ; ============================================================================
+; ; TOKEN TYPES
+; ; ============================================================================
+; 
+%define TOK_UNKNOWN            0x00
+%define TOK_EOF                0x01
+%define TOK_NEWLINE            0x02
+%define TOK_IDENT              0x03
+%define TOK_NUMBER             0x04
+%define TOK_STRING             0x05
+%define TOK_CHAR               0x06
+%define TOK_LABEL              0x07
+%define TOK_LOCAL_LABEL        0x08
+%define TOK_REGISTER           0x09
+%define TOK_COMMA              0x0A
+%define TOK_COLON              0x0B
+%define TOK_LBRACKET           0x0C
+%define TOK_RBRACKET           0x0D
+%define TOK_LBRACE             0x0E
+%define TOK_RBRACE             0x0F
+%define TOK_LPAREN             0x10
+%define TOK_RPAREN             0x11
+%define TOK_PLUS               0x12
+%define TOK_MINUS              0x13
+%define TOK_STAR               0x14
+%define TOK_SLASH              0x15
+%define TOK_PERCENT            0x16
+%define TOK_AMPERSAND          0x17
+%define TOK_PIPE               0x18
+%define TOK_CARET              0x19
+%define TOK_TILDE              0x1A
+%define TOK_LSHIFT             0x1B
+%define TOK_RSHIFT             0x1C
+%define TOK_HASH               0x1D
+%define TOK_CONCAT             0x1E
+%define TOK_AT                 0x1F
+%define TOK_DIRECTIVE          0x20
+%define TOK_COMMENT            0x21
+%define TOK_FLOAT              0x22
+%define TOK_MACRO_LOCAL        0x23
+%define TOK_DOLLAR             0x24
+; 
+%define OP_FLAG_REL            0x01
+; 
+; ; ============================================================================
+; ; SYMBOL KINDS AND VISIBILITY
+; ; ============================================================================
+; 
+%define SYM_UNKNOWN            0x00
+%define SYM_LABEL              0x01
+%define SYM_DATA               0x02
+%define SYM_CONSTANT           0x03
+%define SYM_MACRO              0x04
+%define SYM_EXTERN             0x05
+%define SYM_SECTION            0x06
+%define SYM_STRUCT             0x07  ; a struc definition (name -> total_size)
+%define SYM_STRUCT_FIELD       0x08  ; a struct field   (name -> offset, size = field byte width)
+; 
+%define VIS_LOCAL              0x00
+%define VIS_GLOBAL             0x01
+%define VIS_WEAK               0x02
+; 
+; ; ============================================================================
+; ; SECTION TYPES
+; ; ============================================================================
+; 
+%define SEC_TEXT               0x01
+%define SEC_DATA               0x02
+%define SEC_BSS                0x03
+%define SEC_RODATA             0x04
+%define SEC_CUSTOM             0x05
+; 
+; ; ============================================================================
+; ; OPERAND KINDS
+; ; ============================================================================
+; 
+%define OP_NONE                0x00
+%define OP_REG                 0x01
+%define OP_IMM                 0x02
+%define OP_MEM                 0x03
+%define OP_SYMBOL              0x04
+; 
+; ; ============================================================================
+; ; CONTEXT FLAGS
+; ; ============================================================================
+; 
+%define CTX_FLAG_DEBUG         0x01
+%define CTX_FLAG_VERBOSE       0x02
+%define CTX_FLAG_WERROR        0x04
+%define CTX_FLAG_COLOR         0x08
+%define CTX_FLAG_LISTING       0x10
+%define CTX_FLAG_MAPFILE       0x20
+%define CTX_FLAG_STRIP         0x40
+; 
+; ; ============================================================================
+; ; CPU FEATURE BITS (AMD64)
+; ; ============================================================================
+; 
+%define FEAT_AVX               (1 << 0)
+%define FEAT_AVX2              (1 << 1)
+%define FEAT_AVX512F           (1 << 2)
+%define FEAT_AVX512DQ          (1 << 3)
+%define FEAT_AVX512BW          (1 << 4)
+%define FEAT_AVX512VL          (1 << 5)
+%define FEAT_AMX_TILE          (1 << 6)
+%define FEAT_AMX_INT8          (1 << 7)
+%define FEAT_AMX_BF16          (1 << 8)
+%define FEAT_SGX               (1 << 9)
+%define FEAT_AES               (1 << 10)
+%define FEAT_SHA               (1 << 11)
+%define FEAT_KL                (1 << 12)
+; 
+; ; ============================================================================
+; ; INSTRUCTION FLAGS
+; ; ============================================================================
+; 
+%define F_VEX                  (1 << 0)    ; uses VEX encoding
+%define F_EVEX                 (1 << 1)    ; uses EVEX encoding
+%define F_MODRM                (1 << 2)    ; requires ModRM byte
+%define F_REX                  (1 << 3)    ; requires REX prefix in 64-bit
+%define F_MMX                  (1 << 4)    ; uses MMX registers
+%define F_XMM                  (1 << 5)    ; uses XMM/SSE registers
+%define F_FPU                  (1 << 6)    ; uses x87 FPU registers
+%define F_LOCK                 (1 << 7)    ; supports LOCK prefix
+; 
+; ; ============================================================================
+; ; OPERAND SIZES (BITS)
+; ; ============================================================================
+; 
+%define SZ_8                   8
+%define SZ_16                  16
+%define SZ_32                  32
+%define SZ_64                  64
+%define SZ_128                 128
+%define SZ_256                 256
+%define SZ_512                 512
+; 
 
 ; ============================================================================
 ; TARGET ARCHITECTURE IDENTIFIERS
@@ -529,33 +529,33 @@
 ; ARCHITECTURAL REGISTERS (AMD64)
 ; ============================================================================
 %define REG_RIP                0xFE        ; special identifier for RIP
- 
- ; ============================================================================
- ; AMD64 RELOCATION TYPES (Standard ELF)
- ; ============================================================================
- 
- %define R_X86_64_NONE          0
- %define R_X86_64_64            1
- %define R_X86_64_PC32          2
- %define R_X86_64_GOT32         3
- %define R_X86_64_PLT32         4
- %define R_X86_64_COPY          5
- %define R_X86_64_GLOB_DAT      6
- %define R_X86_64_JUMP_SLOT     7
- %define R_X86_64_RELATIVE      8
- %define R_X86_64_GOTPCREL      9
- %define R_X86_64_32            10
- %define R_X86_64_32S           11
- %define R_X86_64_16            12
- %define R_X86_64_PC16          13
- %define R_X86_64_8             14
- %define R_X86_64_PC8           15
- 
- ; Backward compatibility aliases
- %define RELOC_ABS64            R_X86_64_64
- %define RELOC_REL32            R_X86_64_PC32
- %define RELOC_REL64            1           ; Legacy map
- %define RELOC_GOT              R_X86_64_GOT32
+; 
+; ; ============================================================================
+; ; AMD64 RELOCATION TYPES (Standard ELF)
+; ; ============================================================================
+; 
+%define R_X86_64_NONE          0
+%define R_X86_64_64            1
+%define R_X86_64_PC32          2
+%define R_X86_64_GOT32         3
+%define R_X86_64_PLT32         4
+%define R_X86_64_COPY          5
+%define R_X86_64_GLOB_DAT      6
+%define R_X86_64_JUMP_SLOT     7
+%define R_X86_64_RELATIVE      8
+%define R_X86_64_GOTPCREL      9
+%define R_X86_64_32            10
+%define R_X86_64_32S           11
+%define R_X86_64_16            12
+%define R_X86_64_PC16          13
+%define R_X86_64_8             14
+%define R_X86_64_PC8           15
+; 
+; ; Backward compatibility aliases
+%define RELOC_ABS64            R_X86_64_64
+%define RELOC_REL32            R_X86_64_PC32
+%define RELOC_REL64            1           ; Legacy map
+%define RELOC_GOT              R_X86_64_GOT32
 
 ; ============================================================================
 ; REGISTER IDENTIFIERS

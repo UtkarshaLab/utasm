@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/encoder/amd64.s
- Project     : utasm
- Description : AMD64 Instruction Encoder Logic.
- ============================================================================
+; ============================================================================
+; File        : src/encoder/amd64.s
+; Project     : utasm
+; Description : AMD64 Instruction Encoder Logic.
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -18,7 +18,7 @@
 ; * Input:
 ; *   RDI: Pointer to AsmCtx
 ; *   RSI: Pointer to INST struct
- ;
+; ;
 global amd64_encode_instruction
 amd64_encode_instruction:
     prologue
@@ -859,7 +859,7 @@ amd64_encode_instruction:
 ;*
 ; * [amd64_encode_mov]
 ; * Handles various MOV encodings.
- ;
+; ;
 amd64_encode_mov:
     prologue
     ; check operands
@@ -1080,7 +1080,7 @@ amd64_encode_mov:
 ; * Input:
 ; *   R13: Base Opcode (for reg-reg)
 ; *   R14: Extension Digit (for imm)
- ;
+; ;
 amd64_encode_arithmetic:
     prologue
     cmp     byte [r12 + INST_nops], 2
@@ -1271,7 +1271,7 @@ amd64_encode_arithmetic:
 
 ;*
 ; * [amd64_encode_syscall]
- ;
+; ;
 amd64_encode_syscall:
     mov     al, 0x0F | call amd64_emit_byte
     mov     al, 0x05 | call amd64_emit_byte
@@ -1279,7 +1279,7 @@ amd64_encode_syscall:
 
 ;*
 ; * [amd64_encode_sysret]
- ;
+; ;
 amd64_encode_sysret:
     mov     al, 0x48 | call amd64_emit_byte
     mov     al, 0x0F | call amd64_emit_byte
@@ -1288,7 +1288,7 @@ amd64_encode_sysret:
 
 ;*
 ; * [amd64_encode_push]
- ;
+; ;
 amd64_encode_push:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1355,7 +1355,7 @@ amd64_encode_pop:
 ;*
 ; * [amd64_encode_branch]
 ; * Input: R13 = Opcode for REL32 form
- ;
+; ;
 amd64_encode_branch:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1388,7 +1388,7 @@ amd64_encode_branch:
 
 ;*
 ; * [amd64_encode_ret]
- ;
+; ;
 amd64_encode_ret:
     prologue
     cmp     byte [r12 + INST_nops], 0
@@ -1408,7 +1408,7 @@ amd64_encode_ret:
 
 ;*
 ; * [amd64_encode_jcc]
- ;
+; ;
 amd64_encode_jcc:
     prologue
     mov     ax, [r12 + INST_id]
@@ -1435,7 +1435,7 @@ amd64_encode_jcc:
 ;*
 ; * [amd64_encode_branch_short]
 ; * R13 = Opcode (0xEB for JMP, etc)
- ;
+; ;
 amd64_encode_branch_short:
     prologue
     mov     al, r13b
@@ -1454,7 +1454,7 @@ amd64_encode_branch_short:
 
 ;*
 ; * [amd64_encode_jcc_short]
- ;
+; ;
 amd64_encode_jcc_short:
     prologue
     mov     ax, [r12 + INST_id]
@@ -1476,7 +1476,7 @@ amd64_encode_jcc_short:
 
 ;*
 ; * [amd64_encode_lea]
- ;
+; ;
 amd64_encode_lea:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1498,7 +1498,7 @@ amd64_encode_lea:
 
 ;*
 ; * [amd64_encode_test]
- ;
+; ;
 amd64_encode_test:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1529,7 +1529,7 @@ amd64_encode_test:
 ;*
 ; * [amd64_encode_unary]
 ; * INC/DEC/NEG/NOT
- ;
+; ;
 amd64_encode_unary:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1558,7 +1558,7 @@ amd64_encode_unary:
 ;*
 ; * [amd64_encode_shift]
 ; * SHL/SHR/SAR/ROL/ROR
- ;
+; ;
 amd64_encode_shift:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1595,7 +1595,7 @@ amd64_encode_shift:
 
 ;*
 ; * [amd64_encode_imul]
- ;
+; ;
 amd64_encode_imul:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1639,7 +1639,7 @@ amd64_encode_imul:
 ;*
 ; * [amd64_encode_unary_math]
 ; * MUL/DIV/IDIV/etc.
- ;
+; ;
 amd64_encode_unary_math:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1664,7 +1664,7 @@ amd64_encode_unary_math:
 
 ;*
 ; * [amd64_encode_cmovcc]
- ;
+; ;
 amd64_encode_cmovcc:
     prologue
     mov     ax, [r12 + INST_id]
@@ -1698,7 +1698,7 @@ amd64_encode_cmovcc:
 
 ;*
 ; * [amd64_encode_setcc]
- ;
+; ;
 amd64_encode_setcc:
     prologue
     mov     ax, [r12 + INST_id]
@@ -1727,7 +1727,7 @@ amd64_encode_setcc:
 
 ;*
 ; * [amd64_encode_enter]
- ;
+; ;
 amd64_encode_enter:
     prologue
     mov     al, 0xC8
@@ -1746,7 +1746,7 @@ amd64_encode_enter:
 
 ;*
 ; * [amd64_emit_branch_rel8]
- ;
+; ;
 amd64_emit_branch_rel8:
     call    amd64_emit_byte
     xor     al, al             ; rel8 placeholder
@@ -1759,7 +1759,7 @@ amd64_emit_branch_rel8:
 
 ;*
 ; * [amd64_encode_int]
- ;
+; ;
 amd64_encode_int:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1772,7 +1772,7 @@ amd64_encode_int:
 ;*
 ; * [amd64_encode_system_m]
 ; * LGDT/LIDT
- ;
+; ;
 amd64_encode_system_m:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1789,7 +1789,7 @@ amd64_encode_system_m:
 ;*
 ; * [amd64_encode_system_00]
 ; * R14 = Digit
- ;
+; ;
 amd64_encode_system_00:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1802,7 +1802,7 @@ amd64_encode_system_00:
 
 ;*
 ; * [amd64_encode_in]
- ;
+; ;
 amd64_encode_in:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1829,7 +1829,7 @@ amd64_encode_in:
 
 ;*
 ; * [amd64_encode_out]
- ;
+; ;
 amd64_encode_out:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1859,7 +1859,7 @@ amd64_encode_out:
 ;*
 ; * [amd64_encode_fpu]
 ; * FLD/FST/FADD/etc.
- ;
+; ;
 amd64_encode_fpu:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -1883,13 +1883,13 @@ amd64_encode_fpu:
 ; * [amd64_encode_sse]
 ; * R13 = Opcode
 ; * R14 = Format (0=0F, 1=66 0F, 2=0F 38, 3=0F 3A)
- ;
+; ;
 ;*
 ; * [amd64_encode_sse_crypto]
 ; * R13 = Opcode
 ; * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
 ; * R15 = Mandatory Prefix (0=None, 0x66, 0xF2, 0xF3)
- ;
+; ;
 amd64_encode_sse_crypto:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2070,7 +2070,7 @@ amd64_encode_vex:
 ; * R13 = Opcode
 ; * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
 ; * R15 = W (0 or 1) | LL (0, 1, 2) << 2
- ;
+; ;
 amd64_encode_evex:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2169,7 +2169,7 @@ amd64_encode_evex:
 ;*
 ; * [amd64_encode_string]
 ; * R13 = Base Opcode (e.g. 0xA4 for MOVSB)
- ;
+; ;
 amd64_encode_string:
     prologue
     mov     ax, [r12 + INST_id]
@@ -2223,7 +2223,7 @@ amd64_encode_string:
 ;*
 ; * [amd64_encode_bin0f]
 ; * R13 = Opcode (after 0x0F)
- ;
+; ;
 amd64_encode_bin0f:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2249,7 +2249,7 @@ amd64_encode_bin0f:
 ;*
 ; * [amd64_encode_cmpxchg_nb]
 ; * CMPXCHG8B / CMPXCHG16B
- ;
+; ;
 amd64_encode_cmpxchg_nb:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2272,7 +2272,7 @@ amd64_encode_cmpxchg_nb:
 ;*
 ; * [amd64_encode_sec_r]
 ; * RDRAND/RDSEED
- ;
+; ;
 amd64_encode_sec_r:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2301,7 +2301,7 @@ amd64_encode_sec_r:
 ; * [amd64_encode_vm_m]
 ; * R13 = Prefix (0 if none)
 ; * R14 = Digit
- ;
+; ;
 amd64_encode_vm_m:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2321,7 +2321,7 @@ amd64_encode_vm_m:
 ;*
 ; * [amd64_encode_vm_rm_r]
 ; * R13 = Opcode (0x78 or 0x79)
- ;
+; ;
 amd64_encode_vm_rm_r:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2342,7 +2342,7 @@ amd64_encode_vm_rm_r:
 ; * [amd64_encode_bt]
 ; * R13 = Base Opcode for REG form (e.g. 0xA3)
 ; * R14 = Digit for IMM form (e.g. 4)
- ;
+; ;
 amd64_encode_bt:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2367,7 +2367,7 @@ amd64_encode_bt:
 ;*
 ; * [amd64_encode_mem_sync]
 ; * CLFLUSH/etc.
- ;
+; ;
 amd64_encode_mem_sync:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2385,7 +2385,7 @@ amd64_encode_mem_sync:
 ;*
 ; * [amd64_encode_rm_r]
 ; * R13 = Opcode (multi-byte)
- ;
+; ;
 amd64_encode_rm_r:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2419,7 +2419,7 @@ amd64_encode_rm_r:
 ; *   AL: Relocation Type (RELOC_REL32, etc)
 ; *   RSI: Pointer to Symbol String
 ; *   EDX: PC Adjustment (bytes from reloc site to end of instruction)
- ;
+; ;
 amd64_emit_reloc:
     prologue
     push    rax
@@ -2470,7 +2470,7 @@ amd64_emit_reloc:
 ; *   AL: Operation Size (8, 16, 32, 64)
 ; *   RSI: Pointer to Op0 (Dest)
 ; *   RDX: Pointer to Op1 (Src/Index)
- ;
+; ;
 amd64_emit_prefixes:
     prologue
     push    rax
@@ -2564,7 +2564,7 @@ amd64_emit_prefixes:
 ; * Input:
 ; *   AL  = Reg field value (3 bits)
 ; *   RDI = Pointer to memory OPERAND
- ;
+; ;
 amd64_emit_modrm_sib:
     push    rbx
     push    rcx
@@ -2706,7 +2706,7 @@ amd64_emit_modrm_sib:
 
 ;*
 ; * [amd64_emit_byte]
- ;
+; ;
 amd64_emit_byte:
     extern asm_ctx_emit_byte
     push    rax
@@ -2728,7 +2728,7 @@ amd64_emit_byte:
 ;*
 ; * [amd64_emit_dword]
 ; * Input: RDI = 32-bit value
- ;
+; ;
 amd64_emit_dword:
     push    rax
     push    rcx
@@ -2744,7 +2744,7 @@ amd64_emit_dword:
 
 ;*
 ; * [amd64_encode_jmp]
- ;
+; ;
 amd64_encode_jmp:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2759,7 +2759,7 @@ amd64_encode_jmp:
 
 ;*
 ; * [amd64_encode_call]
- ;
+; ;
 amd64_encode_call:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2774,7 +2774,7 @@ amd64_encode_call:
 
 ;*
 ; * [amd64_encode_jcc]
- ;
+; ;
 amd64_encode_jcc:
     prologue
     ; Simplified Jcc handler (assumes long Jcc for now: 0x0F 0x8X)
@@ -2796,7 +2796,7 @@ amd64_encode_jcc:
 
 ;*
 ; * [amd64_encode_ret]
- ;
+; ;
 amd64_encode_ret:
     prologue
     IF byte [r12 + INST_nops], e, 0
@@ -2814,7 +2814,7 @@ amd64_encode_ret:
 ; * r13 = base opcode (0x50 for PUSH, 0x58 for POP)
 ; * r14 = extended opcode (0xFF /6 for PUSH, 0x8F /0 for POP)
 ; * r15 = reg field for ModRM
- ;
+; ;
 amd64_encode_push_pop:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2849,7 +2849,7 @@ amd64_encode_push_pop:
 ;*
 ; * [amd64_encode_shift]
 ; * r14 = extension (4 for SHL, 5 for SHR, 7 for SAR)
- ;
+; ;
 amd64_encode_shift:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -2892,7 +2892,7 @@ amd64_encode_shift:
 
 ;*
 ; * [amd64_encode_imul]
- ;
+; ;
 amd64_encode_imul:
     prologue
     ; Fallback stub for IMUL
@@ -2907,7 +2907,7 @@ amd64_encode_imul:
 
 ;*
 ; * [amd64_encode_cmovcc]
- ;
+; ;
 amd64_encode_cmovcc:
     prologue
     mov     ax, [r12 + INST_op_id]
@@ -2931,7 +2931,7 @@ amd64_encode_cmovcc:
 
 ;*
 ; * [amd64_encode_setcc]
- ;
+; ;
 amd64_encode_setcc:
     prologue
     mov     ax, [r12 + INST_op_id]
@@ -2949,7 +2949,7 @@ amd64_encode_setcc:
 ;*
 ; * [amd64_encode_mpx]
 ; * Handles BNDMK, BNDCL, BNDCU, BNDCN, BNDMOV, BNDLDX, BNDSTX
- ;
+; ;
 amd64_encode_mpx:
     prologue
     mov     ax, [r12 + INST_op_id]
@@ -2990,7 +2990,7 @@ amd64_encode_mpx:
 ; * [amd64_emit_nop]
 ; * Purpose: Emits an optimal NOP sequence of length RAX.
 ; * Maximum supported in one call: 9 bytes.
- ;
+; ;
 amd64_emit_nop:
     prologue
     IF rax, e, 1
@@ -3041,7 +3041,7 @@ amd64_emit_nop:
 
 ;*
 ; * [amd64_emit_word]
- ;
+; ;
 amd64_emit_word:
     push    rax
     push    rcx
@@ -3057,7 +3057,7 @@ amd64_emit_word:
 
 ;*
 ; * [amd64_emit_dword]
- ;
+; ;
 amd64_emit_dword:
     push    rax
     push    rcx
@@ -3073,7 +3073,7 @@ amd64_emit_dword:
 
 ;*
 ; * [amd64_emit_qword]
- ;
+; ;
 amd64_emit_qword:
     push    rax
     push    rcx
@@ -3093,7 +3093,7 @@ amd64_emit_qword:
 ; * Input:
 ; *   r13 = Opcode
 ; *   r14 = Type (0=None, 1=66, 2=F3, 3=F2)
- ;
+; ;
 amd64_encode_avx:
     prologue
     ; Operands: R12 points to INST
@@ -3152,7 +3152,7 @@ amd64_encode_avx:
     
     epilogue
 ; * Optimized 2-byte VEX (0xC5)
- ;
+; ;
 amd64_emit_vex2:
     push    rax
     mov     al, 0xC5
@@ -3174,7 +3174,7 @@ amd64_emit_vex2:
 ;*
 ; * [amd64_emit_vex3]
 ; * Full 3-byte VEX (0xC4)
- ;
+; ;
 amd64_emit_vex3:
     push    rax
     mov     al, 0xC4
@@ -3206,7 +3206,7 @@ amd64_emit_vex3:
 ; * [amd64_emit_prefixes]
 ; * RDI = Op0 (Dest), RSI = Op1 (Src)
 ; * Purpose: Emits 0x66 and/or REX based on sizes and register indices.
- ;
+; ;
 amd64_emit_prefixes:
     prologue
     push    rbx

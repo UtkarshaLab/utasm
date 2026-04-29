@@ -1,10 +1,10 @@
 ;
- ============================================================================
- File        : include/archive.s
- Project     : utasm
- Description : Unix Archive (.a) format definitions and constants.
+; ============================================================================
+; File        : include/archive.s
+; Project     : utasm
+; Description : Unix Archive (.a) format definitions and constants.
                Used for reading static libraries.
- ============================================================================
+; ============================================================================
 ;
 
 %ifndef ARCHIVE_S

@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : src/encoder/riscv64.s
- Project     : utasm
- Description : RISC-V 64-bit instruction encoder.
+; ============================================================================
+; File        : src/encoder/riscv64.s
+; Project     : utasm
+; Description : RISC-V 64-bit instruction encoder.
                Implementation mirrors the scale and robustness of amd64.s.
                Supports RV64IM base and extensions.
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -19,12 +19,12 @@
 ; riscv64_encode_instruction
 ; ============================================================================
 ;
- riscv64_encode_instruction
- Top-level dispatcher for RISC-V 64 encoding.
+; riscv64_encode_instruction
+; Top-level dispatcher for RISC-V 64 encoding.
 
- Input  : rdi = AsmCtx*
+; Input  : rdi = AsmCtx*
            rsi = INST*
- Output : rax = EXIT_OK or EXIT_ENCODE_FAIL
+; Output : rax = EXIT_OK or EXIT_ENCODE_FAIL
 ;
 global riscv64_encode_instruction
 riscv64_encode_instruction:
@@ -777,7 +777,7 @@ riscv64_encode_pseudo_call:
 ;*
 ; * [riscv64_encode_rvc_mv]
 ; * c.mv rd, rs2 -> 0x8002 | (rd << 7) | (rs2 << 2)
- ;
+; ;
 riscv64_encode_rvc_mv:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -805,7 +805,7 @@ riscv64_encode_rvc_mv:
 ;*
 ; * [riscv64_encode_rvc_addi]
 ; * c.addi rd, imm -> 0x0001 | (imm[5] << 12) | (rd << 7) | (imm[4:0] << 2)
- ;
+; ;
 riscv64_encode_rvc_addi:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -844,7 +844,7 @@ riscv64_encode_rvc_addi:
 ; * [riscv64_encode_amo]
 ; * Encodes Atomic Memory Operations (AMO).
 ; * Format: funct5(5) aq(1) rl(1) rs2(5) rs1(5) funct3(3) rd(5) 0101111
- ;
+; ;
 riscv64_encode_atomic:
     prologue
     push    r13
@@ -913,7 +913,7 @@ riscv64_encode_atomic:
 ;*
 ; * [riscv64_emit_half]
 ; * Emits a 16-bit compressed instruction.
- ;
+; ;
 riscv64_emit_half:
     prologue
     mov     rdx, rdi

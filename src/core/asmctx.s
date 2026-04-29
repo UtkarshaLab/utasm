@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/core/asmctx.s
- Project     : utasm
- Description : Assembly Context and Section Management.
- ============================================================================
+; ============================================================================
+; File        : src/core/asmctx.s
+; Project     : utasm
+; Description : Assembly Context and Section Management.
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -18,7 +18,7 @@
 ; * Input:
 ; *   RDI: Pointer to AsmCtx
 ; *   RSI: Byte to emit (SIL)
- ;
+; ;
 global asm_ctx_emit_byte
 asm_ctx_emit_byte:
     prologue
@@ -110,7 +110,7 @@ asm_ctx_emit_byte:
 ;*
 ; * [asm_ctx_create_section]
 ; * Purpose: Creates a new section and adds it to the context.
- ;
+; ;
 ;*
 ; * [asm_ctx_create_section]
 ; * Purpose: Creates a new section and adds it to the context.
@@ -121,7 +121,7 @@ asm_ctx_emit_byte:
 ; * Output:
 ; *   RAX: EXIT_OK or error
 ; *   RDX: Pointer to new SECTION
- ;
+; ;
 global asm_ctx_create_section
 asm_ctx_create_section:
     prologue
@@ -190,7 +190,7 @@ asm_ctx_create_section:
 ;*
 ; * [asm_ctx_emit_dword]
 ; * Purpose: Appends 4 bytes to the active section's buffer.
- ;
+; ;
 global asm_ctx_emit_dword
 asm_ctx_emit_dword:
     prologue
@@ -224,7 +224,7 @@ asm_ctx_emit_dword:
 ;*
 ; * [asm_ctx_emit_word]
 ; * Purpose: Appends 2 bytes (16-bit) to the active section.
- ;
+; ;
 global asm_ctx_emit_word
 asm_ctx_emit_word:
     prologue
@@ -248,7 +248,7 @@ asm_ctx_emit_word:
 ;*
 ; * [asm_ctx_emit_qword]
 ; * Purpose: Appends 8 bytes (64-bit) to the active section.
- ;
+; ;
 global asm_ctx_emit_qword
 asm_ctx_emit_qword:
     prologue
@@ -275,7 +275,7 @@ asm_ctx_emit_qword:
 ; * Input:
 ; *   RDI: Pointer to AsmCtx
 ; *   RSI: Pointer to null-terminated string
- ;
+; ;
 global asm_ctx_emit_string
 asm_ctx_emit_string:
     prologue
@@ -307,7 +307,7 @@ asm_ctx_emit_string:
 ; * Output:
 ; *   RAX: EXIT_OK (found) or EXIT_ERROR
 ; *   RDX: Pointer to SECTION
- ;
+; ;
 global asmctx_find_section
 asmctx_find_section:
     prologue
@@ -363,7 +363,7 @@ asmctx_find_section:
 ; * Input:
 ; *   RDI: AsmCtx*
 ; *   RSI: Alignment (Power of 2)
- ;
+; ;
 global asm_ctx_align
 asm_ctx_align:
     prologue

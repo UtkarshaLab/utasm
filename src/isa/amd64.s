@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/arch/amd64.s
- Project     : utasm
- Description : AMD64 Mnemonic and Register Lookup Tables.
- ============================================================================
+; ============================================================================
+; File        : src/arch/amd64.s
+; Project     : utasm
+; Description : AMD64 Mnemonic and Register Lookup Tables.
+; ============================================================================
 ;
 
 %include "include/arch/amd64.s"
@@ -1437,7 +1437,7 @@ amd64_register_table:
     %rep 8
         compile_time_hash "r%[i]d", H_R%[i]D
         dq H_R%[i]D, (4 << 8) | %[i]
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- 16-bit GPRs ----
@@ -1461,7 +1461,7 @@ amd64_register_table:
     %rep 8
         compile_time_hash "r%[i]w", H_R%[i]W
         dq H_R%[i]W, (2 << 8) | %[i]
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- 8-bit GPRs (Low) ----
@@ -1485,7 +1485,7 @@ amd64_register_table:
     %rep 8
         compile_time_hash "r%[i]b", H_R%[i]B
         dq H_R%[i]B, (1 << 8) | %[i]
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- 8-bit GPRs (High) ----
@@ -1509,7 +1509,7 @@ amd64_register_table:
         dq H_YMM%[i], (32 << 8) | (80 + %[i])
         compile_time_hash "zmm%[i]", H_ZMM%[i]
         dq H_ZMM%[i], (64 << 8) | (80 + %[i])
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- Opmask (K0-K7) ----
@@ -1517,7 +1517,7 @@ amd64_register_table:
     %rep 8
         compile_time_hash "k%[i]", H_K%[i]
         dq H_K%[i], (8 << 8) | (72 + %[i])
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- Control Registers (CR0-CR15) ----
@@ -1525,7 +1525,7 @@ amd64_register_table:
     %rep 16
         compile_time_hash "cr%[i]", H_CR%[i]
         dq H_CR%[i], (8 << 8) | (32 + %[i])
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- Debug Registers (DR0-DR15) ----
@@ -1533,7 +1533,7 @@ amd64_register_table:
     %rep 16
         compile_time_hash "dr%[i]", H_DR%[i]
         dq H_DR%[i], (8 << 8) | (48 + %[i])
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- Segments ----

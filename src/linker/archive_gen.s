@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/linker/archive_gen.s
- Project     : utasm
- Description : Unix Archive (.a) Generator Implementation.
- ============================================================================
+; ============================================================================
+; File        : src/linker/archive_gen.s
+; Project     : utasm
+; Description : Unix Archive (.a) Generator Implementation.
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -22,7 +22,7 @@
 ; *   RDX: Member size (integer)
 ; * Output:
 ; *   None
- ;
+; ;
 global archive_gen_header
 archive_gen_header:
     prologue
@@ -94,7 +94,7 @@ archive_gen_header:
 ; *   RCX: Data Size
 ; * Output:
 ; *   RAX: Number of bytes written
- ;
+; ;
 global archive_write_member
 archive_write_member:
     prologue
@@ -137,7 +137,7 @@ archive_write_member:
 ; *   R8:  Size of string table
 ; * Output:
 ; *   RAX: Total size of member (header + data)
- ;
+; ;
 global archive_gen_index
 archive_gen_index:
     prologue
@@ -211,7 +211,7 @@ archive_gen_index:
 ; *   RDX: Size of long names table
 ; * Output:
 ; *   RAX: Total size of member
- ;
+; ;
 global archive_gen_strtab
 archive_gen_strtab:
     prologue

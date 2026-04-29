@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/core/error.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/core/error.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -42,12 +42,12 @@
 
 ; ---- error_init -------------------------
 ;
- error_init
- Initialises the error reporter against an AsmCtx.
- Must be called before any other error function.
- Input    : rdi = pointer to AsmCtx
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : rcx
+; error_init
+; Initialises the error reporter against an AsmCtx.
+; Must be called before any other error function.
+; Input    : rdi = pointer to AsmCtx
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : rcx
 ;
 global error_init
 error_init:
@@ -72,19 +72,19 @@ error_init:
 
 ; ---- error_emit -------------------------
 ;
- error_emit
- Emits a formatted error message to stderr.
- Increments AsmCtx.err_count.
- If err_count >= MAX_ERRORS, calls error_fatal.
- If CTX_FLAG_WERROR is set, warnings become errors — but
- this function always treats its input as a hard error.
- Input    : rdi = pointer to AsmCtx
+; error_emit
+; Emits a formatted error message to stderr.
+; Increments AsmCtx.err_count.
+; If err_count >= MAX_ERRORS, calls error_fatal.
+; If CTX_FLAG_WERROR is set, warnings become errors — but
+; this function always treats its input as a hard error.
+; Input    : rdi = pointer to AsmCtx
             rsi = pointer to filename string (or NULL)
             rdx = line number (0 if unknown)
             rcx = column number (0 if unknown)
             r8  = pointer to message string
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : r9, r10, r11
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : r9, r10, r11
 ;
 global error_emit
 error_emit:
@@ -172,17 +172,17 @@ error_emit:
 
 ; ---- error_warn -------------------------
 ;
- error_warn
- Emits a formatted warning message to stderr.
- Increments AsmCtx.warn_count.
- If CTX_FLAG_WERROR is set, calls error_emit instead.
- Input    : rdi = pointer to AsmCtx
+; error_warn
+; Emits a formatted warning message to stderr.
+; Increments AsmCtx.warn_count.
+; If CTX_FLAG_WERROR is set, calls error_emit instead.
+; Input    : rdi = pointer to AsmCtx
             rsi = pointer to filename string (or NULL)
             rdx = line number (0 if unknown)
             rcx = column number (0 if unknown)
             r8  = pointer to message string
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : r9, r10, r11
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : r9, r10, r11
 ;
 global error_warn
 error_warn:
@@ -270,16 +270,16 @@ error_warn:
 
 ; ---- error_note -------------------------
 ;
- error_note
- Emits a note (supplementary information) to stderr.
- Does not increment any counter.
- Input    : rdi = pointer to AsmCtx
+; error_note
+; Emits a note (supplementary information) to stderr.
+; Does not increment any counter.
+; Input    : rdi = pointer to AsmCtx
             rsi = pointer to filename string (or NULL)
             rdx = line number (0 if unknown)
             rcx = column number (0 if unknown)
             r8  = pointer to message string
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : r9, r10, r11
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : r9, r10, r11
 ;
 global error_note
 error_note:
@@ -344,14 +344,14 @@ error_note:
 
 ; ---- error_info -------------------------
 ;
- error_info
- Emits a plain informational message to stderr.
- Used for verbose/debug output — not a diagnostic.
- Only emits if CTX_FLAG_VERBOSE is set.
- Input    : rdi = pointer to AsmCtx
+; error_info
+; Emits a plain informational message to stderr.
+; Used for verbose/debug output — not a diagnostic.
+; Only emits if CTX_FLAG_VERBOSE is set.
+; Input    : rdi = pointer to AsmCtx
             rsi = pointer to message string
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : rcx, rdx, r8, r9
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : rcx, rdx, r8, r9
 ;
 global error_info
 error_info:
@@ -418,13 +418,13 @@ error_info:
 
 ; ---- error_fatal ------------------------
 ;
- error_fatal
- Emits a fatal error message and exits immediately.
- Does not return.
- Input    : rdi = pointer to AsmCtx (or NULL)
+; error_fatal
+; Emits a fatal error message and exits immediately.
+; Does not return.
+; Input    : rdi = pointer to AsmCtx (or NULL)
             rsi = pointer to message string
- Output   : does not return
- Clobbers : all
+; Output   : does not return
+; Clobbers : all
 ;
 global error_fatal
 error_fatal:
@@ -485,12 +485,12 @@ error_fatal:
 
 ; ---- error_summary ----------------------
 ;
- error_summary
- Prints a final summary line after assembly completes.
- Example: "2 errors, 1 warning generated."
- Input    : rdi = pointer to AsmCtx
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : rcx, rdx, r8, r9, r10, r11
+; error_summary
+; Prints a final summary line after assembly completes.
+; Example: "2 errors, 1 warning generated."
+; Input    : rdi = pointer to AsmCtx
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : rcx, rdx, r8, r9, r10, r11
 ;
 global error_summary
 error_summary:
@@ -556,9 +556,9 @@ error_summary:
 
 ; ---- .print_location --------------------
 ;
- .print_location (internal)
- Prints "filename:line:col: " to stderr.
- Uses rbx=AsmCtx, r12=filename, r13=line, r14=col.
+; .print_location (internal)
+; Prints "filename:line:col: " to stderr.
+; Uses rbx=AsmCtx, r12=filename, r13=line, r14=col.
 ;
 .print_location:
     ; print filename if available
@@ -647,13 +647,13 @@ error_summary:
 
 ; ---- error_write_raw --------------------
 ;
- error_write_raw
- Writes exactly rdx bytes from rsi to file descriptor rdi.
- Input    : rdi = file descriptor
+; error_write_raw
+; Writes exactly rdx bytes from rsi to file descriptor rdi.
+; Input    : rdi = file descriptor
             rsi = pointer to buffer
             rdx = byte count
- Output   : rax = EXIT_OK or EXIT_FILE_WRITE
- Clobbers : rax, r11
+; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
+; Clobbers : rax, r11
 ;
 error_write_raw:
     mov     rax, AMD64_SYS_WRITE
@@ -668,12 +668,12 @@ error_write_raw:
 
 ; ---- error_write_str --------------------
 ;
- error_write_str
- Writes a null-terminated string to file descriptor rdi.
- Input    : rdi = file descriptor
+; error_write_str
+; Writes a null-terminated string to file descriptor rdi.
+; Input    : rdi = file descriptor
             rsi = pointer to null-terminated string
- Output   : rax = EXIT_OK or EXIT_FILE_WRITE
- Clobbers : rax, rdx, rcx, r11
+; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
+; Clobbers : rax, rdx, rcx, r11
 ;
 error_write_str:
     push    rdi
@@ -695,13 +695,13 @@ error_write_str:
 
 ; ---- error_uint_to_str ------------------
 ;
- error_uint_to_str
- Converts an unsigned integer to a decimal string.
- Uses an internal static buffer — not reentrant.
- Input    : rdi = unsigned integer value
- Output   : rax = EXIT_OK
+; error_uint_to_str
+; Converts an unsigned integer to a decimal string.
+; Uses an internal static buffer — not reentrant.
+; Input    : rdi = unsigned integer value
+; Output   : rax = EXIT_OK
              rdx = pointer to null-terminated decimal string
- Clobbers : rcx, r8, r9, r10
+; Clobbers : rcx, r8, r9, r10
 ;
 error_uint_to_str:
     lea     r8, [uint_buf + 20]     ; build from end
@@ -952,11 +952,11 @@ msg_note_access_size:
 
 ; ---- error_new_from_errno ----------------
 ;
- error_new_from_errno
- Translates a system errno into a diagnostic message.
- Input    : rdi = errno (i64)
- Output   : rax = EXIT_OK
- Clobbers : r8, r9, r10
+; error_new_from_errno
+; Translates a system errno into a diagnostic message.
+; Input    : rdi = errno (i64)
+; Output   : rax = EXIT_OK
+; Clobbers : r8, r9, r10
 ;
 global error_new_from_errno
 error_new_from_errno:
@@ -993,7 +993,7 @@ error_new_from_errno:
 ; *   RDI = field name string
 ; *   RSI = field size (bytes)
 ; *   RDX = access size (bytes)
- ;
+; ;
 global error_struct_bounds
 error_struct_bounds:
     prologue

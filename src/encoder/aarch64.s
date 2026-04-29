@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : src/encoder/aarch64.s
- Project     : utasm
- Description : AArch64 instruction encoder. Encodes parsed INST structs
+; ============================================================================
+; File        : src/encoder/aarch64.s
+; Project     : utasm
+; Description : AArch64 instruction encoder. Encodes parsed INST structs
                into 32-bit fixed-width AArch64 machine code words.
                Implementation mirrors the scale and robustness of amd64.s.
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -19,12 +19,12 @@
 ; aarch64_encode_instruction
 ; ============================================================================
 ;
- aarch64_encode_instruction
- Top-level dispatcher for AArch64 instruction encoding.
+; aarch64_encode_instruction
+; Top-level dispatcher for AArch64 instruction encoding.
 
- Input  : rdi = AsmCtx*
+; Input  : rdi = AsmCtx*
            rsi = INST*
- Output : rax = EXIT_OK or EXIT_ENCODE_FAIL
+; Output : rax = EXIT_OK or EXIT_ENCODE_FAIL
 ;
 global aarch64_encode_instruction
 aarch64_encode_instruction:
@@ -208,7 +208,7 @@ aarch64_encode_instruction:
 
 ;*
 ; * [aarch64_encode_bitfield]
- ;
+; ;
 aarch64_encode_bitfield:
     prologue
     push    r13

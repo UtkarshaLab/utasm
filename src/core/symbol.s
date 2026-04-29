@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/core/symbol.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/core/symbol.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"

@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : src/linker/reloc.s
- Project     : utasm
- Description : Relocation engine for the utasm linker.
+; ============================================================================
+; File        : src/linker/reloc.s
+; Project     : utasm
+; Description : Relocation engine for the utasm linker.
                Records, resolves, and applies x86_64 relocations across
                all output formats (ELF64 .o and flat binary).
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -19,17 +19,17 @@
 ; reloc_record
 ; ============================================================================
 ;
- reloc_record
- Adds one relocation entry to the AsmCtx reloc table.
- Called by the encoder whenever it emits a symbol reference that cannot
- be resolved at encode time (forward references, extern labels).
+; reloc_record
+; Adds one relocation entry to the AsmCtx reloc table.
+; Called by the encoder whenever it emits a symbol reference that cannot
+; be resolved at encode time (forward references, extern labels).
 
- Input  : rdi = AsmCtx*
+; Input  : rdi = AsmCtx*
            rsi = byte offset within .text of the patch site
            rdx = pointer to symbol name string (null-terminated)
            rcx = addend (signed 64-bit, usually -4 for PC32)
            r8  = relocation type (R_X86_64_* constant)
- Output : rax = EXIT_OK or EXIT_OOM
+; Output : rax = EXIT_OK or EXIT_OOM
 ;
 global reloc_record
 reloc_record:
@@ -89,22 +89,22 @@ reloc_record:
 ; reloc_resolve_all
 ; ============================================================================
 ;
- reloc_resolve_all
- Second-pass resolver: walks every recorded relocation, looks up the
- symbol in the symbol table, computes the final patch value, and writes
- it into the in-memory output buffer.
+; reloc_resolve_all
+; Second-pass resolver: walks every recorded relocation, looks up the
+; symbol in the symbol table, computes the final patch value, and writes
+; it into the in-memory output buffer.
 
- Supports the following relocation types:
-   R_X86_64_PC32    — 32-bit PC-relative (call/jmp to near symbols)
-   R_X86_64_64      — 64-bit absolute address
-   R_X86_64_32      — 32-bit zero-extended absolute
-   R_X86_64_32S     — 32-bit sign-extended absolute
-   R_X86_64_PLT32   — Same as PC32 for direct call resolution
+; Supports the following relocation types:
+;   R_X86_64_PC32    — 32-bit PC-relative (call/jmp to near symbols)
+;   R_X86_64_64      — 64-bit absolute address
+;   R_X86_64_32      — 32-bit zero-extended absolute
+;   R_X86_64_32S     — 32-bit sign-extended absolute
+;   R_X86_64_PLT32   — Same as PC32 for direct call resolution
 
- Input  : rdi = AsmCtx*
+; Input  : rdi = AsmCtx*
            rsi = pointer to output buffer base (virtual address 0 = file offset 0)
            rdx = base virtual address (load address / ORG)
- Output : rax = EXIT_OK or EXIT_UNDEF_REF / EXIT_OFFSET_RANGE
+; Output : rax = EXIT_OK or EXIT_UNDEF_REF / EXIT_OFFSET_RANGE
 ;
 global reloc_resolve_all
 reloc_resolve_all:
@@ -222,7 +222,7 @@ reloc_resolve_all:
 ;*
 ; * [reloc_apply_one]
 ; * Purpose: Unified relocation applier for all targets.
- ;
+; ;
 global reloc_apply_one
 reloc_apply_one:
     prologue
@@ -422,12 +422,12 @@ reloc_apply_one:
 ; reloc_init
 ; ============================================================================
 ;
- reloc_init
- Allocates the relocation table inside the AsmCtx arena.
- Must be called once after arena_init and before any encoding begins.
+; reloc_init
+; Allocates the relocation table inside the AsmCtx arena.
+; Must be called once after arena_init and before any encoding begins.
 
- Input  : rdi = AsmCtx*
- Output : rax = EXIT_OK or EXIT_OOM
+; Input  : rdi = AsmCtx*
+; Output : rax = EXIT_OK or EXIT_OOM
 ;
 global reloc_init
 reloc_init:

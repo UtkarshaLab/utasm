@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/arch/riscv64.s
- Project     : utasm
- Description : RISCV64 Mnemonic and Register Lookup Tables.
- ============================================================================
+; ============================================================================
+; File        : src/arch/riscv64.s
+; Project     : utasm
+; Description : RISCV64 Mnemonic and Register Lookup Tables.
+; ============================================================================
 ;
 
 %include "core/macro.s"
@@ -802,7 +802,7 @@ riscv64_register_table:
     %rep 32
         compile_time_hash "x%[i]", H_X%[i]
         dq H_X%[i], (8 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- ABI Names ----
@@ -836,7 +836,7 @@ riscv64_register_table:
     %rep 32
         compile_time_hash "f%[i]", H_F%[i]
         dq H_F%[i], (8 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- FP ABI Aliases ----
@@ -844,13 +844,13 @@ riscv64_register_table:
     %rep 8
         compile_time_hash "ft%[i]", H_FT%[i]
         dq H_FT%[i], (8 << 8) | %[i]
-        %assign i i+1
+    %assign i i+1
     %endrep
     %assign i 0
     %rep 8
         compile_time_hash "fa%[i]", H_FA%[i]
         dq H_FA%[i], (8 << 8) | (10 + %[i])
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- Vector Registers (v0-v31) ----
@@ -858,7 +858,7 @@ riscv64_register_table:
     %rep 32
         compile_time_hash "v%[i]", H_V%[i]
         dq H_V%[i], (16 << 8) | %[i]  ; Size=16 (typical minimum VLEN), ID=0-31
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     dq 0 ; Sentinel

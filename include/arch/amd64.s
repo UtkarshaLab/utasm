@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : include/arch/amd64.s
- Project     : utasm
- Description : AMD64 Architecture Constants and Register IDs.
- ============================================================================
+; ============================================================================
+; File        : include/arch/amd64.s
+; Project     : utasm
+; Description : AMD64 Architecture Constants and Register IDs.
+; ============================================================================
 ;
 
 ; ---- 64-bit GPRs -------------------------
@@ -99,7 +99,7 @@
 
 ;*
 ; * [def_mnc]
- ;
+; ;
 %macro def_mnc 3
     mnc_ent %1, %2, %3
 %endmacro

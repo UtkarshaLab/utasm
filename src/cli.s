@@ -1,11 +1,11 @@
 ;
- ============================================
- File     : src/cli.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- Description: Command-line interface parser for utasm.
- ============================================
+; ============================================
+; File     : src/cli.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; Description: Command-line interface parser for utasm.
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -19,13 +19,13 @@ extern str_cmp
 
 ; ---- cli_parse ---------------------------
 ;
- cli_parse
- Parses argc and argv and populates AsmCtx.
- Input    : rdi = pointer to AsmCtx
+; cli_parse
+; Parses argc and argv and populates AsmCtx.
+; Input    : rdi = pointer to AsmCtx
             rsi = argc
             rdx = argv (pointer to array of pointers)
- Output   : rax = EXIT_OK or EXIT_USAGE
- Clobbers : rcx, r8, r9, r10, r11
+; Output   : rax = EXIT_OK or EXIT_USAGE
+; Clobbers : rcx, r8, r9, r10, r11
 ;
 cli_parse:
     push    rbx

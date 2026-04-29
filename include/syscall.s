@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : include/syscall.s
- Project     : utasm
- Description : Complete AMD64 system call numbers (syscall table).
+; ============================================================================
+; File        : include/syscall.s
+; Project     : utasm
+; Description : Complete AMD64 system call numbers (syscall table).
                Covers all entries in the Linux x86_64 syscall ABI up to
                kernel 6.x. Usage: mov rax, SYS_xxx  then  syscall
- ============================================================================
+; ============================================================================
 ;
 
 ; ============================================================================

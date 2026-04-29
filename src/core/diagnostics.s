@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/core/diagnostics.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/core/diagnostics.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -27,7 +27,7 @@
 ; *   rdi = pointer to AsmCtx
 ; *   rsi = pointer to Token
 ; *   rdx = message string
- ;
+; ;
 global diag_error_at
 diag_error_at:
     prologue

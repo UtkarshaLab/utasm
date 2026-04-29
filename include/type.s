@@ -1,11 +1,11 @@
 ;
- ============================================
- File     : include/type.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- Description: Core data structure definitions using automatic offset calculation.
- ============================================
+; ============================================
+; File     : include/type.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; Description: Core data structure definitions using automatic offset calculation.
+; ============================================
 ;
 
 %include "include/macro.s"
@@ -127,7 +127,6 @@ struc MACRO
     field ntokens,  4       ; token count in body
     field tokens,   8       ; pointer to token array
     field pad1,     4       ; alignment padding
-endstruc
 endstruc
 
 ; ============================================================================

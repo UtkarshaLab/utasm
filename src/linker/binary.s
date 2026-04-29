@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : src/linker/binary.s
- Project     : utasm
- Description : Flat binary emitter (-f bin).
+; ============================================================================
+; File        : src/linker/binary.s
+; Project     : utasm
+; Description : Flat binary emitter (-f bin).
                Writes raw machine bytes with no ELF container.
                Essential for OS bootloaders and bare-metal images.
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -18,16 +18,16 @@
 ; binary_emit
 ; ============================================================================
 ;
- binary_emit
- Writes assembled sections as a contiguous flat binary.
- Section order: .text then .data (no .bss — zero-filled at runtime).
- The caller is responsible for setting the correct ORG address by passing
- it as base_addr; this only affects relocation patching, not the output.
+; binary_emit
+; Writes assembled sections as a contiguous flat binary.
+; Section order: .text then .data (no .bss — zero-filled at runtime).
+; The caller is responsible for setting the correct ORG address by passing
+; it as base_addr; this only affects relocation patching, not the output.
 
- Input  : rdi = pointer to AsmCtx
+; Input  : rdi = pointer to AsmCtx
            rsi = output file descriptor (i32, already opened for write)
            rdx = base address (ORG value, 0x7C00 for bootloaders etc.)
- Output : rax = EXIT_OK or error code
+; Output : rax = EXIT_OK or error code
 ;
 global binary_emit
 binary_emit:
@@ -91,15 +91,15 @@ binary_emit:
 ; binary_patch_relocs
 ; ============================================================================
 ;
- binary_patch_relocs
- Applies all relocations in the AsmCtx reloc table directly into the
- in-memory .text buffer before it is flushed to disk.
+; binary_patch_relocs
+; Applies all relocations in the AsmCtx reloc table directly into the
+; in-memory .text buffer before it is flushed to disk.
 
- For flat binary output, all symbols must be defined (no external refs).
- Any unresolved symbol causes EXIT_UNDEF_REF.
+; For flat binary output, all symbols must be defined (no external refs).
+; Any unresolved symbol causes EXIT_UNDEF_REF.
 
- Input  : rdi = AsmCtx, rsi = base_addr (ORG)
- Output : rax = EXIT_OK or EXIT_UNDEF_REF
+; Input  : rdi = AsmCtx, rsi = base_addr (ORG)
+; Output : rax = EXIT_OK or EXIT_UNDEF_REF
 ;
 global binary_patch_relocs
 binary_patch_relocs:
@@ -173,13 +173,13 @@ binary_patch_relocs:
 ; binary_emit_bootloader
 ; ============================================================================
 ;
- binary_emit_bootloader
- Convenience wrapper: emits flat binary with ORG=0x7C00 and appends the
- mandatory 0x55AA boot signature at offset 510.
- Used for writing MBR-bootable disk images.
+; binary_emit_bootloader
+; Convenience wrapper: emits flat binary with ORG=0x7C00 and appends the
+; mandatory 0x55AA boot signature at offset 510.
+; Used for writing MBR-bootable disk images.
 
- Input  : rdi = AsmCtx, rsi = fd
- Output : rax = EXIT_OK or error
+; Input  : rdi = AsmCtx, rsi = fd
+; Output : rax = EXIT_OK or error
 ;
 global binary_emit_bootloader
 binary_emit_bootloader:

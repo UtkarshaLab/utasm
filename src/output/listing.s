@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/output/listing.s
- Project     : utasm
- Description : Listing File Generator. Produces human-readable .lst files.
- ============================================================================
+; ============================================================================
+; File        : src/output/listing.s
+; Project     : utasm
+; Description : Listing File Generator. Produces human-readable .lst files.
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -24,7 +24,7 @@ extern error_uint_to_str
 ; *   RDI: Pointer to AsmCtx
 ; * Output:
 ; *   RAX: EXIT_OK or error
- ;
+; ;
 global listing_generate
 listing_generate:
     prologue

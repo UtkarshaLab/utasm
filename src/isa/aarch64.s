@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/arch/aarch64.s
- Project     : utasm
- Description : AArch64 Mnemonic and Register Lookup Tables.
- ============================================================================
+; ============================================================================
+; File        : src/arch/aarch64.s
+; Project     : utasm
+; Description : AArch64 Mnemonic and Register Lookup Tables.
+; ============================================================================
 ;
 
 %include "core/macro.s"
@@ -974,7 +974,7 @@ aarch64_register_table:
     %rep 31
         compile_time_hash "x%[i]", H_X%[i]
         dq H_X%[i], (8 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- Special Registers ----
@@ -988,7 +988,7 @@ aarch64_register_table:
     %rep 31
         compile_time_hash "w%[i]", H_W%[i]
         dq H_W%[i], (4 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- SIMD/FP Vector Registers (V0-V31) ----
@@ -1006,7 +1006,7 @@ aarch64_register_table:
         dq H_H%[i], (2 << 8) | i
         compile_time_hash "b%[i]", H_B%[i]
         dq H_B%[i], (1 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- SVE Scalable Vector Registers (Z0-Z31) ----
@@ -1014,7 +1014,7 @@ aarch64_register_table:
     %rep 32
         compile_time_hash "z%[i]", H_Z%[i]
         dq H_Z%[i], (64 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     ; ---- SVE Predicate Registers (P0-P15) ----
@@ -1022,7 +1022,7 @@ aarch64_register_table:
     %rep 16
         compile_time_hash "p%[i]", H_P%[i]
         dq H_P%[i], (8 << 8) | i
-        %assign i i+1
+    %assign i i+1
     %endrep
 
     dq 0 ; Sentinel

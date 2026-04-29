@@ -1,10 +1,10 @@
 ;
- ============================================================================
- File        : src/host/uring.s
- Project     : utasm
- Description : io_uring Asynchronous I/O implementation.
+; ============================================================================
+; File        : src/host/uring.s
+; Project     : utasm
+; Description : io_uring Asynchronous I/O implementation.
                Manages ring initialization, sqe submission, and cqe reaping.
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -19,11 +19,11 @@ extern error_new_from_errno
 
 ; ---- uring_init ---------------------------------
 ;
- uring_init
- Sets up the io_uring instance and memory maps the rings.
- Input    : rdi = entries (queue depth, must be power of 2)
+; uring_init
+; Sets up the io_uring instance and memory maps the rings.
+; Input    : rdi = entries (queue depth, must be power of 2)
             rsi = pointer to URing state structure
- Output   : rax = EXIT_OK or error
+; Output   : rax = EXIT_OK or error
 ;
 global uring_init
 uring_init:
@@ -75,14 +75,14 @@ uring_init:
 
 ; ---- uring_write_async --------------------------
 ;
- uring_write_async
- Submits an asynchronous write request to the io_uring Submission Queue.
- Input    : rdi = pointer to URing state structure
+; uring_write_async
+; Submits an asynchronous write request to the io_uring Submission Queue.
+; Input    : rdi = pointer to URing state structure
             rsi = file descriptor
             rdx = buffer pointer
             rcx = buffer length
             r8  = file offset
- Output   : rax = EXIT_OK
+; Output   : rax = EXIT_OK
 ;
 global uring_write_async
 uring_write_async:
@@ -105,9 +105,9 @@ uring_write_async:
 
 ; ---- uring_submit_and_wait ----------------------
 ;
- uring_submit_and_wait
- Flushes pending SQEs and waits for completions.
- Input    : rdi = pointer to URing state
+; uring_submit_and_wait
+; Flushes pending SQEs and waits for completions.
+; Input    : rdi = pointer to URing state
             rsi = min_complete
 ;
 global uring_submit_and_wait

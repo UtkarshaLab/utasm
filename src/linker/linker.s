@@ -1,10 +1,10 @@
 ;
- ============================================================================
- File        : src/linker/linker.s
- Project     : utasm
- Description : Main Linker Orchestrator. Coordinates relocations, symbol 
+; ============================================================================
+; File        : src/linker/linker.s
+; Project     : utasm
+; Description : Main Linker Orchestrator. Coordinates relocations, symbol 
                resolution, and final file emission.
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -25,7 +25,7 @@ extern error_emit
 ; *   RDI: Pointer to AsmCtx
 ; * Output:
 ; *   RAX: EXIT_OK or error code
- ;
+; ;
 global linker_run
 linker_run:
     prologue
@@ -71,7 +71,7 @@ linker_run:
 ; * [linker_check_overlaps]
 ; * Input: RDI = AsmCtx
 ; * Checks all section VA ranges for intersections.
- ;
+; ;
 linker_check_overlaps:
     prologue
     push    rbx

@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : src/linker/elf64.s
- Project     : utasm
- Description : ELF64 relocatable object file emitter (-f elf64).
+; ============================================================================
+; File        : src/linker/elf64.s
+; Project     : utasm
+; Description : ELF64 relocatable object file emitter (-f elf64).
                Writes a standards-compliant ELF64 .o file consumable by
                ld, lld, and any POSIX linker.
- ============================================================================
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -19,24 +19,24 @@
 ; elf64_emit
 ; ============================================================================
 ;
- elf64_emit
- Top-level entry point: writes a complete ELF64 relocatable object file
- from the current AsmCtx to the file descriptor provided.
+; elf64_emit
+; Top-level entry point: writes a complete ELF64 relocatable object file
+; from the current AsmCtx to the file descriptor provided.
 
- Layout written to disk:
-   [0]   ELF64 File Header         (64 bytes)
-   [64]  .text section data        (variable)
+; Layout written to disk:
+;   [0]   ELF64 File Header         (64 bytes)
+;   [64]  .text section data        (variable)
          .data section data        (variable)
          .bss  section data        (0 bytes in file)
-   [...]  .symtab entries          (24 bytes each)
-   [...]  .strtab null-term strings
-   [...]  .shstrtab section names
-   [...]  .rela.text entries       (24 bytes each)
-   [end]  Section Header Table     (64 bytes each)
+;   [...]  .symtab entries          (24 bytes each)
+;   [...]  .strtab null-term strings
+;   [...]  .shstrtab section names
+;   [...]  .rela.text entries       (24 bytes each)
+;   [end]  Section Header Table     (64 bytes each)
 
- Input  : rdi = pointer to AsmCtx
+; Input  : rdi = pointer to AsmCtx
            rsi = output file descriptor (i32)
- Output : rax = EXIT_OK or error code
+; Output : rax = EXIT_OK or error code
 ;
 global elf64_emit
 elf64_emit:
@@ -132,7 +132,7 @@ elf64_emit:
 
 ;*
 ; * [elf64_write_debug_line]
- ;
+; ;
 elf64_write_debug_line:
     prologue
     push    rbx
@@ -162,7 +162,7 @@ elf64_write_debug_line:
 ;*
 ; * [elf64_write_debug_info]
 ; * Writes a minimal DWARF v5 Compile Unit header.
- ;
+; ;
 elf64_write_debug_info:
     prologue
     push    rbx
@@ -203,7 +203,7 @@ elf64_write_debug_info:
 ;*
 ; * [elf64_write_debug_abbrev]
 ; * Writes a minimal DWARF v5 abbreviation table.
- ;
+; ;
 elf64_write_debug_abbrev:
     prologue
     ; Write a single 0 byte (Empty abbrev table)
@@ -221,10 +221,10 @@ elf64_write_debug_abbrev:
 ; elf64_write_ehdr
 ; ============================================================================
 ;
- elf64_resolve_entry
- Finds the _start symbol and computes its absolute virtual address.
- Input  : rdi = AsmCtx
- Output : rax = EXIT_OK or EXIT_UNDEF_SYMBOL
+; elf64_resolve_entry
+; Finds the _start symbol and computes its absolute virtual address.
+; Input  : rdi = AsmCtx
+; Output : rax = EXIT_OK or EXIT_UNDEF_SYMBOL
 ;
 elf64_resolve_entry:
     prologue
@@ -277,11 +277,11 @@ elf64_resolve_entry:
 
 ; ============================================================================
 ;
- elf64_write_ehdr
- Fills the 64-byte ELF file header buffer at r14 with correct values
- for a relocatable AMD64 object file (ET_REL).
- Input  : r12 = AsmCtx, r14 = ehdr buffer
- Output : rax = EXIT_OK
+; elf64_write_ehdr
+; Fills the 64-byte ELF file header buffer at r14 with correct values
+; for a relocatable AMD64 object file (ET_REL).
+; Input  : r12 = AsmCtx, r14 = ehdr buffer
+; Output : rax = EXIT_OK
 ;
 elf64_write_ehdr:
     prologue
@@ -357,7 +357,7 @@ elf64_write_ehdr:
 
 ;*
 ; * [elf64_write_phdrs]
- ;
+; ;
 elf64_write_phdrs:
     prologue
     push    rbx
@@ -457,9 +457,9 @@ elf64_write_phdrs:
 ; elf64_write_text_section
 ; ============================================================================
 ;
- Writes the assembled .text bytes to the output fd.
- Input  : r12 = AsmCtx, r13 = fd
- Output : rax = EXIT_OK or error
+; Writes the assembled .text bytes to the output fd.
+; Input  : r12 = AsmCtx, r13 = fd
+; Output : rax = EXIT_OK or error
 ;
 elf64_write_text_section:
     prologue
@@ -600,9 +600,9 @@ elf64_prepare_strtab:
 ; elf64_write_symtab
 ; ============================================================================
 ;
- Writes the ELF64 symbol table (.symtab).
- Each utasm SYMBOL maps to one Sym64 entry (24 bytes).
- Input  : r12 = AsmCtx, r13 = fd
+; Writes the ELF64 symbol table (.symtab).
+; Each utasm SYMBOL maps to one Sym64 entry (24 bytes).
+; Input  : r12 = AsmCtx, r13 = fd
 ;
 elf64_write_symtab:
     prologue
@@ -736,8 +736,8 @@ elf64_write_symtab:
 ; elf64_write_strtab
 ; ============================================================================
 ;
- Writes the .strtab section — a sequence of null-terminated symbol names.
- The null symbol at index 0 is the first byte (\0).
+; Writes the .strtab section — a sequence of null-terminated symbol names.
+; The null symbol at index 0 is the first byte (\0).
 ;
 elf64_write_strtab:
     prologue
@@ -800,7 +800,7 @@ elf64_write_strtab:
 ;*
 ; * [elf64_write_groups]
 ; * Purpose: Emits SHT_GROUP data for each unique section group.
- ;
+; ;
 elf64_write_groups:
     prologue
     push    rbx
@@ -916,8 +916,8 @@ elf64_write_groups:
 ; elf64_write_shstrtab
 ; ============================================================================
 ;
- Writes .shstrtab — section name string table.
- Fixed set of names for the standard sections we emit.
+; Writes .shstrtab — section name string table.
+; Fixed set of names for the standard sections we emit.
 ;
 elf64_write_shstrtab:
     prologue
@@ -937,8 +937,8 @@ elf64_write_shstrtab:
 ; elf64_write_rela
 ; ============================================================================
 ;
- Writes .rela.text — relocation entries for unresolved symbols in .text.
- Walks the RELOC table stored in AsmCtx.
+; Writes .rela.text — relocation entries for unresolved symbols in .text.
+; Walks the RELOC table stored in AsmCtx.
 ;
 elf64_write_rela:
     prologue
@@ -1006,8 +1006,8 @@ elf64_write_rela:
 ; elf64_write_shdrs
 ; ============================================================================
 ;
- Writes the section header table (8 entries for a minimal object).
- Sections: [0] NULL, [1] .text, [2] .data, [3] .bss,
+; Writes the section header table (8 entries for a minimal object).
+; Sections: [0] NULL, [1] .text, [2] .data, [3] .bss,
            [4] .symtab, [5] .strtab, [6] .shstrtab, [7] .rela.text
 ;
 elf64_write_shdrs:
@@ -1202,7 +1202,7 @@ elf64_write_shdrs:
 ; * Input:
 ; *   RDI: FD
 ; *   RSI: Alignment (Power of 2)
- ;
+; ;
 elf64_align_file:
     prologue
     push    rbx

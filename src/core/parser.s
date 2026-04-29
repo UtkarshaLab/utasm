@@ -1,9 +1,9 @@
 ;
- ============================================================================
- File        : src/core/parser.s
- Project     : utasm
- Description : Multi-Architecture Instruction Parser and Dispatch System.
- ============================================================================
+; ============================================================================
+; File        : src/core/parser.s
+; Project     : utasm
+; Description : Multi-Architecture Instruction Parser and Dispatch System.
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -17,7 +17,7 @@
 ; * Purpose: Parses an instruction and dispatches to the correct architectural table.
 ; * Parameters:
 ; *   RBX: [in] Pointer to PrepState
- ;
+; ;
 global parser_parse_instruction
 parser_parse_instruction:
     prologue
@@ -178,7 +178,7 @@ parser_parse_instruction:
 ;*
 ; * [parser_parse_operand]
 ; * Purpose: Parses an operand using the current architectural register table.
- ;
+; ;
 parser_parse_operand:
     prologue
     
@@ -276,7 +276,7 @@ parser_parse_operand:
 ; * [parser_parse_reg_info]
 ; * Input: RSI = Name String, RDI = Table Pointer, R12 = OPERAND Pointer
 ; * Output: AL = Reg ID, RAX = ERR if not found
- ;
+; ;
 parser_parse_reg_info:
     prologue
     push    rdi
@@ -305,7 +305,7 @@ parser_parse_reg_info:
 ;*
 ; * [parser_evaluate_expression]
 ; * Purpose: Entry point for expression evaluation (Additive level: + -)
- ;
+; ;
 parser_evaluate_expression:
     prologue
     push    rbx
@@ -370,7 +370,7 @@ parser_evaluate_expression:
 ;*
 ; * [parser_evaluate_term]
 ; * Purpose: Multiplicative level (* / << >> & | ^)
- ;
+; ;
 parser_evaluate_term:
     prologue
     push    rbx
@@ -452,7 +452,7 @@ parser_evaluate_term:
 ;*
 ; * [parser_evaluate_factor]
 ; * Purpose: Primary level (Numbers, Symbols, Parens)
- ;
+; ;
 parser_evaluate_factor:
     prologue
     call    preprocessor_next_token
@@ -534,7 +534,7 @@ parser_evaluate_factor:
 
 ;*
 ; * [parser_handle_reloc_modifier]
- ;
+; ;
 parser_handle_reloc_modifier:
     prologue
     push    rbx
@@ -592,7 +592,7 @@ parser_handle_reloc_modifier:
 ; * Output:
 ; *   RAX: Mnemonic Table Pointer
 ; *   RDX: Register Table Pointer
- ;
+; ;
 parser_get_arch_tables:
     prologue
     mov     rax, [rbx + PREP_ctx]
@@ -622,7 +622,7 @@ parser_get_arch_tables:
 ;*
 ; * [parser_parse_mem_operand]
 ; * Purpose: Technical SIB Parser.
- ;
+; ;
 parser_parse_mem_operand:
     prologue
     mov     byte [r12 + OPERAND_kind], OP_MEM
@@ -760,7 +760,7 @@ str_rel: db "rel", 0
 ;*
 ; * [parser_is_register]
 ; * Input: RSI = String, RDI = Table Pointer
- ;
+; ;
 parser_is_register:
     prologue
     hash_fnv1a_64 rsi, r13
@@ -784,7 +784,7 @@ parser_is_register:
 ;*
 ; * [parser_lookup_mnemonic]
 ; * Input: RDI = Hash, RSI = Table Pointer
- ;
+; ;
 parser_lookup_mnemonic:
     prologue
 .loop:
@@ -808,7 +808,7 @@ parser_lookup_mnemonic:
 ; * [parser_check_prefix]
 ; * Input: RSI = String pointer
 ; * Output: AL = Prefix byte or 0
- ;
+; ;
 parser_check_prefix:
     prologue
     extern str_compare
@@ -859,7 +859,7 @@ str_lock:   db "lock", 0
 ; *   RDI: pointer to the struct-name Token (the token after 'struc')
 ; * Output:
 ; *   RAX = EXIT_OK or error code
- ;
+; ;
 global parser_parse_struc
 parser_parse_struc:
     prologue
@@ -1030,7 +1030,7 @@ parser_parse_struc:
 ;*
 ; * [parser_define_label]
 ; * Input: RSI = name string
- ;
+; ;
 parser_define_label:
     prologue
     push    rbx
@@ -1072,7 +1072,7 @@ parser_define_label:
 ; * [parser_concat_local_name]
 ; * Input: R14 = global name, RSI = local name
 ; * Output: RDX = concatenated name in arena
- ;
+; ;
 parser_concat_local_name:
     prologue
     push    rbx
@@ -1114,7 +1114,7 @@ parser_concat_local_name:
 ; *   RDI = pointer to field name string
 ; *   RSI = declared field byte size
 ; *   RDX = attempted access byte size
- ;
+; ;
 global error_struct_bounds
 error_struct_bounds:
     prologue
@@ -1128,7 +1128,7 @@ error_struct_bounds:
 ; * [parser_handle_pseudo_op]
 ; * Input: RSI = mnemonic string
 ; * Output: RAX = 1 if handled, 0 if unknown
- ;
+; ;
 parser_handle_pseudo_op:
     prologue
     push    rbx
@@ -1257,7 +1257,7 @@ parser_handle_pseudo_op:
 ; * [parser_check_aarch64_shift]
 ; * Input: RDI = Name String
 ; * Output: RAX = SHIFT_* or ERR
- ;
+; ;
 parser_check_aarch64_shift:
     prologue
     push    rbx
@@ -1287,7 +1287,7 @@ parser_check_aarch64_shift:
     pop     rbx
     epilogue
 ; * RSI = type (0 = byte, 1 = p2)
- ;
+; ;
 parser_handle_align:
     prologue
     push    r12
@@ -1365,7 +1365,7 @@ parser_handle_align:
 
 ;*
 ; * [parser_handle_org]
- ;
+; ;
 parser_handle_org:
     prologue
     call    parser_evaluate_expression
@@ -1380,7 +1380,7 @@ parser_handle_org:
 
 ;*
 ; * [parser_handle_equ]
- ;
+; ;
 parser_handle_equ:
     prologue
     push    r12
@@ -1494,7 +1494,7 @@ parser_emit_data_64:
 ;*
 ; * [parser_handle_section_directive]
 ; * Input: None (reads from preprocessor)
- ;
+; ;
 parser_handle_section_directive:
     prologue
     push    rbx
@@ -1706,7 +1706,7 @@ parser_handle_section_directive:
 ;*
 ; * [parser_handle_visibility]
 ; * RSI = Target visibility (SYM_GLOBAL, SYM_WEAK)
- ;
+; ;
 parser_handle_visibility:
     prologue
     push    rbx
@@ -1766,7 +1766,7 @@ parser_handle_visibility:
 ;*
 ; * [parser_handle_comm]
 ; * Purpose: Parses .comm name, size, [align]
- ;
+; ;
 parser_handle_comm:
     prologue
     push    rbx

@@ -1,11 +1,11 @@
 ;
- ============================================================================
- File        : src/output/mapfile.s
- Project     : utasm
- Author      : Utkarsha Lab
- License     : Apache-2.0
- Description : Linker Map File Generator. 
- ============================================================================
+; ============================================================================
+; File        : src/output/mapfile.s
+; Project     : utasm
+; Author      : Utkarsha Lab
+; License     : Apache-2.0
+; Description : Linker Map File Generator. 
+; ============================================================================
 ;
 
 %include "include/constant.s"
@@ -22,7 +22,7 @@ extern str_len
 ;*
 ; * [mapfile_generate]
 ; * Purpose: Dumps the symbol table into a .map file.
- ;
+; ;
 global mapfile_generate
 mapfile_generate:
     prologue
@@ -118,7 +118,7 @@ io_write_str:
 ;*
 ; * [u64_to_hex]
 ; * Converts RDI to a 16-char hex string in str_hex_buf.
- ;
+; ;
 u64_to_hex:
     push    rbx
     lea     rbx, [str_hex_buf + 15]

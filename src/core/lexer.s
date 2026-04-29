@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/core/lexer.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/core/lexer.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -47,17 +47,17 @@
 
 ; ---- lexer_init -------------------------
 ;
- lexer_init
- Initialises a LexerState for a source buffer.
- Must be called before any other lexer function.
- Input    : rdi = pointer to LexerState (allocated by caller)
+; lexer_init
+; Initialises a LexerState for a source buffer.
+; Must be called before any other lexer function.
+; Input    : rdi = pointer to LexerState (allocated by caller)
             rsi = pointer to source file buffer
             rdx = size of source buffer in bytes
             rcx = pointer to filename string
             r8  = pointer to AsmCtx
             r9  = pointer to Arena
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : r10, r11
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : r10, r11
 ;
 global lexer_init
 lexer_init:
@@ -106,15 +106,15 @@ lexer_init:
 
 ; ---- lexer_next -------------------------
 ;
- lexer_next
- Reads and returns the next token from the source buffer.
- If a peeked token exists, returns and clears it instead.
- Skips whitespace and comments automatically.
- Input    : rdi = pointer to LexerState
+; lexer_next
+; Reads and returns the next token from the source buffer.
+; If a peeked token exists, returns and clears it instead.
+; Skips whitespace and comments automatically.
+; Input    : rdi = pointer to LexerState
             rsi = pointer to Token struct to fill
- Output   : rax = EXIT_OK or error code
+; Output   : rax = EXIT_OK or error code
              rdx = pointer to filled Token (same as rsi)
- Clobbers : rcx, r8, r9, r10, r11
+; Clobbers : rcx, r8, r9, r10, r11
 ;
 global lexer_next
 lexer_next:
@@ -463,9 +463,9 @@ lexer_next:
 
 ; ---- identifier / label -----------------
 ;
- Reads [a-zA-Z_.][a-zA-Z0-9_.]* into arena.
- If followed by : emits TOK_LABEL or TOK_LOCAL_LABEL.
- Otherwise emits TOK_IDENT.
+; Reads [a-zA-Z_.][a-zA-Z0-9_.]* into arena.
+; If followed by : emits TOK_LABEL or TOK_LOCAL_LABEL.
+; Otherwise emits TOK_IDENT.
 ;
 .lex_ident:
     call    .token_begin
@@ -563,9 +563,9 @@ lexer_next:
 
 ; ---- number -----------------------------
 ;
- Reads numeric literal into arena string.
- Supports: decimal, 0x hex, 0b binary, 0o octal.
- Stores raw string in TOKEN_value for str_to_int later.
+; Reads numeric literal into arena string.
+; Supports: decimal, 0x hex, 0b binary, 0o octal.
+; Stores raw string in TOKEN_value for str_to_int later.
 ;
 .lex_number:
     call    .token_begin
@@ -654,13 +654,13 @@ lexer_next:
 
 ; ---- string literal ---------------------
 ;
- Reads "..." handling escape sequences:
-   \n  newline
-   \t  tab
-   \r  carriage return
-   \\  backslash
-   \"  double quote
-   \0  null byte
+; Reads "..." handling escape sequences:
+;   \n  newline
+;   \t  tab
+;   \r  carriage return
+;   \\  backslash
+;   \"  double quote
+;   \0  null byte
 ;
 .lex_string:
     call    .token_begin
@@ -921,8 +921,8 @@ lexer_next:
 
 ; ---- char literal -----------------------
 ;
- Reads 'x' or '\n' single character literal.
- Stores integer value in TOKEN_value directly.
+; Reads 'x' or '\n' single character literal.
+; Stores integer value in TOKEN_value directly.
 ;
 .lex_char:
     call    .token_begin
@@ -1006,9 +1006,9 @@ lexer_next:
 
 ; ---- directive --------------------------
 ;
- Reads %identifier — preprocessor directive.
- Emits TOK_DIRECTIVE with value pointing to
- the identifier string (without the % prefix).
+; Reads %identifier — preprocessor directive.
+; Emits TOK_DIRECTIVE with value pointing to
+; the identifier string (without the % prefix).
 ;
 .lex_directive:
     call    .token_begin
@@ -1176,9 +1176,9 @@ lexer_next:
 ; ---- shared helpers ---------------------
 
 ;
- .token_begin (internal)
- Initialises the output Token struct with tag, file, line, col.
- Uses rbx=LexerState, r12=Token output.
+; .token_begin (internal)
+; Initialises the output Token struct with tag, file, line, col.
+; Uses rbx=LexerState, r12=Token output.
 ;
 .token_begin:
     mov     byte [r12 + TOKEN_tag],   TAG_TOKEN
@@ -1200,10 +1200,10 @@ lexer_next:
     ret
 
 ;
- .skip_ignored (internal)
- Skips whitespace (space, tab, CR) and comments (; and ; *\/).
- Emits no tokens. Updates line and col counters.
- Uses rbx=LexerState.
+; .skip_ignored (internal)
+; Skips whitespace (space, tab, CR) and comments (; and ; *\/).
+; Emits no tokens. Updates line and col counters.
+; Uses rbx=LexerState.
 ;
 .skip_ignored:
 .skip_loop:
@@ -1332,15 +1332,15 @@ lexer_next:
 
 ; ---- lexer_peek -------------------------
 ;
- lexer_peek
- Returns the next token without consuming it.
- Subsequent calls to lexer_peek return the same token.
- Subsequent calls to lexer_next consume and return it.
- Input    : rdi = pointer to LexerState
+; lexer_peek
+; Returns the next token without consuming it.
+; Subsequent calls to lexer_peek return the same token.
+; Subsequent calls to lexer_next consume and return it.
+; Input    : rdi = pointer to LexerState
             rsi = pointer to Token struct to fill
- Output   : rax = EXIT_OK or error code
+; Output   : rax = EXIT_OK or error code
              rdx = pointer to filled Token (same as rsi)
- Clobbers : rcx, r8, r9, r10, r11
+; Clobbers : rcx, r8, r9, r10, r11
 ;
 global lexer_peek
 lexer_peek:
@@ -1399,15 +1399,15 @@ lexer_peek:
 
 ; ---- lexer_expect -----------------------
 ;
- lexer_expect
- Reads the next token and verifies it matches the expected kind.
- Emits an error if it does not match.
- Input    : rdi = pointer to LexerState
+; lexer_expect
+; Reads the next token and verifies it matches the expected kind.
+; Emits an error if it does not match.
+; Input    : rdi = pointer to LexerState
             rsi = pointer to Token struct to fill
             rdx = expected TOK_* kind value
- Output   : rax = EXIT_OK or EXIT_UNEXPECTED_TOKEN
+; Output   : rax = EXIT_OK or EXIT_UNEXPECTED_TOKEN
              rdx = pointer to filled Token
- Clobbers : rcx, r8, r9, r10, r11
+; Clobbers : rcx, r8, r9, r10, r11
 ;
 global lexer_expect
 lexer_expect:
@@ -1451,12 +1451,12 @@ lexer_expect:
 
 ; ---- lexer_destroy ----------------------
 ;
- lexer_destroy
- Clears a LexerState struct. Does not free the source buffer
- (caller owns it) or the arena (shared with whole pass).
- Input    : rdi = pointer to LexerState
- Output   : rax = EXIT_OK or EXIT_INTERNAL
- Clobbers : rcx, rdx
+; lexer_destroy
+; Clears a LexerState struct. Does not free the source buffer
+; (caller owns it) or the arena (shared with whole pass).
+; Input    : rdi = pointer to LexerState
+; Output   : rax = EXIT_OK or EXIT_INTERNAL
+; Clobbers : rcx, rdx
 ;
 global lexer_destroy
 lexer_destroy:
@@ -1508,16 +1508,16 @@ global lexer_char_props
 lexer_char_props:
     %assign i 0
     %rep 256
-        %assign mask 0
-        %if i >= '0' && i <= '9'
-            %assign mask mask | CHAR_IS_DIGIT | CHAR_IS_IDENT_PART | CHAR_IS_HEX
-        %elif (i >= 'a' && i <= 'f') || (i >= 'A' && i <= 'F')
-            %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART | CHAR_IS_HEX
-        %elif (i >= 'g' && i <= 'z') || (i >= 'G' && i <= 'Z') || i == '_' || i == '.'
-            %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART
-        %elif i == ' ' || i == 9 || i == 13
-            %assign mask mask | CHAR_IS_WHITESPACE
-        %endif
+    %assign mask 0
+    %if i >= '0' && i <= '9'
+    %assign mask mask | CHAR_IS_DIGIT | CHAR_IS_IDENT_PART | CHAR_IS_HEX
+    %elif (i >= 'a' && i <= 'f') || (i >= 'A' && i <= 'F')
+    %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART | CHAR_IS_HEX
+    %elif (i >= 'g' && i <= 'z') || (i >= 'G' && i <= 'Z') || i == '_' || i == '.'
+    %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART
+    %elif i == ' ' || i == 9 || i == 13
+    %assign mask mask | CHAR_IS_WHITESPACE
+    %endif
         db mask
-        %assign i i+1
+    %assign i i+1
     %endrep

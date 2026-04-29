@@ -1,10 +1,10 @@
 ;
- ============================================
- File     : src/core/preprocessor.s
- Project  : utasm
- Author   : Utkarsha Lab
- License  : Apache-2.0
- ============================================
+; ============================================
+; File     : src/core/preprocessor.s
+; Project  : utasm
+; Author   : Utkarsha Lab
+; License  : Apache-2.0
+; ============================================
 ;
 
 %include "include/constant.s"
@@ -31,14 +31,14 @@ extern str_cmp
 
 ; ---- prep_init --------------------------
 ;
- prep_init
- Initialises the preprocessor state.
- Input    : rdi = pointer to PrepState
+; prep_init
+; Initialises the preprocessor state.
+; Input    : rdi = pointer to PrepState
             rsi = pointer to initial LexerState
             rdx = pointer to AsmCtx
             rcx = pointer to Arena
- Output   : rax = EXIT_OK
- Clobbers : none
+; Output   : rax = EXIT_OK
+; Clobbers : none
 ;
 global prep_init
 prep_init:
@@ -253,11 +253,11 @@ prep_internal_next:
 
 ; ---- prep_expand_start ------------------
 ;
- prep_expand_start
- Starts expanding a macro.
- Input    : rdi = pointer to PrepState
+; prep_expand_start
+; Starts expanding a macro.
+; Input    : rdi = pointer to PrepState
             rsi = pointer to MACRO struct
- Output   : rax = EXIT_OK or error code
+; Output   : rax = EXIT_OK or error code
 ;
 prep_expand_start:
     push    rbx
@@ -445,12 +445,12 @@ prep_expand_start:
 
 ; ---- prep_expand_next -------------------
 ;
- prep_expand_next
- Serves the next token from the current macro expansion.
- Handles parameter substitution.
- Input    : rdi = pointer to PrepState
+; prep_expand_next
+; Serves the next token from the current macro expansion.
+; Handles parameter substitution.
+; Input    : rdi = pointer to PrepState
             rsi = pointer to Token (destination)
- Output   : rax = 0 (produced token) or non-zero (finished)
+; Output   : rax = 0 (produced token) or non-zero (finished)
 ;
 prep_expand_next:
     push    rbx
@@ -770,12 +770,12 @@ prep_expand_pop:
 
 ; ---- prep_handle_directive --------------
 ;
- prep_handle_directive
- Processes a directive starting with %.
- Input    : rdi = pointer to PrepState
+; prep_handle_directive
+; Processes a directive starting with %.
+; Input    : rdi = pointer to PrepState
             rsi = pointer to % Token
- Output   : rax = EXIT_OK or error code
- Clobbers : ...
+; Output   : rax = EXIT_OK or error code
+; Clobbers : ...
 ;
 prep_handle_directive:
     push    rbx
@@ -935,10 +935,10 @@ prep_handle_directive:
 
 ; ---- prep_handle_inc --------------------
 ;
- prep_handle_inc
- Handles the %include directive.
- Input    : rdi = pointer to PrepState
- Output   : rax = EXIT_OK or error code
+; prep_handle_inc
+; Handles the %include directive.
+; Input    : rdi = pointer to PrepState
+; Output   : rax = EXIT_OK or error code
 ;
 prep_handle_inc:
     push    rbx
@@ -1137,10 +1137,10 @@ msg_include_too_deep: db "maximum include nesting depth exceeded", 0
 
 ; ---- prep_handle_struc ------------------
 ;
- prep_handle_struc
- Handles the %struc directive.
- Input    : rdi = pointer to PrepState
- Output   : rax = EXIT_OK or error code
+; prep_handle_struc
+; Handles the %struc directive.
+; Input    : rdi = pointer to PrepState
+; Output   : rax = EXIT_OK or error code
 ;
 prep_handle_struc:
     push    rbx
@@ -1162,10 +1162,10 @@ prep_handle_struc:
     ret
 ; ---- prep_handle_def --------------------
 ;
- prep_handle_def
- Handles the %define directive.
- Input    : rdi = pointer to PrepState
- Output   : rax = EXIT_OK or error code
+; prep_handle_def
+; Handles the %define directive.
+; Input    : rdi = pointer to PrepState
+; Output   : rax = EXIT_OK or error code
 ;
 prep_handle_def:
     push    rbx
@@ -1244,7 +1244,7 @@ prep_handle_def:
 
 ;*
 ; * [prep_capture_greedy]
- ;
+; ;
 prep_capture_greedy:
     prologue
     push    rbx
@@ -1362,10 +1362,10 @@ prep_capture_greedy:
 
 ; ---- prep_handle_if ---------------------
 ;
- prep_handle_if
- Handles the %if directive by evaluating a mathematical expression.
- Input    : rdi = PrepState
- Output   : rax = EXIT_OK or error
+; prep_handle_if
+; Handles the %if directive by evaluating a mathematical expression.
+; Input    : rdi = PrepState
+; Output   : rax = EXIT_OK or error
 ;
 prep_handle_if:
     prologue
@@ -1411,8 +1411,8 @@ prep_handle_if:
 
 ; ---- prep_handle_ifdef ------------------
 ;
- prep_handle_ifdef
- Handles the %ifdef directive.
+; prep_handle_ifdef
+; Handles the %ifdef directive.
 ;
 prep_handle_ifdef:
     push    rbx
@@ -1561,10 +1561,10 @@ prep_handle_endif:
     ret
 ; ---- macro_handle_def -------------------
 ;
- macro_handle_def
- Handles the %macro directive.
- Input    : rdi = pointer to PrepState
- Output   : rax = EXIT_OK or error code
+; macro_handle_def
+; Handles the %macro directive.
+; Input    : rdi = pointer to PrepState
+; Output   : rax = EXIT_OK or error code
 ;
 macro_handle_def:
     push    rbx
@@ -1775,7 +1775,7 @@ macro_handle_def:
 ;*
 ; * [prep_handle_rep]
 ; * Input: RDI = PrepState
- ;
+; ;
 prep_handle_rep:
     push    rbx
     push    r12

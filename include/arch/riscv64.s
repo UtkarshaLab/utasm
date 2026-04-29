@@ -1,10 +1,10 @@
 ;
- ============================================================================
- File        : include/arch/riscv64.s
- Project     : utasm
- Description : RISC-V 64-bit Architecture Constants and Register IDs.
+; ============================================================================
+; File        : include/arch/riscv64.s
+; Project     : utasm
+; Description : RISC-V 64-bit Architecture Constants and Register IDs.
                Aligned with src/isa/riscv64.s IDs.
- ============================================================================
+; ============================================================================
 ;
 
 ; ---- 64-bit GPRs (x0-x31) ----------------
@@ -138,7 +138,7 @@
 
 ;*
 ; * [def_mnc]
- ;
+; ;
 %macro def_mnc 3
     mnc_ent %1, %2, %3
 %endmacro

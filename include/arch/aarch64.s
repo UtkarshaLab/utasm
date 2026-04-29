@@ -1,10 +1,10 @@
 ;
- ============================================================================
- File        : include/arch/aarch64.s
- Project     : utasm
- Description : AArch64 Architecture Constants and Register IDs.
+; ============================================================================
+; File        : include/arch/aarch64.s
+; Project     : utasm
+; Description : AArch64 Architecture Constants and Register IDs.
                Aligned with src/isa/aarch64.s IDs.
- ============================================================================
+; ============================================================================
 ;
 
 ; ---- 64-bit GPRs (X0-X30, XZR) -----------
@@ -85,7 +85,7 @@
 ;*
 ; * [def_mnc]
 ; * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
- ;
+; ;
 %macro def_mnc 3
     mnemonic_entry %1, %2, %3
 %endmacro
