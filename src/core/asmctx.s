@@ -174,7 +174,11 @@ asm_ctx_create_section:
     jmp     .done
 
 .done_error:
-    // we should probably unmap the buffer here if it was allocated
+    // A97: Unmap the buffer to prevent memory leak on overflow
+    mov     rdi, [r14 + SECTION_data]
+    mov     rsi, [r14 + SECTION_cap]
+    extern  io_munmap
+    call    io_munmap
     mov     rax, EXIT_SECTION_OVERLAP
     
     pop     r14
