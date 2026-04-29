@@ -384,7 +384,13 @@ asm_ctx_align:
     test    rax, r12               // (n & (n-1)) == 0
     jnz     .done
     
-    // 2. Calculate padding
+    // 2. Update Section-wide maximum alignment (A85)
+    cmp     r12, [r13 + SECTION_align]
+    jbe     .calc_padding
+    mov     [r13 + SECTION_align], r12
+    
+.calc_padding:
+    // 3. Calculate padding
     mov     rax, [r13 + SECTION_size]
     mov     rcx, r12
     dec     rcx                    // mask = align - 1
