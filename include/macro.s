@@ -304,10 +304,39 @@
         cmp     %1, %3
         %define %%cond %2
     %endif
-    %if %%cond == == || %%cond == =
+    
+    %ifidn %%cond, ==
         jne %$else_label
-    %elif %%cond == != || %%cond == <>
+    %elifidn %%cond, =
+        jne %$else_label
+    %elifidn %%cond, !=
         je  %$else_label
+    %elifidn %%cond, <>
+        je  %$else_label
+    %elifidn %%cond, e
+        jne %$else_label
+    %elifidn %%cond, ne
+        je  %$else_label
+    %elifidn %%cond, g
+        jng %$else_label
+    %elifidn %%cond, ge
+        jnge %$else_label
+    %elifidn %%cond, l
+        jnl %$else_label
+    %elifidn %%cond, le
+        jnle %$else_label
+    %elifidn %%cond, a
+        jna %$else_label
+    %elifidn %%cond, ae
+        jnae %$else_label
+    %elifidn %%cond, b
+        jnb %$else_label
+    %elifidn %%cond, be
+        jnbe %$else_label
+    %elifidn %%cond, z
+        jnz %$else_label
+    %elifidn %%cond, nz
+        jz %$else_label
     %else
         jn%+%%cond %$else_label
     %endif
@@ -332,10 +361,39 @@
             cmp     %1, %3
             %define %%cond %2
         %endif
-        %if %%cond == == || %%cond == =
+
+        %ifidn %%cond, ==
             jne %$else_label
-        %elif %%cond == != || %%cond == <>
+        %elifidn %%cond, =
+            jne %$else_label
+        %elifidn %%cond, !=
             je  %$else_label
+        %elifidn %%cond, <>
+            je  %$else_label
+        %elifidn %%cond, e
+            jne %$else_label
+        %elifidn %%cond, ne
+            je  %$else_label
+        %elifidn %%cond, g
+            jng %$else_label
+        %elifidn %%cond, ge
+            jnge %$else_label
+        %elifidn %%cond, l
+            jnl %$else_label
+        %elifidn %%cond, le
+            jnle %$else_label
+        %elifidn %%cond, a
+            jna %$else_label
+        %elifidn %%cond, ae
+            jnae %$else_label
+        %elifidn %%cond, b
+            jnb %$else_label
+        %elifidn %%cond, be
+            jnbe %$else_label
+        %elifidn %%cond, z
+            jnz %$else_label
+        %elifidn %%cond, nz
+            jz %$else_label
         %else
             jn%+%%cond %$else_label
         %endif
@@ -382,10 +440,39 @@
         cmp     %1, %3
         %define %%cond %2
     %endif
-    %if %%cond == == || %%cond == =
+
+    %ifidn %%cond, ==
         jne %$loop_end
-    %elif %%cond == != || %%cond == <>
+    %elifidn %%cond, =
+        jne %$loop_end
+    %elifidn %%cond, !=
         je  %$loop_end
+    %elifidn %%cond, <>
+        je  %$loop_end
+    %elifidn %%cond, e
+        jne %$loop_end
+    %elifidn %%cond, ne
+        je  %$loop_end
+    %elifidn %%cond, g
+        jng %$loop_end
+    %elifidn %%cond, ge
+        jnge %$loop_end
+    %elifidn %%cond, l
+        jnl %$loop_end
+    %elifidn %%cond, le
+        jnle %$loop_end
+    %elifidn %%cond, a
+        jna %$loop_end
+    %elifidn %%cond, ae
+        jnae %$loop_end
+    %elifidn %%cond, b
+        jnb %$loop_end
+    %elifidn %%cond, be
+        jnbe %$loop_end
+    %elifidn %%cond, z
+        jnz %$loop_end
+    %elifidn %%cond, nz
+        jz %$loop_end
     %else
         jn%+%%cond %$loop_end
     %endif
