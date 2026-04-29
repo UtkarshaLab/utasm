@@ -299,7 +299,7 @@
 ; ;
 %macro IF 3-4
     %push   if
-    %assign %$else_defined 0
+    %assign %$else_idx 0
     %if %0 == 4
         cmp     %1, %4
     %else
@@ -307,48 +307,47 @@
     %endif
 
     %ifidni %2, ==
-        jne %$else
+        jne %$else_%+$else_idx
     %elifidni %2, =
-        jne %$else
+        jne %$else_%+$else_idx
     %elifidni %2, !=
-        je  %$else
+        je  %$else_%+$else_idx
     %elifidni %2, <>
-        je  %$else
+        je  %$else_%+$else_idx
     %elifidni %2, e
-        jne %$else
+        jne %$else_%+$else_idx
     %elifidni %2, ne
-        je  %$else
+        je  %$else_%+$else_idx
     %elifidni %2, g
-        jng %$else
+        jng %$else_%+$else_idx
     %elifidni %2, ge
-        jnge %$else
+        jnge %$else_%+$else_idx
     %elifidni %2, l
-        jnl %$else
+        jnl %$else_%+$else_idx
     %elifidni %2, le
-        jnle %$else
+        jnle %$else_%+$else_idx
     %elifidni %2, a
-        jna %$else
+        jna %$else_%+$else_idx
     %elifidni %2, ae
-        jnae %$else
+        jnae %$else_%+$else_idx
     %elifidni %2, b
-        jnb %$else
+        jnb %$else_%+$else_idx
     %elifidni %2, be
-        jnbe %$else
+        jnbe %$else_%+$else_idx
     %elifidni %2, z
-        jnz %$else
+        jnz %$else_%+$else_idx
     %elifidni %2, nz
-        jz %$else
+        jz %$else_%+$else_idx
     %else
-        jn%+ %2 %$else
+        jn%+ %2 %$else_%+$else_idx
     %endif
 %endmacro
 
 %macro ELSEIF 3-4
-    %ifctx if, elseif
+    %ifctx if
         jmp %$endif
-        %$else:
-        %push   elseif
-        %assign %$else_defined 0
+        %$else_%+$else_idx:
+        %assign %$else_idx %$else_idx + 1
         %if %0 == 4
             cmp     %1, %4
         %else
@@ -356,39 +355,39 @@
         %endif
         
         %ifidni %2, ==
-            jne %$else
+            jne %$else_%+$else_idx
         %elifidni %2, =
-            jne %$else
+            jne %$else_%+$else_idx
         %elifidni %2, !=
-            je  %$else
+            je  %$else_%+$else_idx
         %elifidni %2, <>
-            je  %$else
+            je  %$else_%+$else_idx
         %elifidni %2, e
-            jne %$else
+            jne %$else_%+$else_idx
         %elifidni %2, ne
-            je  %$else
+            je  %$else_%+$else_idx
         %elifidni %2, g
-            jng %$else
+            jng %$else_%+$else_idx
         %elifidni %2, ge
-            jnge %$else
+            jnge %$else_%+$else_idx
         %elifidni %2, l
-            jnl %$else
+            jnl %$else_%+$else_idx
         %elifidni %2, le
-            jnle %$else
+            jnle %$else_%+$else_idx
         %elifidni %2, a
-            jna %$else
+            jna %$else_%+$else_idx
         %elifidni %2, ae
-            jnae %$else
+            jnae %$else_%+$else_idx
         %elifidni %2, b
-            jnb %$else
+            jnb %$else_%+$else_idx
         %elifidni %2, be
-            jnbe %$else
+            jnbe %$else_%+$else_idx
         %elifidni %2, z
-            jnz %$else
+            jnz %$else_%+$else_idx
         %elifidni %2, nz
-            jz %$else
+            jz %$else_%+$else_idx
         %else
-            jn%+ %2 %$else
+            jn%+ %2 %$else_%+$else_idx
         %endif
     %else
         %error "ELSEIF without IF"
@@ -396,29 +395,20 @@
 %endmacro
 
 %macro ELSE 0
-    %ifctx if, elseif
+    %ifctx if
         jmp %$endif
-        %$else:
-        %push   else
+        %$else_%+$else_idx:
+        %assign %$else_idx %$else_idx + 1
     %else
         %error "ELSE without IF"
     %endif
 %endmacro
 
 %macro ENDIF 0
-    %rep 128
-        %ifctx elseif, else
-            %$else:
-            %pop
-        %else
-            %exitrep
-        %endif
-    %endrep
-    
     %ifctx if
-        %$else:
+        %$else_%+$else_idx:
         %$endif:
-        %pop
+        %pop    if
     %else
         %error "ENDIF without IF"
     %endif
