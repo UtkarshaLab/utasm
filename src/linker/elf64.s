@@ -249,11 +249,23 @@ elf64_resolve_entry:
         mov     r13, [r14 + r11 * 8] // SECTION*
         add     rax, [r13 + SECTION_addr]
         
+        // A94: Architectural Validation - Entry must be in Executable section
+        movzx   ecx, word [r13 + SECTION_flags]
+        test    ecx, SHF_EXECINSTR
+        jz      .error_non_exec
+        
         mov     [r12 + ASMCTX_entry_point], rax
         xor     rax, rax
+        jmp     .done
     ELSE
         mov     rax, EXIT_UNDEF_REF
+        jmp     .done
     ENDIF
+
+.error_non_exec:
+    mov     rax, EXIT_ENCODE_FAIL   // Better error code for "entry not executable"
+
+.done:
     
     pop     r14
     pop     r13
