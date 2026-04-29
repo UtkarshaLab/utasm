@@ -1413,20 +1413,22 @@ lexer_expect:
     push    r12
     push    r13
 
-    mov     r13, rdx               // save expected kind
+    mov     r12, rdi               // R12 = LexerState
+    mov     r13, rdx               // R13 = expected kind
 
     call    lexer_next
     test    rax, rax
     jnz     .fail
 
     // check kind matches
+    // RDX = pointer to returned token
     movzx   rcx, byte [rdx + TOKEN_kind]
     cmp     rcx, r13
     je      .match
 
     // mismatch — emit error
-    mov     rbx, rdx               // save token for error reporting
-    mov     rdi, [rdi + LEXER_ctx]
+    mov     rbx, rdx               // RBX = Token pointer
+    mov     rdi, [r12 + LEXER_ctx]
     mov     rsi, [rbx + TOKEN_file]
     mov     edx, dword [rbx + TOKEN_line]
     movzx   rcx, word  [rbx + TOKEN_col]

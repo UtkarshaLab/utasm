@@ -983,7 +983,7 @@ prep_handle_inc:
     extern  str_find_str
     call    str_find_str
     test    rax, rax
-    jz      .path_traversal_error
+    jnz     .path_traversal_error  // A100.4: Corrected (jnz means found)
 
     // 2. Open the file
     mov     rdi, [r12 + TOKEN_value]
@@ -1065,16 +1065,14 @@ prep_handle_inc:
     jmp     .done
 
 .error_too_deep:
+    mov     rdx, [rbx + PREP_lexer]
     mov     rdi, [rbx + PREP_ctx]
-    mov     rsi, [rbx + PREP_lexer]
-    mov     rsi, [rsi + LEXER_file]
-    mov     edx, dword [rbx + PREP_lexer]
-    mov     edx, dword [rdx + LEXER_line]
-    movzx   rcx, word [rbx + PREP_lexer]
-    movzx   rcx, word [rcx + LEXER_col]
+    mov     rsi, [rdx + LEXER_file]
+    mov     ecx, [rdx + LEXER_col]
+    mov     edx, [rdx + LEXER_line]
     lea     r8,  [msg_include_too_deep]
     call    error_emit
-    mov     rax, EXIT_MACRO_RECURSION // reuse recursion exit code
+    mov     rax, EXIT_MACRO_RECURSION
     jmp     .done
 
 .error_open:
@@ -1100,12 +1098,10 @@ prep_handle_inc:
 .path_traversal_error:
     pop     rax                    // A100.3: Restore stack hygiene (depth counter)
     mov     rdi, [rbx + PREP_ctx]
-    mov     rsi, [rbx + PREP_lexer]
-    mov     rsi, [rsi + LEXER_file]
-    mov     edx, dword [rbx + PREP_lexer]
-    mov     edx, dword [rdx + LEXER_line]
-    movzx   rcx, word [rbx + PREP_lexer]
-    movzx   rcx, word [rcx + LEXER_col]
+    mov     r9, [rbx + PREP_lexer]
+    mov     rsi, [r9 + LEXER_file]
+    mov     edx, [r9 + LEXER_line]
+    mov     ecx, [r9 + LEXER_col]
     lea     r8,  [msg_path_traversal]
     extern  error_emit
     call    error_emit

@@ -147,10 +147,11 @@ parser_parse_instruction:
         jmp     .error
     ENDIF
     
+    mov     r13, rdx                // A100.5: Preserve operand pointer (RDX) before mul
     mov     rax, OPERAND_SIZE
     mul     r14
     lea     rdi, [r15 + INST_op0 + rax]
-    mov     rsi, rdx
+    mov     rsi, r13                // Restore preserved pointer
     mov     rcx, OPERAND_SIZE
     rep     movsb
     
