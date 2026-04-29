@@ -346,12 +346,8 @@
     %ifctx if
         jmp     %$endif
         %$else:
-        %rep 1
-            %assign %%old_depth %$if_depth
-            %pop    if
-            %push   if
-            %assign %$if_depth %%old_depth
-        %endrep
+        %pop    if
+        %push   if
         %if %0 == 4
             cmp     %1, %4
         %else
