@@ -202,5 +202,54 @@ archive_gen_index:
     pop     rbx
     epilogue
 
+/**
+ * [archive_gen_strtab]
+ * Purpose: Generates the long filename string table member ('//').
+ * Input:
+ *   RDI: Output Buffer
+ *   RSI: Pointer to long names table
+ *   RDX: Size of long names table
+ * Output:
+ *   RAX: Total size of member
+ */
+global archive_gen_strtab
+archive_gen_strtab:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi
+    mov     r12, rsi               // table
+    mov     r13, rdx               // size
+    
+    // 1. Header
+    mov     rdi, rbx
+    lea     rsi, [str_ar_strtab]
+    mov     rdx, r13
+    call    archive_gen_header
+    
+    // 2. Data
+    lea     rdi, [rbx + AR_HDR_SIZE]
+    mov     rsi, r12
+    mov     rcx, r13
+    rep movsb
+    
+    mov     rax, r13
+    add     rax, AR_HDR_SIZE
+    
+    // 3. Padding
+    test    al, 1
+    JZ      .done
+    mov     byte [rdi], 0x0A
+    inc     rax
+    
+.done:
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
 [SECTION .rodata]
 str_ar_symtab: db "/", 0
+str_ar_strtab: db "//", 0
