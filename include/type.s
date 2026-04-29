@@ -190,7 +190,7 @@ struc ASMCTX
     field perf_end,    8       // RDTSC end cycles
     field symhash,     8       // pointer to symbol hash table (64k entries)
     field expr_depth,  4       // expression recursion depth sentinel
-    field pad2,        4       // alignment padding
+    field mac_exp_id,  4       // global macro expansion counter (A70)
 endstruc
 
 // ============================================================================

@@ -1014,6 +1014,46 @@ lexer_next:
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
 
+    // Check for macro-local label %% (A70)
+    mov     r10, [rbx + LEXER_pos]
+    cmp     r10, [rbx + LEXER_end]
+    jge     .lex_directive_standard
+    movzx   rdi, byte [r10]
+    cmp     dil, '%'
+    jne     .lex_directive_standard
+    
+    // It's %%
+    inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
+    mov     r13, [rbx + LEXER_pos] // start of identifier
+    
+.lex_macro_local_loop:
+    mov     r10, [rbx + LEXER_pos]
+    cmp     r10, [rbx + LEXER_end]
+    jge     .lex_macro_local_done
+    movzx   rdi, byte [r10]
+    call    str_is_ident_char
+    cmp     rax, TRUE
+    jne     .lex_macro_local_done
+    inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
+    jmp     .lex_macro_local_loop
+
+.lex_macro_local_done:
+    mov     r10, [rbx + LEXER_pos]
+    sub     r10, r13               // length
+    mov     rdi, [rbx + LEXER_arena]
+    mov     rsi, r13
+    mov     rdx, r10
+    call    arena_alloc_string
+    mov     byte [r12 + TOKEN_kind], TOK_MACRO_LOCAL
+    mov     [r12 + TOKEN_value], rdx
+    mov     word [r12 + TOKEN_len], r10w
+    xor     rax, rax
+    mov     rdx, r12
+    jmp     .done
+
+.lex_directive_standard:
     mov     r13, [rbx + LEXER_pos] // start of directive name
 
     // Check for braced directive %{...} (A69)

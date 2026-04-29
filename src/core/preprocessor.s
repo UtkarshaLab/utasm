@@ -285,6 +285,9 @@ prep_expand_start:
     jmp     .error
 
 .depth_ok:
+    // Increment global expansion ID (A70)
+    mov     r8, [rbx + PREP_ctx]
+    inc     dword [r8 + ASMCTX_mac_exp_id]
 
     // 1. Allocate MACROEXP struct
     mov     rdi, [rbx + PREP_arena]
@@ -623,6 +626,56 @@ prep_expand_next:
                 jmp     .produced
             ENDIF
         ENDIF
+    ENDIF
+
+                jmp     .produced
+            ENDIF
+        ENDIF
+    ENDIF
+
+    // CASE 4: Macro Local Label %% (A70)
+    IF byte [r12 + TOKEN_kind], e, TOK_MACRO_LOCAL
+        // Expand to ..@ID_label
+        mov     r8, [rbx + PREP_ctx]
+        movzx   r14, dword [r8 + ASMCTX_mac_exp_id]
+        
+        // 1. Allocate buffer for ID string
+        mov     rdi, [rbx + PREP_arena]
+        mov     rsi, 32
+        call    arena_alloc
+        test    rax, rax
+        jnz     .produced
+        mov     r15, rdx               // r15 = ID string buffer
+        
+        mov     rdi, r15
+        mov     rsi, r14               // value
+        extern  str_int_to_str
+        call    str_int_to_str
+        
+        // 2. Allocate final label buffer
+        mov     rdi, [rbx + PREP_arena]
+        mov     rsi, MAX_TOKEN
+        call    arena_alloc
+        test    rax, rax
+        jnz     .produced
+        mov     r14, rdx               // r14 = final label buffer
+        
+        // 3. Construct "..@ID_label"
+        mov     byte [r14], '.'
+        mov     byte [r14+1], '.'
+        mov     byte [r14+2], '@'
+        
+        mov     rdi, r14
+        add     rdi, 3                 // skip "..@"
+        mov     rsi, r15               // ID string
+        mov     rdx, [r12 + TOKEN_value] // original label name
+        extern  str_concat
+        call    str_concat
+        
+        // Update token
+        mov     byte [r12 + TOKEN_kind], TOK_IDENT
+        mov     [r12 + TOKEN_value], r14
+        jmp     .produced
     ENDIF
 
 .produced:
