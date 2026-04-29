@@ -561,7 +561,7 @@ str_to_int:
     // check for 0x, 0b, 0o prefix
     mov     al, byte [rdi]
     cmp     al, '0'
-    jne     .parse_loop
+    jne     .check_suffix
     mov     al, byte [rdi + 1]
     cmp     al, 'x'
     je      .set_hex
@@ -575,7 +575,7 @@ str_to_int:
     je      .set_oct
     cmp     al, 'O'
     je      .set_oct
-    jmp     .parse_loop
+    jmp     .check_suffix
 
 .set_hex:
     mov     r12, 16
@@ -590,10 +590,87 @@ str_to_int:
 .set_oct:
     mov     r12, 8
     add     rdi, 2
+    jmp     .parse_loop
+
+.check_suffix:
+    // Check for trailing radix markers (h, b, o, d)
+    push    rdi
+    extern  str_len
+    call    str_len
+    pop     rdi
+    test    rax, rax
+    jz      .parse_loop
+    
+    // r8 = length, r9 = last char
+    mov     r8, rax
+    movzx   r9, byte [rdi + r8 - 1]
+    
+    // Hex: h, H
+    cmp     r9, 'h'
+    je      .found_hex_suffix
+    cmp     r9, 'H'
+    je      .found_hex_suffix
+    
+    // Bin: b, B
+    cmp     r9, 'b'
+    je      .found_bin_suffix
+    cmp     r9, 'B'
+    je      .found_bin_suffix
+    
+    // Oct: o, O, q, Q
+    cmp     r9, 'o'
+    je      .found_oct_suffix
+    cmp     r9, 'O'
+    je      .found_oct_suffix
+    cmp     r9, 'q'
+    je      .found_oct_suffix
+    cmp     r9, 'Q'
+    je      .found_oct_suffix
+    
+    // Dec: d, D
+    cmp     r9, 'd'
+    je      .found_dec_suffix
+    cmp     r9, 'D'
+    je      .found_dec_suffix
+    
+    jmp     .parse_loop
+
+.found_hex_suffix:
+    mov     r12, 16
+    dec     r8                     // ignore suffix in loop
+    jmp     .parse_loop_limit
+
+.found_bin_suffix:
+    mov     r12, 2
+    dec     r8
+    jmp     .parse_loop_limit
+
+.found_oct_suffix:
+    mov     r12, 8
+    dec     r8
+    jmp     .parse_loop_limit
+
+.found_dec_suffix:
+    mov     r12, 10
+    dec     r8
+    jmp     .parse_loop_limit
 
 .parse_loop:
-    mov     al, byte [rdi]
-    test    al, al                 // null terminator?
+    // Use full length if no suffix
+    push    rdi
+    extern  str_len
+    call    str_len
+    pop     rdi
+    mov     r8, rax
+
+.parse_loop_limit:
+    xor     r10, r10               // i = 0
+.loop:
+    cmp     r10, r8
+    jge     .apply_sign
+    
+    movzx   rax, byte [rdi + r10]
+    test    al, al
     jz      .apply_sign
 
     // convert char to digit value
@@ -625,8 +702,8 @@ str_to_int:
 
 .validate_digit:
     // digit must be < base
-    movzx   rcx, al
-    cmp     rcx, r12
+    movzx   r9, al
+    cmp     r9, r12
     jge     .invalid
 
     // result = result * base + digit
@@ -634,11 +711,11 @@ str_to_int:
     mul     r12
     test    rdx, rdx
     jnz     .overflow
-    add     rax, rcx
+    add     rax, r9
     jc      .overflow
     mov     rbx, rax
-    inc     rdi
-    jmp     .parse_loop
+    inc     r10
+    jmp     .loop
 
 .overflow:
     mov     rax, EXIT_INVALID_IMM
