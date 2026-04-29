@@ -32,18 +32,23 @@ amd64_encode_instruction:
     // Reset length counter
     mov     dword [rbx + ASMCTX_inst_len], 0
     
-    // 0. VALIDATION: Check operand size consistency
-    cmp     byte [r12 + INST_nops], 2
-    jl      .no_size_check
-    lea     r10, [r12 + INST_op0]
-    lea     r11, [r12 + INST_op1]
-    mov     al, [r10 + OPERAND_size]
-    mov     ah, [r11 + OPERAND_size]
-    IF al, ne, ah
-        // Immediate and Symbol can have different sizes (resolved during emission)
-        IF byte [r11 + OPERAND_kind], ne, OP_IMM
-            IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
-                jmp .error
+    // 0. VALIDATION: Check operand size consistency (A87: Hardened)
+    movzx   ecx, byte [r12 + INST_nops]
+    IF ecx, ge, 2
+        lea     r10, [r12 + INST_op0]
+        lea     r11, [r12 + INST_op1]
+        mov     al, [r10 + OPERAND_size]
+        mov     ah, [r11 + OPERAND_size]
+        
+        // If both have explicit sizes, they must match
+        IF al, ne, 0 | IF ah, ne, 0
+            IF al, ne, ah
+                // Exceptions: Immediate/Symbol can vary
+                IF byte [r11 + OPERAND_kind], ne, OP_IMM
+                IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
+                    jmp .error
+                ENDIF
+                ENDIF
             ENDIF
         ENDIF
     ENDIF

@@ -39,6 +39,25 @@ riscv64_encode_instruction:
     // Reset length counter (RISC-V 32-bit instructions)
     mov     dword [rbx + ASMCTX_inst_len], 4
 
+    // 0. VALIDATION: Check operand size consistency (A87: Hardened)
+    movzx   ecx, byte [r12 + INST_nops]
+    IF ecx, ge, 2
+        lea     r10, [r12 + INST_op0]
+        lea     r11, [r12 + INST_op1]
+        mov     al, [r10 + OPERAND_size]
+        mov     ah, [r11 + OPERAND_size]
+        IF al, ne, 0 | IF ah, ne, 0
+            IF al, ne, ah
+                // Exceptions: Immediate/Symbol can vary
+                IF byte [r11 + OPERAND_kind], ne, OP_IMM
+                IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
+                    mov rax, EXIT_INVALID_OPERAND | jmp .done
+                ENDIF
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDIF
+
     movzx   eax, word [r12 + INST_op_id]
 
     // ---- R-Type (Arithmetic) ----
