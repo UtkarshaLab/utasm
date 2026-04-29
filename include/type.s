@@ -75,7 +75,9 @@ struc SECTION
     field addr,     8       // virtual address
     field align,    8       // required alignment
     field index,    4       // ELF section index
-    field pad1,     4       // alignment padding
+    field group_flags, 4    // GRP_COMDAT
+    field group_sig,   8    // pointer to signature SYMBOL
+    field pad1,        8    // maintain 16-byte alignment
 endstruc
 
 // ============================================================================
@@ -163,6 +165,7 @@ struc ASMCTX
     field pad0,         4       // alignment padding
     field sections,    8       // pointer to section array
     field seccount,    4       // section count
+    field group_count, 4       // section group count
     field relocs,      8       // pointer to relocation array
     field nrelocs,     4       // relocation count
     field inst_len,    4       // current instruction length (0-15)

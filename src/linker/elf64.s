@@ -86,6 +86,10 @@ elf64_emit:
     call    elf64_write_data_section
     check_err
 
+    // ---- 4.5 Write Section Groups (A57) ----
+    call    elf64_write_groups
+    check_err
+
     // ---- 5. Write Metadata sections ----
     call    elf64_prepare_strtab
     check_err
@@ -313,14 +317,16 @@ elf64_write_ehdr:
     // e_shoff will be patched after all sections are written
     // e_shnum and e_shstrndx
     movzx   eax, word [r12 + ASMCTX_seccount]
+    add     eax, [r12 + ASMCTX_group_count]
     add     eax, 4                 // NULL + symtab + strtab + shstrtab
     IF dword [r12 + ASMCTX_reloccount], ne, 0
         inc     eax                // .rela.text
     ENDIF
     mov     word  [r14 + EHDR_SHNUM], ax
     
-    // .shstrtab index is 1 + seccount + 2 (symtab, strtab)
+    // .shstrtab index is 1 + seccount + group_count + 2 (symtab, strtab)
     movzx   ecx, word [r12 + ASMCTX_seccount]
+    add     ecx, [r12 + ASMCTX_group_count]
     add     ecx, 3                 // 0:NULL, 1..N:User, N+1:sym, N+2:str, N+3:shstr
     mov     word  [r14 + EHDR_SHSTRNDX], cx
 
@@ -756,6 +762,121 @@ elf64_write_strtab:
     pop     rbx
     epilogue
 
+/**
+ * [elf64_write_groups]
+ * Purpose: Emits SHT_GROUP data for each unique section group.
+ */
+elf64_write_groups:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    
+    mov     r12, rdi               // AsmCtx
+    mov     r13d, esi              // fd
+    
+    // We need to iterate over UNIQUE groups.
+    // A group is unique if its signature symbol hasn't been processed yet.
+    // We'll use a temporary array on the stack to track processed signatures.
+    movzx   eax, word [r12 + ASMCTX_seccount]
+    shl     rax, 3                 // 8 bytes per pointer
+    sub     rsp, rax
+    mov     r14, rsp               // r14 = processed_sigs array
+    
+    mov     rdi, r14
+    mov     rsi, rax
+    call    mem_zero
+    
+    xor     r15, r15               // n_processed = 0
+    
+    xor     rbx, rbx               // i = 0
+.outer_loop:
+    cmp     bx, [r12 + ASMCTX_seccount]
+    jge     .done
+    
+    mov     rax, [r12 + ASMCTX_sections]
+    mov     r10, [rax + rbx * 8]   // r10 = SECTION*
+    
+    test    word [r10 + SECTION_flags], SHF_GROUP
+    jz      .next_outer
+    
+    mov     r11, [r10 + SECTION_group_sig]
+    test    r11, r11
+    jz      .next_outer
+    
+    // Check if r11 is in processed_sigs
+    xor     rcx, rcx
+.sig_check:
+    cmp     rcx, r15
+    jge     .new_group
+    cmp     [r14 + rcx * 8], r11
+    je      .next_outer
+    inc     rcx
+    jmp     .sig_check
+    
+.new_group:
+    // Mark as processed
+    mov     [r14 + r15 * 8], r11
+    inc     r15
+    
+    // Emit group data: [flags, idx1, idx2, ...]
+    // 1. GRP_COMDAT flag (always first word)
+    sub     rsp, 4
+    mov     eax, [r10 + SECTION_group_flags]
+    mov     [rsp], eax
+    mov     rdi, r13d
+    mov     rsi, rsp
+    mov     rdx, 4
+    call    io_write
+    add     rsp, 4
+    check_err
+    
+    // 2. Member section indices
+    xor     rcx, rcx               // j = 0
+.member_loop:
+    cmp     cx, [r12 + ASMCTX_seccount]
+    jge     .next_outer
+    
+    mov     rax, [r12 + ASMCTX_sections]
+    mov     r8, [rax + rcx * 8]    // r8 = member SECTION*
+    
+    cmp     [r8 + SECTION_group_sig], r11
+    jne     .next_member
+    
+    // Member found! Index is j + 1 (0 is NULL)
+    sub     rsp, 4
+    lea     eax, [ecx + 1]
+    mov     [rsp], eax
+    mov     rdi, r13d
+    mov     rsi, rsp
+    mov     rdx, 4
+    call    io_write
+    add     rsp, 4
+    check_err
+    
+.next_member:
+    inc     ecx
+    jmp     .member_loop
+
+.next_outer:
+    inc     rbx
+    jmp     .outer_loop
+
+.done:
+    movzx   eax, word [r12 + ASMCTX_seccount]
+    shl     rax, 3
+    add     rsp, rax
+    
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    xor     rax, rax
+    epilogue
+
 // ============================================================================
 // elf64_write_shstrtab
 // ============================================================================
@@ -936,30 +1057,108 @@ elf64_write_shdrs:
     jmp     .sec_loop
     
 .sec_done:
-    // 3. .symtab [1 + seccount]
+    // 2.5 Iterate Groups (A57)
+    // We need to emit a SHT_GROUP header for each unique group.
+    // Use the same unique-sig collection logic on the stack.
+    push    r11                    // Save current file offset
+    movzx   eax, word [rbx + ASMCTX_seccount]
+    shl     rax, 3
+    sub     rsp, rax
+    mov     r14, rsp               // r14 = processed_sigs array
+    mov     rdi, r14 | mov rsi, rax | call mem_zero
+    xor     r15, r15               // n_processed = 0
+    pop     r11                    // r11 = offset before groups
+    
+    xor     rcx, rcx               // i = 0
+.group_loop:
+    cmp     cx, [rbx + ASMCTX_seccount]
+    jge     .groups_done
+    
+    mov     rax, [rbx + ASMCTX_sections]
+    mov     r10, [rax + rcx * 8]   // r10 = SECTION*
+    test    word [r10 + SECTION_flags], SHF_GROUP | jz .next_group_header
+    mov     r8, [r10 + SECTION_group_sig] | test r8, r8 | jz .next_group_header
+    
+    // De-duplicate
+    xor     rdx, rdx
+.sig_check_shdr:
+    cmp     rdx, r15 | jge .new_group_shdr
+    cmp     [r14 + rdx * 8], r8 | je .next_group_header
+    inc     rdx | jmp .sig_check_shdr
+    
+.new_group_shdr:
+    mov     [r14 + r15 * 8], r8
+    inc     r15
+    
+    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     dword [rsp + SHDR_NAME], 55    // ".group"
+    mov     dword [rsp + SHDR_TYPE], 17    // SHT_GROUP
+    mov     qword [rsp + SHDR_OFFSET], r11
+    
+    // Info = symbol index of signature
+    mov     eax, [r8 + SYMBOL_elf_idx]
+    mov     dword [rsp + SHDR_INFO], eax
+    
+    // Link = .symtab index
+    movzx   eax, word [rbx + ASMCTX_seccount]
+    add     eax, [rbx + ASMCTX_group_count]
+    inc     eax                    // NULL + User + Groups + SYMTAB
+    mov     dword [rsp + SHDR_LINK], eax
+    
+    mov     qword [rsp + SHDR_ADDRALIGN], 4
+    mov     qword [rsp + SHDR_ENTSIZE], 4
+    
+    // Size = 4 * (1 + num_members)
+    mov     r9, 4                  // start with GRP_COMDAT word
+    xor     rdx, rdx               // j = 0
+.count_members:
+    cmp     dx, [rbx + ASMCTX_seccount] | jge .emit_group_shdr
+    mov     rax, [rbx + ASMCTX_sections]
+    mov     rax, [rax + rdx * 8]
+    cmp     [rax + SECTION_group_sig], r8 | jne .next_count
+    add     r9, 4
+.next_count:
+    inc     rdx | jmp .count_members
+    
+.emit_group_shdr:
+    mov     qword [rsp + SHDR_SIZE], r9
+    add     r11, r9                // Advance offset for next group
+    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    
+.next_group_header:
+    inc     rcx | jmp .group_loop
+
+.groups_done:
+    movzx   eax, word [rbx + ASMCTX_seccount]
+    shl     rax, 3
+    add     rsp, rax               // Clean up processed_sigs
+
+    // 3. .symtab
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
     mov     dword [rsp + SHDR_NAME], 18    // ".symtab"
     mov     dword [rsp + SHDR_TYPE], 2     // SHT_SYMTAB
     mov     qword [rsp + SHDR_ENTSIZE], 24 // sizeof(Elf64_Sym)
-    // ... offset/size calculation would go here ...
+    // Link = .strtab index
+    movzx   eax, word [rbx + ASMCTX_seccount]
+    add     eax, [rbx + ASMCTX_group_count]
+    add     eax, 2                 // NULL + User + Groups + SYMTAB + STRTAB
+    mov     dword [rsp + SHDR_LINK], eax
+    // ... remaining shdr fields ...
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
 
-    // 4. .strtab [2 + seccount]
+    // 4. .strtab
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
     mov     dword [rsp + SHDR_NAME], 26    // ".strtab"
     mov     dword [rsp + SHDR_TYPE], 3     // SHT_STRTAB
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
 
-    // 5. .shstrtab [3 + seccount]
+    // 5. .shstrtab
     mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
     mov     dword [rsp + SHDR_NAME], 34    // ".shstrtab"
     mov     dword [rsp + SHDR_TYPE], 3     // SHT_STRTAB
     mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     rbx
+    
+    pop     r15 | pop     r14 | pop     r13 | pop     r12 | pop     rbx
     epilogue
 
 // ============================================================================
@@ -976,5 +1175,6 @@ shstrtab_data:
     db ".strtab", 0     // [26]
     db ".shstrtab", 0   // [34]
     db ".rela.text", 0  // [44]
+    db ".group", 0      // [55]
 shstrtab_end:
 %def shstrtab_size (shstrtab_end - shstrtab_data)

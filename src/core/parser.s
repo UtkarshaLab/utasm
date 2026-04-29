@@ -1443,6 +1443,78 @@ parser_handle_section_directive:
             jmp     .flag_loop
         .flag_done:
             mov     [r13 + SECTION_flags], ax
+            
+            // 3.1 Handle Group Signature if 'G' flag is set
+            test    ax, SHF_GROUP
+            jz      .no_group
+            
+            // Expect comma, then signature name
+            call    preprocessor_next_token
+            IF byte [rdx + TOKEN_kind], ne, TOK_COMMA
+                mov rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+            ENDIF
+            call    preprocessor_next_token
+            IF byte [rdx + TOKEN_kind], ne, TOK_IDENT
+                mov rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+            ENDIF
+            
+            mov     r14, rdx               // r14 = signature token
+            mov     rdi, [rbx + PREP_ctx]
+            mov     rsi, [r14 + TOKEN_value]
+            extern  symbol_find
+            call    symbol_find
+            IF rax, ne, OK
+                // Create UNDEF symbol as signature
+                mov     rdi, [rbx + PREP_ctx]
+                mov     rsi, [r14 + TOKEN_value]
+                xor     rdx, rdx
+                mov     cl, VIS_GLOBAL
+                extern  symbol_add
+                call    symbol_add
+            ENDIF
+            mov     [r13 + SECTION_group_sig], rdx
+            
+            // 3.1.1 Check if this signature is already used in another group
+            // If not, increment group_count
+            mov     r14, rdx               // r14 = signature symbol
+            mov     rdi, [rbx + PREP_ctx]
+            xor     rcx, rcx               // i = 0
+        .sig_check_loop:
+            cmp     cx, word [rdi + ASMCTX_seccount]
+            jge     .sig_unique
+            
+            mov     rax, [rdi + ASMCTX_sections]
+            mov     rax, [rax + rcx * 8]
+            cmp     rax, r13               // Skip current section
+            je      .sig_next
+            
+            cmp     [rax + SECTION_group_sig], r14
+            je      .sig_duplicate
+        .sig_next:
+            inc     rcx
+            jmp     .sig_check_loop
+            
+        .sig_duplicate:
+            jmp     .parse_comdat
+            
+        .sig_unique:
+            inc     dword [rdi + ASMCTX_group_count]
+
+        .parse_comdat:
+            // 3.2 Optional COMDAT keyword
+            call    preprocessor_peek_token
+            IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+                call    preprocessor_next_token
+                call    preprocessor_next_token
+                mov     rdi, [rdx + TOKEN_value]
+                lea     rsi, [str_comdat]
+                call    str_cmp
+                IF rax, e, 0
+                    mov dword [r13 + SECTION_group_flags], GRP_COMDAT
+                ENDIF
+            ENDIF
+            
+        .no_group:
         ENDIF
 
         // 4. Optional: Type (@progbits, etc)
@@ -1615,3 +1687,4 @@ str_lsl:       db "lsl", 0
 str_lsr:       db "lsr", 0
 str_asr:       db "asr", 0
 str_ror:       db "ror", 0
+str_comdat:    db "comdat", 0
