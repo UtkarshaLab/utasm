@@ -54,21 +54,21 @@ amd64_encode_instruction:
     // cannot be used if a REX prefix is present.
     // ...
     
-    // 1. Emit Prefix if present (REP/LOCK)
-    mov     al, [r12 + INST_prefix]
-    IF al, ne, 0
-        // VALIDATION: If LOCK (0xF0), ensure mnemonic allows it
-        IF al, e, 0xF0
-            mov ax, [r12 + INST_id]
-            // Whitelist: ADD, OR, ADC, SBB, AND, SUB, XOR, INC, DEC, NOT, NEG, BTC, BTR, BTS, XADD, CMPXCHG
-            // For now, let's assume anything < 1500 is a standard logic/math op
-            // (In a production build, this would be a bitmask check)
-            IF ax, ge, 1500
-                jmp .error
-            ENDIF
-        ENDIF
+    // 1. Emit Prefixes if present (REP/LOCK) (A71)
+    xor     rcx, rcx
+.prefix_loop:
+    movzx   rax, byte [r12 + INST_prefixes + rcx]
+    IF rax, ne, 0
+        push    rcx
+        mov     rdi, rbx
+        mov     rsi, rax
+        extern  amd64_emit_byte
         call    amd64_emit_byte
+        pop     rcx
     ENDIF
+    inc     rcx
+    cmp     rcx, 4
+    jl      .prefix_loop
     
     // 2. Emit Segment Prefix if present in any operand
     lea     rdi, [r12 + INST_op0]

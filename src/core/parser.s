@@ -92,13 +92,24 @@ parser_parse_instruction:
     // 4. Lookup Mnemonic
     mov     rsi, [r12 + TOKEN_value]
     
-    // Check for prefixes
+    // Check for prefixes (A71)
     call    parser_check_prefix
     test    rax, rax
     jz      .lookup_mnemonic
     
-    mov     byte [r15 + INST_prefix], al
-    jmp     .get_mnemonic           // Get the actual mnemonic after prefix
+    // Find empty slot in prefixes[4]
+    xor     rcx, rcx
+.prefix_slot_loop:
+    cmp     byte [r15 + INST_prefixes + rcx], 0
+    je      .prefix_found_slot
+    inc     rcx
+    cmp     rcx, 4
+    jl      .prefix_slot_loop
+    jmp     .get_mnemonic           // All slots full, ignore or error
+    
+.prefix_found_slot:
+    mov     byte [r15 + INST_prefixes + rcx], al
+    jmp     .get_mnemonic           // Get the actual mnemonic or next prefix
 
 .lookup_mnemonic:
     mov     rsi, [r12 + TOKEN_value]

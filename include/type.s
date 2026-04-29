@@ -277,10 +277,9 @@ endstruc
 struc INST
     field tag,       1       // always TAG_INSTRUCTION
     field op_id,     2       // mnemonic ID
-    field prefix,    1       // instruction prefix (e.g. 0xF3)
+    field prefixes,  4       // instruction prefixes (up to 4 slots)
     field nops,      1       // operand count
     field flags,     1       // instruction flags
-    field pad0,      1       // alignment padding
     field op0,       OPERAND_SIZE
     field op1,       OPERAND_SIZE
     field op2,       OPERAND_SIZE
