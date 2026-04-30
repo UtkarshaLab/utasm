@@ -145,15 +145,18 @@ reloc_resolve_all:
         mov     rax, [rbx + ASMCTX_flags]
         test    rax, CTX_FLAG_FORMAT_BIN
         jnz     .undef
-        jmp     .next                      ; Skip patching, keep for .rela | ENDIF
+        jmp     .next                      ; Skip patching, keep for .rela
+        ENDIF
     
     ; Check for special sections
     IF ax, e, 0xFFFF ; SHN_ABS
         mov     rax, [r10 + SYMBOL_value]
-        jmp     .calc_patch_va | ENDIF
+        jmp     .calc_patch_va
+        ENDIF
     IF ax, ge, MAX_SECTIONS
         mov     rax, EXIT_INVALID_SECTION
-        jmp     .ret | ENDIF
+        jmp     .ret
+        ENDIF
 
     mov     rdi, [rbx + ASMCTX_sections]
     mov     r8, [rdi + rax * 8]              ; r8 = SECTION*

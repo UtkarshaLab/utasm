@@ -39,7 +39,8 @@ riscv64_encode_instruction:
     ; A96: Dispatch Integrity - Validate operand count
     IF byte [r12 + INST_nops], g, 4
         mov rax, EXIT_ENCODE_FAIL
-        jmp .done | ENDIF
+        jmp .done
+        ENDIF
 
     ; Reset length counter (RISC-V 32-bit instructions)
     mov     dword [rbx + ASMCTX_inst_len], 4
@@ -58,7 +59,12 @@ riscv64_encode_instruction:
                 IF byte [r11 + OPERAND_kind], ne, OP_IMM
                 IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
                     mov rax, EXIT_INVALID_OPERAND
-                    jmp .done | ENDIF | ENDIF | ENDIF | ENDIF | ENDIF
+                    jmp .done
+                    ENDIF
+                    ENDIF
+                    ENDIF
+                    ENDIF
+                    ENDIF
 
     movzx   eax, word [r12 + INST_op_id]
 
@@ -223,22 +229,26 @@ riscv64_encode_instruction:
     ; ---- String Operations (AMD64 Parity) ----
     ELSEIF eax, ge, ID_RV_MOVSB
         IF eax, le, ID_RV_MOVSQ
-            call riscv64_encode_string_mov | ENDIF
+            call riscv64_encode_string_mov
+            ENDIF
     ELSEIF eax, ge, ID_RV_STOSB
         IF eax, le, ID_RV_STOSQ
-            call riscv64_encode_string_sto | ENDIF
+            call riscv64_encode_string_sto
+            ENDIF
 
     ; ---- Type Conversion & Bit Reversal ----
     ELSEIF eax, e, ID_RV_REV8
         call    riscv64_encode_rev8
     ELSEIF eax, ge, ID_RV_SEXTB
         IF eax, le, ID_RV_SEXTH
-            call riscv64_encode_extend | ENDIF
+            call riscv64_encode_extend
+            ENDIF
 
     ; ---- Privileged & CSR Instructions ----
     ELSEIF eax, ge, 3084            ; CSR range (CSRC to CSRWI)
         IF eax, le, 3096
-            call riscv64_encode_csr | ENDIF
+            call riscv64_encode_csr
+            ENDIF
     ELSEIF eax, e, 3121             ; ECALL
         mov     edi, 0x00000073
         call riscv64_emit_word
@@ -262,11 +272,14 @@ riscv64_encode_instruction:
     ; ---- Atomic Memory Operations (AMO) ----
     ELSEIF eax, ge, ID_RV_AMOADD_W
         IF eax, le, ID_RV_SC_D
-            call    riscv64_encode_atomic | ENDIF | ENDIF
+            call    riscv64_encode_atomic
+            ENDIF
+            ENDIF
     ; ---- Floating Point (Basic RV64F/D) ----
     ELSEIF eax, ge, 3128            ; FADD.S range
         IF eax, le, 3180
-            call riscv64_encode_fp | ENDIF
+            call riscv64_encode_fp
+            ENDIF
 
     ; ---- Pseudo Instructions ----
     ELSEIF eax, e, ID_RV_CALL
@@ -287,9 +300,10 @@ riscv64_encode_instruction:
     ELSEIF eax, e, ID_RVC_ADDI
         mov     dword [rbx + ASMCTX_inst_len], 2
         call    riscv64_encode_rvc_addi
- | ELSE
+ ELSE
         mov     rax, EXIT_ENCODE_FAIL
-        jmp     .done | ENDIF
+        jmp     .done
+        ENDIF
 
     xor     rax, rax
 
@@ -312,7 +326,12 @@ riscv64_emit_word:
     epilogue
 
 ; ---- R-Type ----
-; Format: funct7 | rs2 | rs1 | funct3 | rd | opcode
+; Format: funct7
+rs2
+rs1
+funct3
+rd
+opcode
 riscv64_encode_r_type:
     prologue
     lea     r10, [r12 + INST_op0]  ; rd
@@ -335,7 +354,11 @@ riscv64_encode_r_type:
     epilogue
 
 ; ---- I-Type ----
-; Format: imm[11:0] | rs1 | funct3 | rd | opcode
+; Format: imm[11:0]
+rs1
+funct3
+rd
+opcode
 riscv64_encode_i_type:
     prologue
     lea     r10, [r12 + INST_op0]  ; rd
@@ -364,7 +387,9 @@ riscv64_encode_i_type:
             extern  reloc_record
             call    reloc_record
             pop     rdi
-            pop     rax | ENDIF | ELSE
+            pop     rax
+            ENDIF
+            ELSE
         movzx   edi, byte [r11 + OPERAND_reg]
         shl     edi, 15
         or      eax, edi
@@ -382,7 +407,9 @@ riscv64_encode_i_type:
             mov     r8, R_RISCV_PCREL_LO12_I
             call    reloc_record
             pop     rdi
-            pop     rax | ENDIF | ENDIF
+            pop     rax
+            ENDIF
+            ENDIF
     
     and     edi, 0xFFF
     shl     edi, 20
@@ -411,7 +438,8 @@ riscv64_encode_i_shift:
     mov     edi, [r9 + OPERAND_imm]
     IF edi, g, 63
         mov rax, EXIT_IMM_RANGE
-        jmp .ret | ENDIF
+        jmp .ret
+        ENDIF
     and     edi, 0x3F              ; 6-bit shift amount
     shl     edi, 20
     or      eax, edi
@@ -421,8 +449,12 @@ riscv64_encode_i_shift:
     epilogue
 
 ; ---- S-Type ----
-; Format: imm[11:5] | rs2 | rs1 | funct3
-imm[4:0] | opcode
+; Format: imm[11:5]
+rs2
+rs1
+funct3
+imm[4:0]
+opcode
 riscv64_encode_s_type:
     prologue
     lea     r10, [r12 + INST_op0]  ; rs2 (source)
@@ -450,7 +482,8 @@ riscv64_encode_s_type:
         extern  reloc_record
         call    reloc_record
         pop     rdi
-        pop     rax | ENDIF
+        pop     rax
+        ENDIF
 
     mov     ecx, edi
     and     ecx, 0x1F              ; imm[4:0]
@@ -467,9 +500,13 @@ riscv64_encode_s_type:
 
 ; ---- B-Type ----
 ; Format: imm[12]
-imm[10:5] | rs2 | rs1 | funct3
+imm[10:5]
+rs2
+rs1
+funct3
 imm[4:1]
-imm[11] | opcode
+imm[11]
+opcode
 riscv64_encode_b_type:
     prologue
     lea     r10, [r12 + INST_op0]  ; rs1
@@ -491,7 +528,8 @@ riscv64_encode_b_type:
     IF rax, ne, 0
     IF rax, ne, -1
         mov rax, EXIT_INVALID_IMM
-        jmp riscv64_encode_instruction.done | ENDIF
+        jmp riscv64_encode_instruction.done
+        ENDIF
     
     ; Scramble bits
     mov     ecx, edi
@@ -523,14 +561,17 @@ riscv64_encode_b_type:
         mov     r8, R_RISCV_BRANCH
         extern  reloc_record
         call    reloc_record
-        pop     rax | ENDIF
+        pop     rax
+        ENDIF
     
     mov     rdi, rax
     call    riscv64_emit_word
     epilogue
 
 ; ---- U-Type ----
-; Format: imm[31:12] | rd | opcode
+; Format: imm[31:12]
+rd
+opcode
 riscv64_encode_u_type:
     prologue
     lea     r10, [r12 + INST_op0]
@@ -556,7 +597,9 @@ riscv64_encode_u_type:
             xor     rcx, rcx
             mov     r8, R_RISCV_HI20
             extern  reloc_record
-            call    reloc_record | ENDIF | ENDIF
+            call    reloc_record
+            ENDIF
+            ENDIF
     epilogue
 
 ; ---- J-Type (JAL) ----
@@ -577,7 +620,8 @@ riscv64_encode_j_type:
     IF rax, ne, 0
     IF rax, ne, -1
         mov rax, EXIT_INVALID_IMM
-        jmp riscv64_encode_instruction.done | ENDIF
+        jmp riscv64_encode_instruction.done
+        ENDIF
     
     ; Scramble bits
     mov     ecx, edi
@@ -607,7 +651,8 @@ riscv64_encode_j_type:
         xor     rcx, rcx
         mov     r8, R_RISCV_JAL
         call    reloc_record
-        pop     rax | ENDIF
+        pop     rax
+        ENDIF
     
     mov     rdi, rax
     call    riscv64_emit_word
@@ -666,7 +711,8 @@ riscv64_encode_extend:
     lea     r11, [r12 + INST_op1]
     mov     eax, 0x60401013        ; SEXT.B base
     IF word [r12 + INST_op_id], e, ID_RV_SEXTH
-        mov eax, 0x60501013 | ENDIF
+        mov eax, 0x60501013
+        ENDIF
     movzx   edi, byte [r11 + OPERAND_reg]
     shl     edi, 15
     or      eax, edi
@@ -708,11 +754,13 @@ riscv64_encode_csr:
     IF byte [r9 + OPERAND_kind], e, OP_REG
         movzx edi, byte [r9 + OPERAND_reg]
         shl   edi, 15
-        or    eax, edi | ELSE
+        or    eax, edi
+        ELSE
         mov   edi, [r9 + OPERAND_imm]
         and   edi, 0x1F
         shl   edi, 15
-        or    eax, edi | ENDIF
+        or    eax, edi
+        ENDIF
     
     mov     rdi, rax
     call    riscv64_emit_word
@@ -741,12 +789,14 @@ riscv64_encode_fp:
         or eax, 0x10000000
     ELSEIF ecx, ge, ID_RV_FDIV_S
     IF ecx, le, ID_RV_FDIV_D
-        or eax, 0x18000000 | ENDIF
+        or eax, 0x18000000
+        ENDIF
     
     ; Precision: bit 25 (0=Single, 1=Double)
     test    ecx, 1
     IF nz
-        or      eax, 0x01000000 | ENDIF
+        or      eax, 0x01000000
+        ENDIF
     
     ; Reg IDs: Rd=7, Rs1=15, Rs2=20
     movzx   edi, byte [r10 + OPERAND_reg]
@@ -760,7 +810,8 @@ riscv64_encode_fp:
     IF byte [r9 + OPERAND_kind], e, OP_REG
         movzx   edi, byte [r9 + OPERAND_reg]
         shl     edi, 20
-        or      eax, edi | ENDIF
+        or      eax, edi
+        ENDIF
     
     mov     rdi, rax
     call    riscv64_emit_word
@@ -789,15 +840,18 @@ riscv64_encode_pseudo_call:
         mov     r8, R_RISCV_CALL_HI20
         extern  reloc_record
         call    reloc_record
-        pop     rdi | ENDIF
+        pop     rdi
+        ENDIF
     call    riscv64_emit_word
     
     mov     edi, 0x00000067
     IF r13d, e, 1
         or edi, (1 << 7)
-        (1 << 15) | ELSE
+        (1 << 15)
+        ELSE
         or edi, (0 << 7)
-        (6 << 15) | ENDIF
+        (6 << 15)
+        ENDIF
     
     IF byte [r11 + OPERAND_kind], e, OP_SYMBOL
         push    rdi
@@ -808,7 +862,8 @@ riscv64_encode_pseudo_call:
         mov     rcx, [r11 + OPERAND_imm]
         mov     r8, R_RISCV_CALL_LO12
         call    reloc_record
-        pop     rdi | ENDIF
+        pop     rdi
+        ENDIF
     
     mov     dword [rbx + ASMCTX_inst_len], 8
     call    riscv64_emit_word
@@ -918,14 +973,18 @@ riscv64_encode_atomic:
             lea     r10, [r12 + INST_op2]
             movzx   eax, byte [r10 + OPERAND_reg]
             shl     eax, 20
-            or      r13d, eax | ENDIF | ENDIF
+            or      r13d, eax
+            ENDIF
+            ENDIF
     
     ; 4. Resolve funct3 (width)
     movzx   eax, word [r12 + INST_op_id]
     test    eax, 1                 ; Check if it's .D (odd ID)
     IF nz
-        or      r13d, 0x3000       ; .d | ELSE
-        or      r13d, 0x2000       ; .w | ENDIF
+        or      r13d, 0x3000       ; .d
+        ELSE
+        or      r13d, 0x2000       ; .w
+        ENDIF
 
     ; 5. Map funct5
     movzx   eax, word [r12 + INST_op_id]

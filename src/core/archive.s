@@ -37,7 +37,8 @@ archive_init:
     ; 1. Check Magic
     IF r13, b, AR_MAG_LEN
         mov rax, EXIT_INVALID_FORMAT
-        jmp .error | ENDIF
+        jmp .error
+        ENDIF
     
     ; Compare magic
     mov     rax, [r12]
@@ -51,7 +52,8 @@ archive_init:
     call    mem_compare
     IF rax, ne, 0
         mov rax, EXIT_INVALID_FORMAT
-        jmp .error | ENDIF
+        jmp .error
+        ENDIF
     
     ; 2. Initialize Struct
     mov     byte [rbx + ARCHIVE_tag], TAG_ARCHIVE
@@ -100,10 +102,13 @@ archive_scan_special:
             mov     [rbx + ARCHIVE_strtab], r12
         ELSEIF cl, e, ' '
             ; Symbol table
-            mov     [rbx + ARCHIVE_symtab], r12 | ENDIF | ELSE
+            mov     [rbx + ARCHIVE_symtab], r12
+            ENDIF
+            ELSE
         ; Regular member reached, stop scanning specials
         mov     [rbx + ARCHIVE_curr], r12
-        jmp     .done | ENDIF
+        jmp     .done
+        ENDIF
     
     ; Advance to next member
     mov     rdi, rbx
@@ -212,7 +217,8 @@ archive_resolve_symbol:
         lea     rax, [r13 + 4]
         mov     eax, [rax + rcx * 4]
         bswap   eax                ; Convert offset to host endianness
-        jmp     .done | ENDIF
+        jmp     .done
+        ENDIF
     
     ; Advance to next string (null-terminated)
     mov     rdi, r15
@@ -254,7 +260,8 @@ archive_get_member_data:
     IF rsi, ge, r9
         xor rax, rax
         xor rdx, rdx
-        epilogue | ENDIF
+        epilogue
+        ENDIF
     
     lea     r10, [r8 + rsi]        ; r10 = ARHDR*
     

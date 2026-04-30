@@ -23,7 +23,8 @@
 ;
 ; mem_map
 ; Maps a private anonymous region of memory (equivalent to mmap with
-; MAP_PRIVATE | MAP_ANONYMOUS
+; MAP_PRIVATE
+MAP_ANONYMOUS
 MAP_POPULATE).
 ; The returned pointer is page-aligned.
 
@@ -49,8 +50,10 @@ mem_map:
     MAP_ANONYMOUS, -1, 0)
     xor     rdi, rdi               ; addr = NULL
     mov     rsi, rbx               ; length
-    mov     rdx, 3                 ; PROT_READ | PROT_WRITE
-    mov     r10, 0x22              ; MAP_PRIVATE | MAP_ANONYMOUS
+    mov     rdx, 3                 ; PROT_READ
+    PROT_WRITE
+    mov     r10, 0x22              ; MAP_PRIVATE
+    MAP_ANONYMOUS
     mov     r8, -1                 ; fd = -1
     xor     r9, r9                 ; offset = 0
     mov     rax, SYS_MMAP
@@ -163,7 +166,8 @@ mem_protect:
 ;
 ; mem_alloc_exec
 ; Allocates a memory region suitable for JIT-compiled or assembled machine
-; code: maps as PROT_READ|PROT_WRITE first (for encoding), then caller
+; code: maps as PROT_READ
+PROT_WRITE first (for encoding), then caller
 ; must call mem_protect with PROT_RX to make it executable.
 
 ; Input  : rdi = size in bytes

@@ -319,11 +319,14 @@ prep_expand_start:
     movzx   rax, byte [r12 + MACRO_max_params]
     IF al, ne, 0xFF
         cmp r15b, al
-        jge .check_trailing | ELSE
+        jge .check_trailing
+        ELSE
         ; Variadic limit (hardcoded to 32 slots in allocation)
         IF r15, ge, 32
             mov rax, EXIT_MACRO_ARITY_FAIL
-            jmp .error | ENDIF | ENDIF
+            jmp .error
+            ENDIF
+            ENDIF
     
     ; Peek to see if we have more arguments (comma or not)
     ; Actually, we should lex and if it's a newline, we stop.
@@ -344,7 +347,8 @@ prep_expand_start:
         movzx   rax, byte [r12 + MACRO_min_params]
         cmp     r15b, al
         jl      .error_too_few_args
-        jmp     .done_params | ENDIF
+        jmp     .done_params
+        ENDIF
     add     rsp, TOKEN_SIZE
 
 .get_param:
@@ -357,7 +361,9 @@ prep_expand_start:
         dec     rcx
         IF r15, e, rcx
             call    prep_capture_greedy
-            jmp     .done_params | ENDIF | ENDIF
+            jmp     .done_params
+            ENDIF
+            ENDIF
 
 .parse_param_value:
     ; allocate token for param
@@ -517,7 +523,10 @@ prep_expand_next:
                 mov     rax, [rsi + TOKEN_value]
                 mov     [r12 + TOKEN_value], rax
                 
-                jmp     .produced | ENDIF | ENDIF | ENDIF
+                jmp     .produced
+                ENDIF
+                ENDIF
+                ENDIF
 
     ; 3. Handle parameter substitution
     ; Macro parameters are TOK_DIRECTIVE with value like "0", "1", "2"...
@@ -543,7 +552,8 @@ prep_expand_next:
         
         mov     byte [r12 + TOKEN_kind], TOK_NUMBER
         mov     [r12 + TOKEN_value], rdx ; pointer to formatted string
-        jmp     .produced | ENDIF
+        jmp     .produced
+        ENDIF
 
     ; CASE 2: %1-%9 (Parameter Reference)
     sub     al, '0'
@@ -564,7 +574,8 @@ prep_expand_next:
         mov     rdi, r12
         mov     rcx, (TOKEN_SIZE / 8)
         rep movsq
-        jmp     .produced | ENDIF
+        jmp     .produced
+        ENDIF
 
     ; CASE 3: Variadic Expansion %{n..} (A69)
     IF byte [rdi], e, '{'
@@ -610,7 +621,10 @@ prep_expand_next:
                 mov     rdi, r12
                 mov     rcx, (TOKEN_SIZE / 8)
                 rep movsq
-                jmp     .produced | ENDIF | ENDIF | ENDIF
+                jmp     .produced
+                ENDIF
+                ENDIF
+                ENDIF
 
     ; CASE 4: Macro Local Label %% (A70)
     IF byte [r12 + TOKEN_kind], e, TOK_MACRO_LOCAL
@@ -654,7 +668,8 @@ prep_expand_next:
         ; Update token
         mov     byte [r12 + TOKEN_kind], TOK_IDENT
         mov     [r12 + TOKEN_value], r14
-        jmp     .produced | ENDIF
+        jmp     .produced
+        ENDIF
 
 .produced:
     ; ---- A68: Token Concatenation (##) ----
@@ -687,7 +702,8 @@ prep_expand_next:
         IF rax, ne, 0
             ; Error or expansion end (unexpected)
             add     rsp, TOKEN_SIZE
-            jmp     .done_concat | ENDIF
+            jmp     .done_concat
+            ENDIF
         
         ; 3. Concatenate r12 (merged so far) and rsp (next token)
         ; Allocate space for combined string
@@ -711,7 +727,8 @@ prep_expand_next:
         mov     [r12 + TOKEN_value], r14
         
         add     rsp, TOKEN_SIZE
-        jmp     .check_concat          ; Chain: allow A ## B ## C | ENDIF
+        jmp     .check_concat          ; Chain: allow A ## B ## C
+        ENDIF
 
 .done_concat:
     xor     rax, rax
@@ -1323,7 +1340,8 @@ prep_capture_greedy:
         rep movsb
         add     r13, rax
         mov     byte [r12 + r13], ' '
-        inc     r13 | ENDIF
+        inc     r13
+        ENDIF
     add     rsp, TOKEN_SIZE
     jmp     .loop
 
@@ -1615,17 +1633,23 @@ macro_handle_def:
             call    str_to_int
             mov     r15, rax
         ELSEIF byte [rsp + TOKEN_kind], e, TOK_ASTERISK
-            mov     r15, 0xFF      ; Variadic | ENDIF | ENDIF | ENDIF
+            mov     r15, 0xFF      ; Variadic
+            ENDIF
+            ENDIF
+            ENDIF
     add     rsp, TOKEN_SIZE
 
     ; VALIDATION: Enforce max 32 parameters
     IF r14, g, 32
         mov     rax, EXIT_MACRO_DEF
-        jmp     .error | ENDIF
+        jmp     .error
+        ENDIF
     IF r15, ne, 0xFF
         IF r15, g, 32
             mov     rax, EXIT_MACRO_DEF
-            jmp     .error | ENDIF | ENDIF
+            jmp     .error
+            ENDIF
+            ENDIF
 
 .body_start:
     ; 3. Allocate MACRO struct in arena
@@ -1772,7 +1796,8 @@ prep_handle_rep:
     call    lexer_next
     IF byte [rsp + TOKEN_kind], ne, TOK_NUMBER
         mov     rax, EXIT_ERROR
-        jmp     .error | ENDIF
+        jmp     .error
+        ENDIF
     mov     rdi, [rsp + TOKEN_value]
     call    str_to_int
     mov     r14, rax               ; r14 = count
@@ -1780,7 +1805,8 @@ prep_handle_rep:
 
     IF r14, g, MAX_REP_COUNT
         mov     rax, EXIT_ERROR
-        jmp     .error | ENDIF
+        jmp     .error
+        ENDIF
 
     ; 2. Allocate anonymous MACRO struct
     mov     rdi, [rbx + PREP_arena]

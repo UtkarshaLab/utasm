@@ -1384,55 +1384,79 @@ global amd64_register_table
 amd64_register_table:
     ; ---- 64-bit GPRs ----
     compile_time_hash "rax", H_RAX
-    dq H_RAX, (8 << 8) | REG_RAX
+    dq H_RAX, (8 << 8)
+    REG_RAX
     compile_time_hash "rcx", H_RCX
-    dq H_RCX, (8 << 8) | REG_RCX
+    dq H_RCX, (8 << 8)
+    REG_RCX
     compile_time_hash "rdx", H_RDX
-    dq H_RDX, (8 << 8) | REG_RDX
+    dq H_RDX, (8 << 8)
+    REG_RDX
     compile_time_hash "rbx", H_RBX
-    dq H_RBX, (8 << 8) | REG_RBX
+    dq H_RBX, (8 << 8)
+    REG_RBX
     compile_time_hash "rsp", H_RSP
-    dq H_RSP, (8 << 8) | REG_RSP
+    dq H_RSP, (8 << 8)
+    REG_RSP
     compile_time_hash "rbp", H_RBP
-    dq H_RBP, (8 << 8) | REG_RBP
+    dq H_RBP, (8 << 8)
+    REG_RBP
     compile_time_hash "rsi", H_RSI
-    dq H_RSI, (8 << 8) | REG_RSI
+    dq H_RSI, (8 << 8)
+    REG_RSI
     compile_time_hash "rdi", H_RDI
-    dq H_RDI, (8 << 8) | REG_RDI
+    dq H_RDI, (8 << 8)
+    REG_RDI
     compile_time_hash "r8",  H_R8
-    dq H_R8,  (8 << 8) | REG_R8
+    dq H_R8,  (8 << 8)
+    REG_R8
     compile_time_hash "r9",  H_R9
-    dq H_R9,  (8 << 8) | REG_R9
+    dq H_R9,  (8 << 8)
+    REG_R9
     compile_time_hash "r10", H_R10
-    dq H_R10, (8 << 8) | REG_R10
+    dq H_R10, (8 << 8)
+    REG_R10
     compile_time_hash "r11", H_R11
-    dq H_R11, (8 << 8) | REG_R11
+    dq H_R11, (8 << 8)
+    REG_R11
     compile_time_hash "r12", H_R12
-    dq H_R12, (8 << 8) | REG_R12
+    dq H_R12, (8 << 8)
+    REG_R12
     compile_time_hash "r13", H_R13
-    dq H_R13, (8 << 8) | REG_R13
+    dq H_R13, (8 << 8)
+    REG_R13
     compile_time_hash "r14", H_R14
-    dq H_R14, (8 << 8) | REG_R14
+    dq H_R14, (8 << 8)
+    REG_R14
     compile_time_hash "r15", H_R15
-    dq H_R15, (8 << 8) | REG_R15
+    dq H_R15, (8 << 8)
+    REG_R15
 
     ; ---- 32-bit GPRs ----
     compile_time_hash "eax", H_EAX
-    dq H_EAX, (4 << 8) | REG_RAX
+    dq H_EAX, (4 << 8)
+    REG_RAX
     compile_time_hash "ecx", H_ECX
-    dq H_ECX, (4 << 8) | REG_RCX
+    dq H_ECX, (4 << 8)
+    REG_RCX
     compile_time_hash "edx", H_EDX
-    dq H_EDX, (4 << 8) | REG_RDX
+    dq H_EDX, (4 << 8)
+    REG_RDX
     compile_time_hash "ebx", H_EBX
-    dq H_EBX, (4 << 8) | REG_RBX
+    dq H_EBX, (4 << 8)
+    REG_RBX
     compile_time_hash "esi", H_ESI
-    dq H_ESI, (4 << 8) | REG_RSI
+    dq H_ESI, (4 << 8)
+    REG_RSI
     compile_time_hash "edi", H_EDI
-    dq H_EDI, (4 << 8) | REG_RDI
+    dq H_EDI, (4 << 8)
+    REG_RDI
     compile_time_hash "esp", H_ESP
-    dq H_ESP, (4 << 8) | REG_RSP
+    dq H_ESP, (4 << 8)
+    REG_RSP
     compile_time_hash "ebp", H_EBP
-    dq H_EBP, (4 << 8) | REG_RBP
+    dq H_EBP, (4 << 8)
+    REG_RBP
     %assign i 8
     %rep 8
         compile_time_hash "r%[i]d", H_R%[i]D
@@ -1443,21 +1467,29 @@ amd64_register_table:
 
     ; ---- 16-bit GPRs ----
     compile_time_hash "ax", H_AX
-    dq H_AX, (2 << 8) | REG_RAX
+    dq H_AX, (2 << 8)
+    REG_RAX
     compile_time_hash "cx", H_CX
-    dq H_CX, (2 << 8) | REG_RCX
+    dq H_CX, (2 << 8)
+    REG_RCX
     compile_time_hash "dx", H_DX
-    dq H_DX, (2 << 8) | REG_RDX
+    dq H_DX, (2 << 8)
+    REG_RDX
     compile_time_hash "bx", H_BX
-    dq H_BX, (2 << 8) | REG_RBX
+    dq H_BX, (2 << 8)
+    REG_RBX
     compile_time_hash "si", H_SI
-    dq H_SI, (2 << 8) | REG_RSI
+    dq H_SI, (2 << 8)
+    REG_RSI
     compile_time_hash "di", H_DI
-    dq H_DI, (2 << 8) | REG_RDI
+    dq H_DI, (2 << 8)
+    REG_RDI
     compile_time_hash "sp", H_SP
-    dq H_SP, (2 << 8) | REG_RSP
+    dq H_SP, (2 << 8)
+    REG_RSP
     compile_time_hash "bp", H_BP
-    dq H_BP, (2 << 8) | REG_RBP
+    dq H_BP, (2 << 8)
+    REG_RBP
     %assign i 8
     %rep 8
         compile_time_hash "r%[i]w", H_R%[i]W
@@ -1468,21 +1500,29 @@ amd64_register_table:
 
     ; ---- 8-bit GPRs (Low) ----
     compile_time_hash "al", H_AL
-    dq H_AL, (1 << 8) | REG_RAX
+    dq H_AL, (1 << 8)
+    REG_RAX
     compile_time_hash "cl", H_CL
-    dq H_CL, (1 << 8) | REG_RCX
+    dq H_CL, (1 << 8)
+    REG_RCX
     compile_time_hash "dl", H_DL
-    dq H_DL, (1 << 8) | REG_RDX
+    dq H_DL, (1 << 8)
+    REG_RDX
     compile_time_hash "bl", H_BL
-    dq H_BL, (1 << 8) | REG_RBX
+    dq H_BL, (1 << 8)
+    REG_RBX
     compile_time_hash "sil", H_SIL
-    dq H_SIL, (1 << 8) | REG_RSI
+    dq H_SIL, (1 << 8)
+    REG_RSI
     compile_time_hash "dil", H_DIL
-    dq H_DIL, (1 << 8) | REG_RDI
+    dq H_DIL, (1 << 8)
+    REG_RDI
     compile_time_hash "spl", H_SPL
-    dq H_SPL, (1 << 8) | REG_RSP
+    dq H_SPL, (1 << 8)
+    REG_RSP
     compile_time_hash "bpl", H_BPL
-    dq H_BPL, (1 << 8) | REG_RBP
+    dq H_BPL, (1 << 8)
+    REG_RBP
     %assign i 8
     %rep 8
         compile_time_hash "r%[i]b", H_R%[i]B
@@ -1555,14 +1595,19 @@ amd64_register_table:
 
     ; ---- Segments ----
     compile_time_hash "cs", H_CS
-    dq H_CS, (2 << 8) | REG_CS
+    dq H_CS, (2 << 8)
+    REG_CS
     compile_time_hash "ds", H_DS
-    dq H_DS, (2 << 8) | REG_DS
+    dq H_DS, (2 << 8)
+    REG_DS
     compile_time_hash "fs", H_FS
-    dq H_FS, (2 << 8) | REG_FS
+    dq H_FS, (2 << 8)
+    REG_FS
     compile_time_hash "gs", H_GS
-    dq H_GS, (2 << 8) | REG_GS
+    dq H_GS, (2 << 8)
+    REG_GS
     compile_time_hash "ss", H_SS
-    dq H_SS, (2 << 8) | REG_SS
+    dq H_SS, (2 << 8)
+    REG_SS
 
     dq 0
