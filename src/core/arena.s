@@ -73,11 +73,9 @@ arena_init:
     xor     rdi, rdi               ; addr = NULL
     mov     rsi, r12               ; length = aligned size
     mov     rdx, PROT_READ         
-    or      rdx, PROT_WRITE        ; prot = PROT_READ
-    PROT_WRITE
+    or      rdx, PROT_WRITE        ; prot = PROT_READ | PROT_WRITE
     mov     r10, MAP_PRIVATE
-    or      r10, MAP_ANONYMOUS     ; flags = MAP_PRIVATE
-    MAP_ANONYMOUS
+    or      r10, MAP_ANONYMOUS     ; flags = MAP_PRIVATE | MAP_ANONYMOUS
     mov     r8,  -1                ; fd = -1
     xor     r9,  r9                ; offset = 0
     mov     rax, AMD64_SYS_MMAP

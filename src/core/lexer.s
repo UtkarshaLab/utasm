@@ -744,9 +744,7 @@ lexer_next:
             add     qword [rbx + LEXER_pos], 2
             inc     dword [rbx + LEXER_line]
             mov     word  [rbx + LEXER_col], 1
-            jmp     .lex_string_loop
-        ENDIF
-    ENDIF
+            jmp     .lex_string_loop | ENDIF | ENDIF
 
     inc     qword [rbx + LEXER_pos]
     inc     word  [rbx + LEXER_col]
@@ -819,21 +817,15 @@ lexer_next:
     IF rcx, ge, '0'
         IF rcx, le, '9'
             lea rax, [rcx - '0']
-            ret
-        ENDIF
-    ENDIF
+            ret | ENDIF | ENDIF
     IF rcx, ge, 'a'
         IF rcx, le, 'f'
             lea rax, [rcx - 'a' + 10]
-            ret
-        ENDIF
-    ENDIF
+            ret | ENDIF | ENDIF
     IF rcx, ge, 'A'
         IF rcx, le, 'F'
             lea rax, [rcx - 'A' + 10]
-            ret
-        ENDIF
-    ENDIF
+            ret | ENDIF | ENDIF
     mov     rax, ERR
     ret
 
@@ -1265,10 +1257,8 @@ lexer_next:
     movzx   rcx, byte [r10]
     IF rcx, e, 10
         inc dword [rbx + LEXER_line]
-        mov word [rbx + LEXER_col], 1
-    ELSE
-        inc word [rbx + LEXER_col]
-    ENDIF
+        mov word [rbx + LEXER_col], 1 | ELSE
+        inc word [rbx + LEXER_col] | ENDIF
 
     cmp     rcx, '*'
     jne     .skip_block_next
@@ -1510,28 +1500,19 @@ lexer_char_props:
     %rep 256
     %assign mask 0
     %if i >= '0' && i <= '9'
-    %assign mask mask
-    CHAR_IS_DIGIT
-    CHAR_IS_IDENT_PART
-    CHAR_IS_HEX
+    %assign mask mask | CHAR_IS_DIGIT | CHAR_IS_IDENT_PART | CHAR_IS_HEX
     %elif (i >= 'a' && i <= 'f')
     (i >= 'A' && i <= 'F')
-    %assign mask mask
-    CHAR_IS_IDENT_START
-    CHAR_IS_IDENT_PART
-    CHAR_IS_HEX
+    %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART | CHAR_IS_HEX
     %elif (i >= 'g' && i <= 'z')
     (i >= 'G' && i <= 'Z')
     i == '_'
     i == '.'
-    %assign mask mask
-    CHAR_IS_IDENT_START
-    CHAR_IS_IDENT_PART
+    %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART
     %elif i == ' '
     i == 9
     i == 13
-    %assign mask mask
-    CHAR_IS_WHITESPACE
+    %assign mask mask | CHAR_IS_WHITESPACE
     %endif
         db mask
     %assign i i+1

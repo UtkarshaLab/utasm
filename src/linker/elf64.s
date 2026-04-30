@@ -53,8 +53,7 @@ elf64_emit:
     IF byte [r12 + ASMCTX_standalone], e, 1
         mov     rdi, r12
         call    elf64_resolve_entry
-        check_err
-    ENDIF
+        check_err | ENDIF
 
     ; ---- 1. Write ELF Header ----
     mov     rdi, [r12 + ASMCTX_arena]
@@ -75,8 +74,7 @@ elf64_emit:
     ; ---- 2. Write Program Headers (if standalone) ----
     IF byte [r12 + ASMCTX_standalone], e, 1
         call    elf64_write_phdrs
-        check_err
-    ENDIF
+        check_err | ENDIF
 
     ; ---- 3. Write .text section ----
     call    elf64_write_text_section
@@ -256,11 +254,9 @@ elf64_resolve_entry:
         
         mov     [r12 + ASMCTX_entry_point], rax
         xor     rax, rax
-        jmp     .done
-    ELSE
+        jmp     .done | ELSE
         mov     rax, EXIT_UNDEF_REF
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
 .error_non_exec:
     mov     rax, EXIT_ENCODE_FAIL   ; Better error code for "entry not executable"
@@ -304,20 +300,16 @@ elf64_write_ehdr:
 
     ; e_type
     IF byte [r12 + ASMCTX_standalone], e, 1
-        mov     word [r14 + EHDR_TYPE],    ET_EXEC
-    ELSE
-        mov     word [r14 + EHDR_TYPE],    ET_REL
-    ENDIF
+        mov     word [r14 + EHDR_TYPE],    ET_EXEC | ELSE
+        mov     word [r14 + EHDR_TYPE],    ET_REL | ENDIF
     
     ; ---- FIX: DYNAMIC MACHINE TYPE ----
     mov     al, [r12 + ASMCTX_target]
     IF al, e, TARGET_AARCH64
         mov     word [r14 + EHDR_MACHINE], EM_AARCH64
     ELSEIF al, e, TARGET_RISCV64
-        mov     word [r14 + EHDR_MACHINE], EM_RISCV
-    ELSE
-        mov     word [r14 + EHDR_MACHINE], EM_X86_64
-    ENDIF
+        mov     word [r14 + EHDR_MACHINE], EM_RISCV | ELSE
+        mov     word [r14 + EHDR_MACHINE], EM_X86_64 | ENDIF
     
     mov     dword [r14 + EHDR_VERSION], EV_CURRENT
 
@@ -329,12 +321,10 @@ elf64_write_ehdr:
     IF byte [r12 + ASMCTX_standalone], e, 1
         mov     qword [r14 + EHDR_PHOFF], ELF64_EHDR_SIZE
         mov     word  [r14 + EHDR_PHENTSIZE], ELF64_PHDR_SIZE
-        mov     word  [r14 + EHDR_PHNUM], 2 ; For now: 1 Code + 1 Data
-    ELSE
+        mov     word  [r14 + EHDR_PHNUM], 2 ; For now: 1 Code + 1 Data | ELSE
         mov     qword [r14 + EHDR_PHOFF], 0
         mov     word  [r14 + EHDR_PHENTSIZE], 0
-        mov     word  [r14 + EHDR_PHNUM], 0
-    ENDIF
+        mov     word  [r14 + EHDR_PHNUM], 0 | ENDIF
 
     ; e_shoff will be patched after all sections are written
     ; e_shnum and e_shstrndx
@@ -342,8 +332,7 @@ elf64_write_ehdr:
     add     eax, [r12 + ASMCTX_group_count]
     add     eax, 4                 ; NULL + symtab + strtab + shstrtab
     IF dword [r12 + ASMCTX_reloccount], ne, 0
-        inc     eax                ; .rela.text
-    ENDIF
+        inc     eax                ; .rela.text | ENDIF
     mov     word  [r14 + EHDR_SHNUM], ax
     
     ; .shstrtab index is 1 + seccount + group_count + 2 (symtab, strtab)
@@ -386,8 +375,7 @@ elf64_write_phdrs:
     
     ; CODE Segment
     mov     dword [r14 + PHDR_type],   PT_LOAD
-    mov     dword [r14 + PHDR_flags],  (PF_R
-    PF_X)
+    mov     dword [r14 + PHDR_flags],  (PF_R | PF_X)
     mov     qword [r14 + PHDR_offset], r15
     mov     rax, [r12 + ASMCTX_entry_point]
     mov     qword [r14 + PHDR_vaddr],  rax
@@ -409,8 +397,7 @@ elf64_write_phdrs:
     ; DATA Segment
     add     r14, 56
     mov     dword [r14 + PHDR_type],   PT_LOAD
-    mov     dword [r14 + PHDR_flags],  (PF_R
-    PF_W)
+    mov     dword [r14 + PHDR_flags],  (PF_R | PF_W)
     mov     qword [r14 + PHDR_offset], r15
     
     ; Virtual Address for data segment: Entry + (Data_Offset - Code_Offset)
@@ -576,8 +563,7 @@ elf64_prepare_strtab:
     ; A98: ELF 32-bit String Table Limit Validation
     IF r15, g, 0xFFFFFFFF
         mov rax, EXIT_ENCODE_FAIL ; Reusing ENCODE_FAIL for simplicity or specific string overflow
-        jmp .error_bounds
-    ENDIF
+        jmp .error_bounds | ENDIF
     
 .next_outer:
     inc     r14
@@ -643,8 +629,7 @@ elf64_write_symtab:
         mov     [r10 + SYMBOL_elf_idx], r11d
         call    .write_one_sym
         check_err
-        inc     r11
-    ENDIF
+        inc     r11 | ENDIF
     inc     r14
     jmp     .local_loop
 
@@ -660,8 +645,7 @@ elf64_write_symtab:
         mov     [r10 + SYMBOL_elf_idx], r11d
         call    .write_one_sym
         check_err
-        inc     r11
-    ENDIF
+        inc     r11 | ENDIF
     inc     r14
     jmp     .global_loop
 
@@ -696,10 +680,8 @@ elf64_write_symtab:
     shl     al, 4
     mov     cl, [r10 + SYMBOL_kind]
     IF cl, e, SYM_LABEL
-        or      al, STT_FUNC
-    ELSE
-        or      al, STT_OBJECT
-    ENDIF
+        or      al, STT_FUNC | ELSE
+        or      al, STT_OBJECT | ENDIF
     mov     [rsp + 24 + SYM64_INFO], al
     
     ; st_other: STV_DEFAULT (0)
@@ -787,8 +769,7 @@ elf64_write_strtab:
         check_err
         pop     rax
         
-        add     r15, rdx
-    ENDIF
+        add     r15, rdx | ENDIF
 
 .next:
     inc     ecx
@@ -964,19 +945,16 @@ elf64_write_rela:
     mov     rax, [rdi + RELOC_offset]
     mov     qword [rsp + RELA_OFFSET], rax
 
-    ; r_info: (sym_index << 32)
-    reloc_type
+    ; r_info: (sym_index << 32) | reloc_type
     mov     rsi, [rdi + RELOC_sym] ; symbol name ptr
     mov     rdi, [r12 + ASMCTX_symtab]
     extern  symbol_find
     call    symbol_find
     IF rax, e, EXIT_OK
-        mov     eax, [rdx + SYMBOL_elf_idx]
-    ELSE
+        mov     eax, [rdx + SYMBOL_elf_idx] | ELSE
         ; If symbol is truly missing, this should have been caught in Pass 2.
         ; For now, use 0 (Null symbol) as fallback.
-        xor     eax, eax
-    ENDIF
+        xor     eax, eax | ENDIF
     
     mov     r11, rax
     shl     r11, 32

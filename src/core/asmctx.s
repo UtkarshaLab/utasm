@@ -87,10 +87,8 @@ asm_ctx_emit_byte:
     ; io_mmap(NULL, size, PROT_RW, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
     xor     rdi, rdi
     mov     rsi, r13
-    mov     rdx, PROT_READ
-    PROT_WRITE
-    mov     rcx, MAP_PRIVATE
-    MAP_ANONYMOUS
+    mov     rdx, PROT_READ | PROT_WRITE
+    mov     rcx, MAP_PRIVATE | MAP_ANONYMOUS
     mov     r8, -1
     xor     r9, r9
     call    io_mmap
@@ -166,10 +164,8 @@ asm_ctx_create_section:
     ; 3. Allocate initial buffer
     xor     rdi, rdi
     mov     rsi, 65536
-    mov     rdx, PROT_READ
-    PROT_WRITE
-    mov     rcx, MAP_PRIVATE
-    MAP_ANONYMOUS
+    mov     rdx, PROT_READ | PROT_WRITE
+    mov     rcx, MAP_PRIVATE | MAP_ANONYMOUS
     mov     r8, -1
     xor     r9, r9
     call    io_mmap

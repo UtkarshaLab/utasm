@@ -44,12 +44,10 @@ parser_parse_instruction:
     mov     al, [r12 + TOKEN_kind]
     IF al, e, TOK_EOF
         xor     rax, rax
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     IF al, e, TOK_NEWLINE
         xor     rax, rax
-        epilogue
-    ENDIF
+        epilogue | ENDIF
 
     IF al, e, TOK_LABEL
         ; Global Label: rsi = name
@@ -58,8 +56,7 @@ parser_parse_instruction:
         mov     [rdi + ASMCTX_last_global], rsi
         call    parser_define_label
         check_err
-        jmp     .get_mnemonic
-    ENDIF
+        jmp     .get_mnemonic | ENDIF
 
     IF al, e, TOK_LOCAL_LABEL
         ; Local Label: concat last_global + local_name
@@ -73,13 +70,11 @@ parser_parse_instruction:
         mov     rsi, rdx                ; namespaced name
         call    parser_define_label
         check_err
-        jmp     .get_mnemonic
-    ENDIF
+        jmp     .get_mnemonic | ENDIF
 
     IF al, ne, TOK_IDENT
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     
     ; 3. Sync DWARF line info
     mov     rdi, [rbx + PREP_ctx]
@@ -144,8 +139,7 @@ parser_parse_instruction:
     
     IF r14, ge, 4
         mov     rax, EXIT_INVALID_OPERAND
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     
     mov     r13, rdx                ; A100.5: Preserve operand pointer (RDX) before mul
     mov     rax, OPERAND_SIZE
@@ -161,8 +155,7 @@ parser_parse_instruction:
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
-        jmp     .operand_loop
-    ENDIF
+        jmp     .operand_loop | ENDIF
     
     mov     rax, OK
     mov     rdx, r15
@@ -198,8 +191,7 @@ parser_parse_operand:
     IF al, e, TOK_LBRACKET
         call    parser_parse_mem_operand
         check_err
-        jmp     .success
-    ENDIF
+        jmp     .success | ENDIF
 
     ; 2. Registers (handled via ident lookup)
     IF al, e, TOK_IDENT
@@ -208,8 +200,7 @@ parser_parse_operand:
         call    parser_parse_reg_info
         IF rax, ne, ERR
             mov     byte [r12 + OPERAND_kind], OP_REG
-            jmp     .success
-        ENDIF
+            jmp     .success | ENDIF
         ; Not a register, fall through to expression (it's a symbol)
         ; BUT FIRST: check for AArch64 shift keywords
         mov     rax, [rbx + PREP_ctx]
@@ -224,8 +215,7 @@ parser_parse_operand:
             ; Expect TOK_HASH or just expression
             call    preprocessor_peek_token
             IF byte [rdx + TOKEN_kind], e, TOK_HASH
-                call preprocessor_next_token
-            ENDIF
+                call preprocessor_next_token | ENDIF
             call    parser_evaluate_expression
             check_err
             mov     [r12 + OPERAND_shift_imm], dl
@@ -247,13 +237,10 @@ parser_parse_operand:
                 
                 ; Discard this temporary operand
                 xor  rax, rax
-                epilogue
-            ENDIF
-        ENDIF
+                epilogue | ENDIF | ENDIF
 
 .not_shift:
-        call    preprocessor_putback_token ; put back the ident
-    ENDIF
+        call    preprocessor_putback_token ; put back the ident | ENDIF
 
     ; 3. Expressions (Numbers, Symbols, Math)
     call    parser_evaluate_expression
@@ -264,10 +251,8 @@ parser_parse_operand:
         ; If the expression involved symbols, we mark it
         IF rcx, ne, 0
              mov     byte [r12 + OPERAND_kind], OP_SYMBOL
-             mov     [r12 + OPERAND_sym], rcx
-        ENDIF
-        jmp     .success
-    ENDIF
+             mov     [r12 + OPERAND_sym], rcx | ENDIF
+        jmp     .success | ENDIF
 
     mov     rax, EXIT_INVALID_OPERAND
     epilogue
@@ -283,8 +268,7 @@ parser_parse_reg_info:
     call    parser_is_register
     pop     rdi
     IF rax, e, ERR
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     
     ; RAX: bit 16 = is_high, bits 8-15 = size_in_bytes, bits 0-7 = reg_id
     mov     [r12 + OPERAND_reg], al
@@ -317,8 +301,7 @@ parser_evaluate_expression:
     inc     dword [rbx + ASMCTX_expr_depth]
     IF dword [rbx + ASMCTX_expr_depth], g, 64
         mov rax, EXIT_EXPR_TOO_DEEP
-        jmp .done_err
-    ENDIF
+        jmp .done_err | ENDIF
     
     call    parser_evaluate_term
     check_err_to .done_err
@@ -342,8 +325,7 @@ parser_evaluate_expression:
         check_err_to .done_err
         sub     r13, rdx
         jo      .overflow
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
     
     mov     rdx, r13
     xor     rax, rax
@@ -437,8 +419,7 @@ parser_evaluate_term:
         call    parser_evaluate_factor
         check_err
         xor     rbx, rdx
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
     
     mov     rdx, rbx
     xor     rax, rax
@@ -472,8 +453,7 @@ parser_evaluate_factor:
         check_err
         not     rdx
         xor     rax, rax
-        epilogue
-    ENDIF
+        epilogue | ENDIF
 
     IF al, e, TOK_NUMBER
         mov     rsi, [r12 + TOKEN_value]
@@ -488,8 +468,7 @@ parser_evaluate_factor:
         IF rax, e, 0
             ; If no section, return 0 (or error?)
             xor rax, rax
-            epilogue
-        ENDIF
+            epilogue | ENDIF
         mov     rdx, [rax + SECTION_size]
         xor     rax, rax
         epilogue
@@ -502,14 +481,12 @@ parser_evaluate_factor:
         IF rax, e, OK
             mov     r11, rdx               ; return SYMBOL* in r11 (A78)
             mov     rdx, [rdx + SYMBOL_value]
-            xor     rax, rax
-        ELSE
+            xor     rax, rax | ELSE
             ; Deferred symbol (R_ABS64 reloc)
             mov     rdx, 0
             mov     r11, 0                 ; no symbol metadata yet
             mov     rcx, [r12 + TOKEN_value] ; return symbol name in RCX
-            xor     rax, rax
-        ENDIF
+            xor     rax, rax | ENDIF
         epilogue
     ELSEIF al, e, TOK_LPAREN
         call    parser_evaluate_expression
@@ -518,8 +495,7 @@ parser_evaluate_factor:
         call    preprocessor_next_token
         IF byte [rdx + TOKEN_kind], ne, TOK_RPAREN
             mov rax, EXIT_UNEXPECTED_TOKEN
-            epilogue
-        ENDIF
+            epilogue | ENDIF
         mov     rdx, r13
         xor     rax, rax
         epilogue
@@ -527,8 +503,7 @@ parser_evaluate_factor:
         call    parser_handle_reloc_modifier
         check_err
         ; parser_handle_reloc_modifier should have parsed the symbol too
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     
     mov     rax, EXIT_INVALID_EXPR
     epilogue
@@ -546,8 +521,7 @@ parser_handle_reloc_modifier:
     mov     r12, rdx
     IF byte [r12 + TOKEN_kind], ne, TOK_IDENT
         mov rax, EXIT_UNEXPECTED_TOKEN
-        jmp .error
-    ENDIF
+        jmp .error | ENDIF
     
     mov     rdi, [r12 + TOKEN_value]
     xor     r14, r14
@@ -557,14 +531,12 @@ parser_handle_reloc_modifier:
     IF eax, e, 'lo12'
         mov r14d, 1 ; Placeholder for RELOC_AARCH64_LO12
     ELSEIF eax, e, 'pg_h'
-        mov r14d, 2 ; Placeholder for RELOC_AARCH64_PG_HI21
-    ENDIF
+        mov r14d, 2 ; Placeholder for RELOC_AARCH64_PG_HI21 | ENDIF
     
     call    preprocessor_next_token
     IF byte [rdx + TOKEN_kind], ne, TOK_COLON
         mov rax, EXIT_UNEXPECTED_TOKEN
-        jmp .error
-    ENDIF
+        jmp .error | ENDIF
     
     call    parser_evaluate_factor
     check_err
@@ -613,11 +585,9 @@ parser_get_arch_tables:
         extern mnc_tb_rv64
         extern riscv64_register_table
         lea     rax, [mnc_tb_rv64]
-        lea     rdx, [riscv64_register_table]
-    ELSE
+        lea     rdx, [riscv64_register_table] | ELSE
         xor     rax, rax
-        xor     rdx, rdx
-    ENDIF
+        xor     rdx, rdx | ENDIF
     epilogue
 
 ;*
@@ -642,9 +612,7 @@ parser_parse_mem_operand:
         IF rax, e, 0
             call    preprocessor_next_token ; consume 'rel'
             mov     byte [r12 + OPERAND_flags], OP_FLAG_REL
-            ; Fall through to parse the symbol/offset
-        ENDIF
-    ENDIF
+            ; Fall through to parse the symbol/offset | ENDIF | ENDIF
 
 .loop:
     call    preprocessor_next_token
@@ -653,18 +621,15 @@ parser_parse_mem_operand:
     mov     al, [r13 + TOKEN_kind]
 
     IF al, e, TOK_RBRACKET
-        jmp     .finalize
-    ENDIF
+        jmp     .finalize | ENDIF
 
     IF al, e, TOK_PLUS
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
 
     IF al, e, TOK_MINUS
         ; handle negative disp? usually handled by expression engine
         call    preprocessor_putback_token
-        jmp     .parse_item
-    ENDIF
+        jmp     .parse_item | ENDIF
 
 .parse_item:
     IF al, e, TOK_IDENT
@@ -697,13 +662,10 @@ parser_parse_mem_operand:
                 mov     rax, EXIT_INVALID_OPERAND
                 jmp     .error
             .scale_ok:
-                mov     [r12 + OPERAND_scale], al
-            ENDIF
-            jmp     .loop
-        ENDIF
+                mov     [r12 + OPERAND_scale], al | ENDIF
+            jmp     .loop | ENDIF
         ; Not a register, must be a symbol/expression
-        call    preprocessor_putback_token
-    ENDIF
+        call    preprocessor_putback_token | ENDIF
 
     ; 2. Parse as expression (Displacement)
     call    parser_evaluate_expression
@@ -711,8 +673,7 @@ parser_parse_mem_operand:
     ; result in rdx, symbol metadata in r11 (A78)
     add     [r12 + OPERAND_imm], rdx
     IF r11, ne, 0
-        mov [r12 + OPERAND_sym], r11
-    ENDIF
+        mov [r12 + OPERAND_sym], r11 | ENDIF
     jmp     .loop
 
 .finalize:
@@ -819,29 +780,25 @@ parser_check_prefix:
     call    str_compare
     IF rax, e, 0
         mov al, 0xF3
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     
     lea     rsi, [str_repe]
     call    str_compare
     IF rax, e, 0
         mov al, 0xF3
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     
     lea     rsi, [str_repne]
     call    str_compare
     IF rax, e, 0
         mov al, 0xF2
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     
     lea     rsi, [str_lock]
     call    str_compare
     IF rax, e, 0
         mov al, 0xF0
-        epilogue
-    ENDIF
+        epilogue | ENDIF
     
     xor     rax, rax
     epilogue
@@ -896,13 +853,11 @@ parser_parse_struc:
     mov     al, [r12 + TOKEN_kind]
     
     IF al, e, TOK_NEWLINE
-        jmp     .field_loop
-    ENDIF
+        jmp     .field_loop | ENDIF
     
     IF al, e, TOK_EOF
         mov     rax, EXIT_UNEXPECTED_EOF
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     
     ; Check for 'endstruc'
     IF al, e, TOK_IDENT
@@ -911,8 +866,7 @@ parser_parse_struc:
         extern  str_compare
         call    str_compare
         IF rax, e, 0
-            jmp .register_struct
-        ENDIF
+            jmp .register_struct | ENDIF
         
         ; Check for 'field' keyword
         mov     rdi, [r12 + TOKEN_value]
@@ -920,12 +874,9 @@ parser_parse_struc:
         call    str_compare
         IF rax, ne, 0
             mov     rax, EXIT_UNEXPECTED_TOKEN
-            jmp     .error
-        ENDIF
-    ELSE
+            jmp     .error | ENDIF | ELSE
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     
     ; Parse: field <name>, <size>
     ; 1. Field name
@@ -933,8 +884,7 @@ parser_parse_struc:
     check_err
     IF byte [rdx + TOKEN_kind], ne, TOK_IDENT
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     mov     r12, [rdx + TOKEN_value]   ; r12 = field name ptr
     
     ; Consume comma
@@ -942,16 +892,14 @@ parser_parse_struc:
     check_err
     IF byte [rdx + TOKEN_kind], ne, TOK_COMMA
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     
     ; 2. Field byte size (integer literal)
     call    preprocessor_next_token
     check_err
     IF byte [rdx + TOKEN_kind], ne, TOK_NUMBER
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     mov     rsi, [rdx + TOKEN_value]
     call    str_to_int                 ; rax = field byte size
     mov     r11, rax                   ; r11 = field size
@@ -970,8 +918,7 @@ parser_parse_struc:
         mov     rax, r10
         dec     rax
         test    r10, rax
-        jnz     .error_invalid_align
-    ENDIF
+        jnz     .error_invalid_align | ENDIF
     
     ; Apply Alignment
     mov     rax, r14                   ; current offset
@@ -1066,8 +1013,7 @@ parser_define_label:
         mov     rcx, [rax + SECTION_size]
         mov     [rdi + SYMBOL_value], rcx
         movzx   ecx, word [rax + SECTION_index]
-        mov     [rdi + SYMBOL_section], cx
-    ENDIF
+        mov     [rdi + SYMBOL_section], cx | ENDIF
 
     mov     rdi, rbx
     mov     rsi, rsp
@@ -1165,8 +1111,7 @@ parser_handle_pseudo_op:
     ELSEIF ax, e, 'dq'
         call    parser_emit_data_64
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     ; 2. Section Directive
     mov     rdi, rbx
@@ -1176,8 +1121,7 @@ parser_handle_pseudo_op:
     IF rax, e, 0
         call    parser_handle_section_directive
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     ; 2.5 Comm Directive
     mov     rdi, rbx
@@ -1186,8 +1130,7 @@ parser_handle_pseudo_op:
     IF rax, e, 0
         call    parser_handle_comm
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     ; 3. Align Directives
     mov     rdi, rbx
@@ -1197,8 +1140,7 @@ parser_handle_pseudo_op:
         xor     rsi, rsi           ; type = 0 (byte)
         call    parser_handle_align
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     mov     rdi, rbx
     lea     rsi, [str_p2align]
@@ -1207,8 +1149,7 @@ parser_handle_pseudo_op:
         mov     rsi, 1             ; type = 1 (p2)
         call    parser_handle_align
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     ; 4. Visibility Directives (global, weak, local)
     mov     rdi, rbx
@@ -1218,8 +1159,7 @@ parser_handle_pseudo_op:
         mov     rsi, VIS_GLOBAL
         call    parser_handle_visibility
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     mov     rdi, rbx
     lea     rsi, [str_weak]
@@ -1228,8 +1168,7 @@ parser_handle_pseudo_op:
         mov     rsi, VIS_WEAK
         call    parser_handle_visibility
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     mov     rdi, rbx
     lea     rsi, [str_local]
@@ -1238,8 +1177,7 @@ parser_handle_pseudo_op:
         mov     rsi, VIS_LOCAL
         call    parser_handle_visibility
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     mov     rdi, rbx
     lea     rsi, [str_org]
@@ -1247,8 +1185,7 @@ parser_handle_pseudo_op:
     IF rax, e, 0
         call    parser_handle_org
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_equ]
@@ -1256,8 +1193,7 @@ parser_handle_pseudo_op:
     IF rax, e, 0
         call    parser_handle_equ
         mov     rax, OK
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     xor     rax, rax               ; Not a pseudo-op
 
@@ -1280,32 +1216,28 @@ parser_check_aarch64_shift:
     call    str_cmp
     IF rax, e, 0
         mov rax, SHIFT_LSL
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_lsr]
     call    str_cmp
     IF rax, e, 0
         mov rax, SHIFT_LSR
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_asr]
     call    str_cmp
     IF rax, e, 0
         mov rax, SHIFT_ASR
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_ror]
     call    str_cmp
     IF rax, e, 0
         mov rax, SHIFT_ROR
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
     
     mov     rax, ERR
 .done:
@@ -1329,13 +1261,11 @@ parser_handle_align:
         ; Safety: Limit exponent to 16 (64KB max alignment for industrial stability)
         IF r13, g, 16
             mov rax, EXIT_INVALID_ALIGN
-            jmp .error
-        ENDIF
+            jmp .error | ENDIF
         mov     rcx, r13
         mov     rax, 1
         shl     rax, cl
-        mov     r13, rax
-    ELSE
+        mov     r13, rax | ELSE
         ; Safety: Validate power-of-2 for standard alignment
         mov     rax, r13
         test    rax, rax
@@ -1343,8 +1273,7 @@ parser_handle_align:
         mov     rcx, rax
         dec     rcx
         test    rax, rcx
-        jnz     .error_invalid_align
-    ENDIF
+        jnz     .error_invalid_align | ENDIF
     
     ; Check for optional fill
     xor     r14, r14               ; default fill
@@ -1353,8 +1282,7 @@ parser_handle_align:
         call    preprocessor_next_token
         call    parser_evaluate_expression
         check_err
-        mov     r14, rdx
-    ELSE
+        mov     r14, rdx | ELSE
         ; Architecture-specific NOP selection
         mov     rdi, [rbx + PREP_ctx]
         mov     al, [rdi + ASMCTX_target]
@@ -1363,11 +1291,8 @@ parser_handle_align:
             ; Simplified: use 0x00 for now or implement multi-byte padding.
             mov     r14, 0x00
         ELSEIF al, e, TARGET_RISCV64
-            mov     r14, 0x00
-        ELSE
-            mov     r14, 0x90       ; x86_64 NOP
-        ENDIF
-    ENDIF
+            mov     r14, 0x00 | ELSE
+            mov     r14, 0x90       ; x86_64 NOP | ENDIF | ENDIF
 
     mov     rdi, [rbx + PREP_ctx]
     mov     rsi, r13
@@ -1420,8 +1345,7 @@ parser_handle_equ:
     mov     rax, [rax + ASMCTX_last_symbol]
     IF rax, e, 0
         mov     rax, EXIT_UNDEF_SYMBOL
-        jmp     .error
-    ENDIF
+        jmp     .error | ENDIF
     
     ; Override value and make it absolute (SHN_ABS = 0xFFF1)
     mov     [rax + SYMBOL_value], r12
@@ -1450,22 +1374,19 @@ parser_emit_data_8:
         mov     rsi, [r12 + TOKEN_value]
         mov     rdi, [rbx + PREP_ctx]
         extern  asmctx_emit_string
-        call    asmctx_emit_string
-    ELSE
+        call    asmctx_emit_string | ELSE
         call    preprocessor_putback_token
         call    parser_evaluate_expression
         check_err
         mov     rdi, [rbx + PREP_ctx]
         mov     rsi, rdx
         extern  asmctx_emit_byte
-        call    asmctx_emit_byte
-    ENDIF
+        call    asmctx_emit_byte | ENDIF
     
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
     epilogue
 
 parser_emit_data_16:
@@ -1480,8 +1401,7 @@ parser_emit_data_16:
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
     epilogue
 
 parser_emit_data_32:
@@ -1496,8 +1416,7 @@ parser_emit_data_32:
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
     epilogue
 
 parser_emit_data_64:
@@ -1512,8 +1431,7 @@ parser_emit_data_64:
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
         call    preprocessor_next_token
-        jmp     .loop
-    ENDIF
+        jmp     .loop | ENDIF
     epilogue
 
 ;*
@@ -1536,8 +1454,7 @@ parser_handle_section_directive:
     call    asmctx_find_section
     
     IF rax, e, OK
-        mov     r13, rdx               ; r13 = existing section
-    ELSE
+        mov     r13, rdx               ; r13 = existing section | ELSE
         ; Create new section
         mov     rdi, [rbx + PREP_ctx]
         mov     rsi, [r12 + TOKEN_value]
@@ -1545,8 +1462,7 @@ parser_handle_section_directive:
         extern  asm_ctx_create_section
         call    asm_ctx_create_section
         check_err
-        mov     r13, rdx
-    ENDIF
+        mov     r13, rdx | ENDIF
 
     ; 2. Auto-assign flags and type for standard sections if new
     IF rax, ne, OK
@@ -1557,34 +1473,23 @@ parser_handle_section_directive:
         lea     rsi, [str_text]
         call    str_cmp
         IF rax, e, OK
-            mov word [r13 + SECTION_flags], (SHF_ALLOC
-            SHF_EXECINSTR)
-        ELSE
+            mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_EXECINSTR) | ELSE
             ; .data -> AW
             lea     rsi, [str_data]
             call    str_cmp
             IF rax, e, OK
-                mov word [r13 + SECTION_flags], (SHF_ALLOC
-                SHF_WRITE)
-            ELSE
+                mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE) | ELSE
                 ; .bss -> AW, NOBITS
                 lea     rsi, [str_bss]
                 call    str_cmp
                 IF rax, e, OK
-                    mov word [r13 + SECTION_flags], (SHF_ALLOC
-                    SHF_WRITE)
-                    mov dword [r13 + SECTION_elf_type], SHT_NOBITS
-                ELSE
+                    mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
+                    mov dword [r13 + SECTION_elf_type], SHT_NOBITS | ELSE
                     ; .rodata -> A
                     lea     rsi, [str_rodata]
                     call    str_cmp
                     IF rax, e, OK
-                        mov word [r13 + SECTION_flags], SHF_ALLOC
-                    ENDIF
-                ENDIF
-            ENDIF
-        ENDIF
-    ENDIF
+                        mov word [r13 + SECTION_flags], SHF_ALLOC | ENDIF | ENDIF | ENDIF | ENDIF | ENDIF
 
     ; 3. Reset last_global on section change
     mov     rdi, [rbx + PREP_ctx]
@@ -1614,25 +1519,20 @@ parser_handle_section_directive:
             jmp     .flag_loop
         .flag_done:
             ; A90: Enforce W^X security policy (Write XOR Execute)
-            mov     ecx, (SHF_WRITE
-            SHF_EXECINSTR)
+            mov     ecx, (SHF_WRITE | SHF_EXECINSTR)
             mov     edx, eax
             and     edx, ecx
             IF edx, e, ecx
                 mov     rax, EXIT_INVALID_SECTION_FLAGS
-                jmp     .done
-            ENDIF
+                jmp     .done | ENDIF
             
             ; A92: Validate flag consistency for duplicate declarations
             movzx   ecx, word [r13 + SECTION_flags]
             IF ecx, ne, 0
                 IF ecx, ne, eax
                     mov     rax, EXIT_INVALID_SECTION_FLAGS
-                    jmp     .done
-                ENDIF
-            ELSE
-                mov     [r13 + SECTION_flags], ax
-            ENDIF
+                    jmp     .done | ENDIF | ELSE
+                mov     [r13 + SECTION_flags], ax | ENDIF
             
             ; 3.1 Handle Group Signature if 'G' flag is set
             test    ax, SHF_GROUP
@@ -1642,13 +1542,11 @@ parser_handle_section_directive:
             call    preprocessor_next_token
             IF byte [rdx + TOKEN_kind], ne, TOK_COMMA
                 mov     rax, EXIT_UNEXPECTED_TOKEN
-                jmp     .done
-            ENDIF
+                jmp     .done | ENDIF
             call    preprocessor_next_token
             IF byte [rdx + TOKEN_kind], ne, TOK_IDENT
                 mov     rax, EXIT_UNEXPECTED_TOKEN
-                jmp     .done
-            ENDIF
+                jmp     .done | ENDIF
             
             mov     r14, rdx               ; r14 = signature token
             mov     rdi, [rbx + PREP_ctx]
@@ -1671,8 +1569,7 @@ parser_handle_section_directive:
                 mov     [rsi + SYMBOL_name], rax
                 mov     byte [rsi + SYMBOL_vis], VIS_GLOBAL
                 call    symbol_add
-                add     rsp, SYMBOL_SIZE
-            ENDIF
+                add     rsp, SYMBOL_SIZE | ENDIF
             mov     [r13 + SECTION_group_sig], rdx
             
             ; 3.1.1 Check if this signature is already used in another group
@@ -1711,12 +1608,9 @@ parser_handle_section_directive:
                 lea     rsi, [str_comdat]
                 call    str_cmp
                 IF rax, e, 0
-                    mov dword [r13 + SECTION_group_flags], GRP_COMDAT
-                ENDIF
-            ENDIF
+                    mov dword [r13 + SECTION_group_flags], GRP_COMDAT | ENDIF | ENDIF
             
-        .no_group:
-        ENDIF
+        .no_group: | ENDIF
 
         ; 4. Optional: Type (@progbits, etc)
         call    preprocessor_peek_token
@@ -1724,9 +1618,7 @@ parser_handle_section_directive:
             call    preprocessor_next_token
             call    preprocessor_next_token
             ; Check for @progbits, @nobits, etc
-            ; For now, support @ progbits as separate or joined
-        ENDIF
-    ENDIF
+            ; For now, support @ progbits as separate or joined | ENDIF | ENDIF
     
     pop     r12
     pop     rbx
@@ -1747,8 +1639,7 @@ parser_handle_visibility:
     mov     r11, rdx
     IF byte [r11 + TOKEN_kind], ne, TOK_IDENT
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
     
     mov     rdi, [rbx + PREP_ctx]
     mov     rsi, [r11 + TOKEN_value]
@@ -1765,12 +1656,8 @@ parser_handle_visibility:
                 IF r12b, e, VIS_LOCAL
                     ; Symbol is already visible to the linker; demotion is unsafe
                     mov     rax, EXIT_VISIBILITY_CONFLICT
-                    jmp     .done
-                ENDIF
-            ENDIF
-        ENDIF
-        mov     byte [rdx + SYMBOL_vis], r12b
-    ELSE
+                    jmp     .done | ENDIF | ENDIF | ENDIF
+        mov     byte [rdx + SYMBOL_vis], r12b | ELSE
         ; Symbol doesn't exist, create it as UNDEFINED for now
         sub     rsp, SYMBOL_SIZE
         mov     rdi, rsp
@@ -1784,8 +1671,7 @@ parser_handle_visibility:
         mov     [rsi + SYMBOL_name], rax
         mov     byte [rsi + SYMBOL_vis], r12b
         call    symbol_add
-        add     rsp, SYMBOL_SIZE
-    ENDIF
+        add     rsp, SYMBOL_SIZE | ENDIF
     
     mov     rax, OK
 .done:
@@ -1811,8 +1697,7 @@ parser_handle_comm:
     mov     r11, rdx
     IF byte [r11 + TOKEN_kind], ne, TOK_IDENT
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
     mov     r12, [r11 + TOKEN_value]
     
     ; 2. Expect Comma
@@ -1821,8 +1706,7 @@ parser_handle_comm:
     mov     r11, rdx
     IF byte [r11 + TOKEN_kind], ne, TOK_COMMA
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
     
     ; 3. Get Size
     call    preprocessor_next_token
@@ -1830,8 +1714,7 @@ parser_handle_comm:
     mov     r11, rdx
     IF byte [r11 + TOKEN_kind], ne, TOK_NUMBER
         mov     rax, EXIT_UNEXPECTED_TOKEN
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
     mov     r13, [r11 + TOKEN_value]
     
     ; A95: Strong validation for .comm size
@@ -1849,8 +1732,7 @@ parser_handle_comm:
         mov     r11, rdx
         IF byte [r11 + TOKEN_kind], ne, TOK_INT
             mov     rax, EXIT_UNEXPECTED_TOKEN
-            jmp .done
-        ENDIF
+            jmp .done | ENDIF
         mov     r14, [r11 + TOKEN_value]
         
         ; VALIDATION: Alignment must be power of 2
@@ -1860,8 +1742,7 @@ parser_handle_comm:
         mov     rcx, rax
         dec     rcx
         test    rax, rcx
-        jnz     .error_align
-    ENDIF
+        jnz     .error_align | ENDIF
     
     ; 5. Create / Update Symbol
     mov     rdi, [rbx + PREP_ctx]
@@ -1870,8 +1751,7 @@ parser_handle_comm:
     call    symbol_find
     
     IF rax, e, OK
-        mov     r11, rdx
-    ELSE
+        mov     r11, rdx | ELSE
         sub     rsp, SYMBOL_SIZE
         mov     rdi, rsp
         xor     rax, rax
@@ -1884,8 +1764,7 @@ parser_handle_comm:
         mov     byte [rsi + SYMBOL_vis], VIS_GLOBAL
         call    symbol_add
         mov     r11, rdx
-        add     rsp, SYMBOL_SIZE
-    ENDIF
+        add     rsp, SYMBOL_SIZE | ENDIF
     
     ; Hardening for SHN_COMMON
     mov     word [r11 + SYMBOL_section], 0xFFF2 ; SHN_COMMON

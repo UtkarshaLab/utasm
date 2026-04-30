@@ -91,8 +91,7 @@ symbol_add:
     call    symbol_find
     IF rax, e, OK
         mov     rax, EXIT_DUP_SYMBOL
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     ; 2. Add to Linear Array
     mov     eax, [rbx + ASMCTX_symcount]
@@ -100,8 +99,7 @@ symbol_add:
     ; Check load factor (limit to 50000 / 65536 ~= 76%)
     IF rax, g, 50000
         mov     rax, EXIT_SYMBOL_RANGE
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     mov     rcx, rax
     imul    rcx, SYMBOL_SIZE

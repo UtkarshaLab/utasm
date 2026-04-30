@@ -39,8 +39,7 @@ aarch64_encode_instruction:
     ; A96: Dispatch Integrity - Validate operand count
     IF byte [r12 + INST_nops], g, 4
         mov rax, EXIT_ENCODE_FAIL
-        jmp .done
-    ENDIF
+        jmp .done | ENDIF
 
     ; Reset length counter (AArch64 is always 4 bytes per instruction)
     mov     dword [rbx + ASMCTX_inst_len], 4
@@ -59,12 +58,7 @@ aarch64_encode_instruction:
                 IF byte [r11 + OPERAND_kind], ne, OP_IMM
                 IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
                     mov rax, EXIT_INVALID_OPERAND
-                    jmp .done
-                ENDIF
-                ENDIF
-            ENDIF
-        ENDIF
-    ENDIF
+                    jmp .done | ENDIF | ENDIF | ENDIF | ENDIF | ENDIF
 
     movzx   eax, word [r12 + INST_op_id]
 
@@ -105,28 +99,24 @@ aarch64_encode_instruction:
     ; ---- String Operations (AMD64 Parity) ----
     ELSEIF eax, ge, ID_AARCH64_MOVSB
         IF eax, le, ID_AARCH64_MOVSQ
-            call aarch64_encode_string_mov
-        ENDIF
+            call aarch64_encode_string_mov | ENDIF
     ELSEIF eax, ge, ID_AARCH64_STOSB
         IF eax, le, ID_AARCH64_STOSQ
-            call aarch64_encode_string_sto
-        ENDIF
+            call aarch64_encode_string_sto | ENDIF
 
     ; ---- Type Conversion & Bit Reversal ----
     ELSEIF eax, e, ID_AARCH64_REV
         call    aarch64_encode_rev
     ELSEIF eax, ge, ID_AARCH64_SXTB
         IF eax, le, ID_AARCH64_SXTW
-            call aarch64_encode_extend
-        ENDIF
+            call aarch64_encode_extend | ENDIF
 
     ; ---- System & Barrier Instructions ----
     ELSEIF eax, e, ID_AARCH64_SVC
         call    aarch64_encode_svc
     ELSEIF eax, ge, ID_AARCH64_MRS         ; MRS/MSR range
         IF eax, le, ID_AARCH64_MSR
-            call aarch64_encode_system_reg
-        ENDIF
+            call aarch64_encode_system_reg | ENDIF
     ELSEIF eax, e, ID_AARCH64_DSB
         mov     edi, 0xD503309F
         call aarch64_emit_word
@@ -154,8 +144,7 @@ aarch64_encode_instruction:
     ; ---- Floating Point (Basic) ----
     ELSEIF eax, ge, 2154            ; FADD, FSUB, FMUL, FDIV
         IF eax, le, 2165
-            call aarch64_encode_fp_bin
-        ENDIF
+            call aarch64_encode_fp_bin | ENDIF
 
     ; ---- Arithmetic & Logical (Immediate) ----
     ; (Handled within dp_reg if op2 is immediate, but often distinct opcodes)
@@ -216,19 +205,16 @@ aarch64_encode_instruction:
     ; ---- SIMD (NEON) ----
     ELSEIF eax, ge, ID_AARCH64_ADD_V
         IF eax, le, ID_AARCH64_EOR_V
-            call    aarch64_encode_vector_bin
-        ENDIF
+            call    aarch64_encode_vector_bin | ENDIF
     
     ; ---- Misc ----
     ELSEIF eax, e, ID_AARCH64_NOP
         mov     edi, 0xD503201F
         call aarch64_emit_word
     ELSEIF eax, e, ID_AARCH64_SVC
-        call    aarch64_encode_svc
-    ELSE
+        call    aarch64_encode_svc | ELSE
         mov     rax, EXIT_ENCODE_FAIL
-        jmp     .done
-    ENDIF
+        jmp     .done | ENDIF
 
     xor     rax, rax
 .done:
@@ -254,8 +240,7 @@ aarch64_encode_bitfield:
     ; Set sf and N based on register size
     movzx   eax, byte [r10 + OPERAND_size]
     IF eax, e, 8
-        or      r13d, 0x80400000   ; sf=1, N=1
-    ENDIF
+        or      r13d, 0x80400000   ; sf=1, N=1 | ENDIF
     
     ; Rn (op1)
     lea     r10, [r12 + INST_op1]
@@ -318,12 +303,10 @@ aarch64_encode_adr:
         mov     rcx, [r11 + OPERAND_imm]
         mov     r8, R_AARCH64_ADR_PREL_LO21
         IF r13d, e, 0x90000000
-            mov r8, R_AARCH64_ADR_PREL_PG_HI21
-        ENDIF
+            mov r8, R_AARCH64_ADR_PREL_PG_HI21 | ENDIF
         extern  reloc_record
         call    reloc_record
-        pop     rax
-    ENDIF
+        pop     rax | ENDIF
     
     mov     edi, eax
     call    aarch64_emit_word
@@ -345,15 +328,7 @@ aarch64_emit_word:
 
 ; ---- aarch64_encode_dp_reg ----
 ; Covers ADD, SUB, AND, ORR, EOR, etc. (Shifted register)
-; Format: sf
-op
-0
-shift
-0
-Rm
-imm6
-Rn
-Rd
+; Format: sf | op | 0 | shift | 0 | Rm | imm6 | Rn | Rd
 aarch64_encode_dp_reg:
     prologue
     lea     r10, [r12 + INST_op0]  ; Rd
@@ -365,20 +340,16 @@ aarch64_encode_dp_reg:
     ; sf bit (64-bit vs 32-bit)
     mov     al, [r10 + OPERAND_size]
     IF al, e, 8
-        or      eax, 0x80000000
-    ENDIF
+        or      eax, 0x80000000 | ENDIF
 
     ; VALIDATION: All GPR operands must match Rd size
     IF byte [r11 + OPERAND_size], ne, al
         mov rax, EXIT_INVALID_OPERAND
-        jmp .ret
-    ENDIF
+        jmp .ret | ENDIF
     IF byte [r9 + OPERAND_kind], e, OP_REG
         IF byte [r9 + OPERAND_size], ne, al
             mov rax, EXIT_INVALID_OPERAND
-            jmp .ret
-        ENDIF
-    ENDIF
+            jmp .ret | ENDIF | ENDIF
 
     movzx   edi, byte [r10 + OPERAND_reg]   ; Rd
     or      eax, edi
@@ -404,24 +375,16 @@ aarch64_encode_dp_reg:
         shl     edi, 10            ; imm6 bits [15:10]
         or      eax, edi
     ELSEIF byte [r9 + OPERAND_kind], e, OP_IMM
-        ; ADD/SUB (immediate) uses different format: sf
-        op
-        1
-        sh
-        imm12
-        Rn
-        Rd
+        ; ADD/SUB (immediate) uses different format: sf | op | 1 | sh | imm12 | Rn | Rd
         ; We detect this and adjust the opcode base
         and     eax, 0x7FFFFFFF ; clear high bit temporarily
         IF eax, e, 0x0B000000  ; ADD
             mov eax, 0x11000000
         ELSEIF eax, e, 0x4B000000 ; SUB
-            mov eax, 0x51000000
-        ENDIF
+            mov eax, 0x51000000 | ENDIF
         ; Restore sf
         IF byte [r10 + OPERAND_size], e, 8
-            or      eax, 0x80000000
-        ENDIF
+            or      eax, 0x80000000 | ENDIF
         
         mov     rax, [r9 + OPERAND_imm]
         
@@ -435,16 +398,14 @@ aarch64_encode_dp_reg:
             mov     r8, R_AARCH64_ADD_ABS_LO12_NC
             extern  reloc_record
             call    reloc_record
-            pop     rax
-        ENDIF
+            pop     rax | ENDIF
 
         ; Check if imm fits in 12 bits
         IF rax, le, 0xFFF
             ; Fits directly
             mov edi, eax
             shl edi, 10
-            or  eax, edi
-        ELSE
+            or  eax, edi | ELSE
             ; Check if it fits with LSL #12 (bits 12-23)
             mov rdx, rax
             test rdx, 0xFFF
@@ -457,18 +418,14 @@ aarch64_encode_dp_reg:
                 mov edi, edx
                 and edi, 0xFFF
                 shl edi, 10
-                or  eax, edi
-            ELSE
-                jmp .error_imm_range
-            ENDIF
-        ENDIF
+                or  eax, edi | ELSE
+                jmp .error_imm_range | ENDIF | ENDIF
         jmp .done_arith
 
 .error_imm_range:
     mov rax, EXIT_IMM_RANGE
     jmp .ret
-.done_arith:
-    ENDIF
+.done_arith: | ENDIF
 
     mov     rdi, rax
     call    aarch64_emit_word
@@ -480,34 +437,25 @@ aarch64_encode_mov:
     lea     r9, [r12 + INST_op1]
     IF byte [r9 + OPERAND_kind], e, OP_IMM
         mov     r13d, 0xD2800000 ; MOVZ base
-        call    aarch64_encode_mov_wide
-    ELSE
+        call    aarch64_encode_mov_wide | ELSE
         ; MOV Rd, Rn  =>  ORR Rd, XZR, Rn
         mov     r13d, 0xAA000000
         ; We simulate ORR Rd, XZR, Rn by forcing Rn to be XZR (31) or something
-        ; Actually ORR Rd, XZR, Rm is: sf
-        0101010
-        00
-        Rm
-        000000
-        11111
-        Rd
+        ; Actually ORR Rd, XZR, Rm is: sf | 0101010 | 00 | Rm | 000000 | 11111 | Rd
         ; Let's just call dp_reg with special setup?
         ; Simpler: hardcode it
         lea     r10, [r12 + INST_op0]
         lea     r11, [r12 + INST_op1]
         mov     eax, 0x2A0003E0 ; ORR (32-bit) with Rn=WZR
         IF byte [r10 + OPERAND_size], e, 8
-            or  eax, 0x80000000
-        ENDIF
+            or  eax, 0x80000000 | ENDIF
         movzx   edi, byte [r10 + OPERAND_reg]
         or      eax, edi
         movzx   edi, byte [r11 + OPERAND_reg]
         shl     edi, 16
         or      eax, edi
         mov     rdi, rax
-        call    aarch64_emit_word
-    ENDIF
+        call    aarch64_emit_word | ENDIF
     epilogue
 
 ; ---- aarch64_encode_mov_wide ----
@@ -519,8 +467,7 @@ aarch64_encode_mov_wide:
     
     mov     eax, r13d
     IF byte [r10 + OPERAND_size], e, 8
-        or      eax, 0x80000000
-    ENDIF
+        or      eax, 0x80000000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -558,8 +505,7 @@ aarch64_encode_branch:
         mov     r8, R_AARCH64_JMP26
         extern  reloc_record
         call    reloc_record
-        pop     rax
-    ENDIF
+        pop     rax | ENDIF
     
     mov     rdi, rax
     call    aarch64_emit_word
@@ -583,8 +529,7 @@ aarch64_encode_branch_link:
         xor     rcx, rcx               ; addend
         mov     r8, R_AARCH64_CALL26
         call    reloc_record
-        pop     rax
-    ENDIF
+        pop     rax | ENDIF
     
     mov     rdi, rax
     call    aarch64_emit_word
@@ -610,8 +555,7 @@ aarch64_encode_comp_branch:
     
     mov     eax, r13d
     IF byte [r10 + OPERAND_size], e, 8
-        or      eax, 0x80000000
-    ENDIF
+        or      eax, 0x80000000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -633,13 +577,11 @@ aarch64_encode_ret:
     (Rn << 5)
     mov     eax, 0xD65F0000
     IF byte [r12 + INST_nops], e, 0
-        or      eax, (30 << 5) ; default to X30 (LR)
-    ELSE
+        or      eax, (30 << 5) ; default to X30 (LR) | ELSE
         lea     r10, [r12 + INST_op0]
         movzx   edi, byte [r10 + OPERAND_reg]
         shl     edi, 5
-        or      eax, edi
-    ENDIF
+        or      eax, edi | ENDIF
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue
@@ -672,8 +614,7 @@ aarch64_encode_ldst:
     ELSEIF cl, e, 4
         or      eax, 0x80000000
     ELSEIF cl, e, 2
-        or      eax, 0x40000000
-    ENDIF
+        or      eax, 0x40000000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -701,14 +642,12 @@ aarch64_encode_ldst:
         ELSEIF r10, e, 2
             mov r8, R_AARCH64_LDST16_ABS_LO12_NC
         ELSEIF r10, e, 1
-            mov r8, R_AARCH64_LDST8_ABS_LO12_NC
-        ENDIF
+            mov r8, R_AARCH64_LDST8_ABS_LO12_NC | ENDIF
         
         extern  reloc_record
         call    reloc_record
         pop     rdi
-        pop     rax
-    ENDIF
+        pop     rax | ENDIF
 
     ; Unsigned offset is scaled by size
     IF cl, e, 8
@@ -716,8 +655,7 @@ aarch64_encode_ldst:
     ELSEIF cl, e, 4
         shr     edi, 2
     ELSEIF cl, e, 2
-        shr     edi, 1
-    ENDIF
+        shr     edi, 1 | ENDIF
     and     edi, 0xFFF
     shl     edi, 10
     or      eax, edi
@@ -730,26 +668,17 @@ aarch64_encode_ldst:
 aarch64_encode_ldst_pair:
     prologue
     ; LDP/STP Xt1, Xt2, [Xn, #imm]
-    ; Format: opc
-    101
-    V
-    L
-    imm7
-    Rt2
-    Rn
-    Rt1
+    ; Format: opc | 101 | V | L | imm7 | Rt2 | Rn | Rt1
     lea     r10, [r12 + INST_op0] ; Rt1
     lea     r11, [r12 + INST_op1] ; Rt2
     lea     r9,  [r12 + INST_op2] ; [Rn, #imm]
     
     mov     eax, 0x28000000
     IF r13d, e, 1
-        or      eax, 0x00400000 ; L bit
-    ENDIF
+        or      eax, 0x00400000 ; L bit | ENDIF
     
     IF byte [r10 + OPERAND_size], e, 8
-        or      eax, 0x80000000 ; opc=10
-    ENDIF
+        or      eax, 0x80000000 ; opc=10 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -763,10 +692,8 @@ aarch64_encode_ldst_pair:
     mov     edi, [r9 + OPERAND_imm]
     ; imm7 is scaled by size
     IF byte [r10 + OPERAND_size], e, 8
-        sar     edi, 3
-    ELSE
-        sar     edi, 2
-    ENDIF
+        sar     edi, 3 | ELSE
+        sar     edi, 2 | ENDIF
     and     edi, 0x7F
     shl     edi, 15
     or      eax, edi
@@ -791,8 +718,7 @@ aarch64_encode_cmp:
     
     ; sf bit
     IF byte [r10 + OPERAND_size], e, 8
-        or  r13d, 0x80000000
-    ENDIF
+        or  r13d, 0x80000000 | ENDIF
     
     ; Rn (bits 9-5)
     movzx   eax, byte [r10 + OPERAND_reg]
@@ -816,8 +742,7 @@ aarch64_encode_cmp:
         mov     rax, [r11 + OPERAND_imm]
         and     eax, 0xFFF
         shl     eax, 10
-        or      r13d, eax
-    ENDIF
+        or      r13d, eax | ENDIF
     
     mov     rdi, r13
     call    aarch64_emit_word
@@ -840,8 +765,7 @@ aarch64_encode_tst:
     lea     r11, [r12 + INST_op1]  ; Rm
     
     IF byte [r10 + OPERAND_size], e, 8
-        or  r13d, 0x80000000
-    ENDIF
+        or  r13d, 0x80000000 | ENDIF
     
     ; Rn
     movzx   eax, byte [r10 + OPERAND_reg]
@@ -871,8 +795,7 @@ aarch64_encode_system_reg:
     
     mov     eax, 0xD5200000        ; MRS base
     IF word [r12 + INST_op_id], e, 2330 ; MSR
-        mov eax, 0xD5000000
-    ENDIF
+        mov eax, 0xD5000000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -898,8 +821,7 @@ aarch64_encode_hlt:
         mov     edi, [r10 + OPERAND_imm]
         and     edi, 0xFFFF
         shl     edi, 5
-        or      eax, edi
-    ENDIF
+        or      eax, edi | ENDIF
     mov     rdi, rax
     call    aarch64_emit_word
     epilogue
@@ -918,13 +840,11 @@ aarch64_encode_fp_bin:
     ELSEIF ecx, e, 2161            ; FMUL
         or eax, 0x00008000
     ELSEIF ecx, e, 2156            ; FDIV
-        or eax, 0x00018000
-    ENDIF
+        or eax, 0x00018000 | ENDIF
     
     ; Type bits: 00=single, 01=double
     IF byte [r10 + OPERAND_size], e, 8
-        or eax, 0x00400000
-    ENDIF
+        or eax, 0x00400000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -943,8 +863,7 @@ aarch64_encode_fp_bin:
     mov     edi, [r9 + OPERAND_imm]        ; Shift amount (0-63)
     IF edi, g, 63
         mov rax, EXIT_IMM_RANGE
-        jmp .ret
-    ENDIF
+        jmp .ret | ENDIF
     and     edi, 0x3F
     shl     edi, 10
     or      eax, edi
@@ -993,8 +912,7 @@ aarch64_encode_rev:
     mov     eax, 0x5AC00800
     IF byte [r10 + OPERAND_size], e, 8
         or eax, 0x80000000
-        or eax, 0x00000400
-    ENDIF
+        or eax, 0x00000400 | ENDIF
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
     movzx   edi, byte [r11 + OPERAND_reg]
@@ -1015,8 +933,7 @@ aarch64_encode_extend:
     IF ecx, e, ID_AARCH64_SXTW         or eax, 0x00007C00     ENDIF 
     
     IF byte [r10 + OPERAND_size], e, 8
-        or eax, 0x80000000
-    ENDIF
+        or eax, 0x80000000 | ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     or      eax, edi
@@ -1042,27 +959,21 @@ aarch64_encode_vector_bin:
         IF ecx, e, ID_AARCH64_ORR_V
             or      eax, 0x00400000    ; ORR (size bits used as op modifier)
         ELSEIF ecx, e, ID_AARCH64_EOR_V
-            or      eax, 0x20000000    ; EOR (U bit used as op modifier)
-        ENDIF
-    ELSE
+            or      eax, 0x20000000    ; EOR (U bit used as op modifier) | ENDIF | ELSE
         mov     eax, 0x0E208400        ; Arithmetic base (ADD)
         IF ecx, e, ID_AARCH64_SUB_V
-            or      eax, 0x20000000    ; SUB (U bit)
-        ENDIF
-    ENDIF
+            or      eax, 0x20000000    ; SUB (U bit) | ENDIF | ENDIF
     
     ; Q bit (bit 30)
     movzx   ecx, byte [r10 + OPERAND_size]
     IF ecx, e, 16
-        or      eax, 0x40000000
-    ENDIF
+        or      eax, 0x40000000 | ENDIF
     
     ; Size (bits 23-22) - only for arithmetic
     movzx   ecx, word [r12 + INST_op_id]
     IF ecx, lt, ID_AARCH64_AND_V
         ; Assuming 32-bit elements (10) for now
-        or      eax, 0x00800000
-    ENDIF
+        or      eax, 0x00800000 | ENDIF
     
     ; Registers: Rd=bits 4-0, Rn=bits 9-5, Rm=bits 20-16
     movzx   edi, byte [r10 + OPERAND_reg]
