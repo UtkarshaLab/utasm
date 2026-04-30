@@ -559,24 +559,22 @@
 %endmacro
 
 ;*
-; * [struc] / [field] / [endstruc]
+; * [zenith_struc] / [zenith_field] / [zenith_endstruc]
 ; * Purpose: Automatic calculation of structure offsets and total size.
 ; ;
-%unmacro struc 1
-%macro struc 1
+%macro zenith_struc 1
     %push   struc
     %define %$struc_name %1
     %assign %$offset 0
 %endmacro
 
-%macro field 2
+%macro zenith_field 2
     %define %%fname %$struc_name %+ _ %+ %1
     %%fname equ %$offset
     %assign %$offset %$offset + %2
 %endmacro
 
-%unmacro endstruc 0
-%macro endstruc 0
+%macro zenith_endstruc 0
     %define %%sname %$struc_name %+ _SIZE
     %%sname equ %$offset
     %pop    struc

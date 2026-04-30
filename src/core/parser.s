@@ -1476,6 +1476,9 @@ parser_handle_org:
     mov     [r10 + SECTION_addr], rdx
     epilogue
 
+.error:
+    epilogue
+
 ;*
 ; * [parser_handle_equ]
 ; ;
@@ -1541,6 +1544,9 @@ parser_emit_data_8:
         ENDIF
     epilogue
 
+.error:
+    epilogue
+
 parser_emit_data_16:
     prologue
 .loop:
@@ -1555,6 +1561,9 @@ parser_emit_data_16:
         call    preprocessor_next_token
         jmp     .loop
         ENDIF
+    epilogue
+
+.error:
     epilogue
 
 parser_emit_data_32:
@@ -1573,6 +1582,9 @@ parser_emit_data_32:
         ENDIF
     epilogue
 
+.error:
+    epilogue
+
 parser_emit_data_64:
     prologue
 .loop:
@@ -1587,6 +1599,9 @@ parser_emit_data_64:
         call    preprocessor_next_token
         jmp     .loop
         ENDIF
+    epilogue
+
+.error:
     epilogue
 
 ;*
