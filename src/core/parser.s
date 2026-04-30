@@ -9,6 +9,8 @@
 %include "include/constant.s"
 %include "include/macro.s"
 %include "include/type.s"
+%include "include/elf.s"
+%include "include/arch/aarch64.s"
 
 extern arena_alloc
 extern preprocessor_next_token
@@ -86,7 +88,7 @@ parser_parse_instruction:
         ENDIF
 
     .error_no_global:
-        mov     rax, EXIT_INVALID_LABEL
+        mov     rax, EXIT_UNDEF_SYMBOL
         jmp     .error
 
 
@@ -392,7 +394,7 @@ parser_evaluate_expression:
     epilogue
 
 .overflow:
-    mov     rax, EXIT_OVERFLOW
+    mov     rax, EXIT_IMM_RANGE
     jmp     .done_err
 
 .done_err:
@@ -479,7 +481,7 @@ parser_evaluate_term:
     epilogue
 
 .overflow:
-    mov     rax, EXIT_OVERFLOW
+    mov     rax, EXIT_IMM_RANGE
     pop     rbx
     epilogue
 
@@ -1075,7 +1077,7 @@ parser_parse_struc:
     jmp     .error
 
 .error_invalid_align:
-    mov     rax, EXIT_INVALID_ALIGN
+    mov     rax, EXIT_ALIGN_ERROR
     jmp     .error
 
 .error:
@@ -1374,7 +1376,7 @@ parser_handle_align:
     IF r12, e, 1
         ; Safety: Limit exponent to 16 (64KB max alignment for industrial stability)
         IF r13, g, 16
-            mov rax, EXIT_INVALID_ALIGN
+            mov rax, EXIT_ALIGN_ERROR
             jmp .error
             ENDIF
         mov     rcx, r13
@@ -1425,7 +1427,7 @@ parser_handle_align:
     epilogue
 
 .error_invalid_align:
-    mov     rax, EXIT_INVALID_ALIGN
+    mov     rax, EXIT_ALIGN_ERROR
     jmp     .error
 
 .error:
@@ -1673,7 +1675,7 @@ parser_handle_section_directive:
             mov     edx, eax
             and     edx, ecx
             IF edx, e, ecx
-                mov     rax, EXIT_INVALID_SECTION_FLAGS
+                mov     rax, EXIT_LD_SCRIPT_PARSE
                 jmp     .done
                 ENDIF
             
@@ -1818,7 +1820,7 @@ parser_handle_visibility:
             OR al, e, VIS_WEAK
                 IF r12b, e, VIS_LOCAL
                     ; Symbol is already visible to the linker; demotion is unsafe
-                    mov     rax, EXIT_VISIBILITY_CONFLICT
+                    mov     rax, EXIT_SYMBOL_RANGE
                     jmp     .error
                     ENDIF
                     ENDIF
@@ -1950,11 +1952,11 @@ parser_handle_comm:
     jmp     .done
 
 .error_size:
-    mov     rax, EXIT_INVALID_SIZE
+    mov     rax, EXIT_INVALID_IMM
     jmp     .done
 
 .error_align:
-    mov     rax, EXIT_INVALID_ALIGN
+    mov     rax, EXIT_ALIGN_ERROR
     jmp     .done
 
 .done:
@@ -1980,3 +1982,9 @@ str_lsr:       db "lsr", 0
 str_asr:       db "asr", 0
 str_ror:       db "ror", 0
 str_comdat:    db "comdat", 0
+str_org:       db "org", 0
+str_equ:       db "equ", 0
+str_text:      db ".text", 0
+str_data:      db ".data", 0
+str_bss:       db ".bss", 0
+str_rodata:    db ".rodata", 0

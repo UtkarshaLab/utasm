@@ -310,25 +310,25 @@
 
     %if %0 == 1
         %ifidni %1, z
-            jnz %%target
+            jnz strict near %%target
         %elifidni %1, nz
-            jz %%target
+            jz strict near %%target
         %elifidni %1, e
-            jnz %%target
+            jnz strict near %%target
         %elifidni %1, ne
-            je %%target
+            je strict near %%target
         %elifidni %1, c
-            jnc %%target
+            jnc strict near %%target
         %elifidni %1, nc
-            jc %%target
+            jc strict near %%target
         %elifidni %1, s
-            jns %%target
+            jns strict near %%target
         %elifidni %1, ns
-            js %%target
+            js strict near %%target
         %elifidni %1, o
-            jno %%target
+            jno strict near %%target
         %elifidni %1, no
-            jo %%target
+            jo strict near %%target
         %else
             %error "Unsupported single-argument condition: %1"
         %endif
@@ -340,40 +340,40 @@
         %endif
 
         %ifidni %2, ==
-            jne %%target
+            jne strict near %%target
         %elifidni %2, =
-            jne %%target
+            jne strict near %%target
         %elifidni %2, !=
-            je  %%target
+            je strict near %%target
         %elifidni %2, <>
-            je  %%target
+            je strict near %%target
         %elifidni %2, e
-            jne %%target
+            jne strict near %%target
         %elifidni %2, ne
-            je  %%target
+            je strict near %%target
         %elifidni %2, g
-            jng %%target
+            jng strict near %%target
         %elifidni %2, ge
-            jnge %%target
+            jnge strict near %%target
         %elifidni %2, l
-            jnl %%target
+            jnl strict near %%target
         %elifidni %2, le
-            jnle %%target
+            jnle strict near %%target
         %elifidni %2, a
-            jna %%target
+            jna strict near %%target
         %elifidni %2, ae
-            jnae %%target
+            jnae strict near %%target
         %elifidni %2, b
-            jnb %%target
+            jnb strict near %%target
         %elifidni %2, be
-            jnbe %%target
+            jnbe strict near %%target
         %endif
     %endif
 %endmacro
 
 %macro ELSEIF 3-4
     %ifctx if
-        jmp %$endif_label
+        jmp strict near %$endif_label
         .if_ %+ %$uid %+ _else_ %+ %$branch:
         %assign %$branch %$branch + 1
         %xdefine %%target .if_ %+ %$uid %+ _else_ %+ %$branch
@@ -385,33 +385,33 @@
         %endif
         
         %ifidni %2, ==
-            jne %%target
+            jne strict near %%target
         %elifidni %2, =
-            jne %%target
+            jne strict near %%target
         %elifidni %2, !=
-            je  %%target
+            je strict near %%target
         %elifidni %2, <>
-            je  %%target
+            je strict near %%target
         %elifidni %2, e
-            jne %%target
+            jne strict near %%target
         %elifidni %2, ne
-            je  %%target
+            je strict near %%target
         %elifidni %2, g
-            jng %%target
+            jng strict near %%target
         %elifidni %2, ge
-            jnge %%target
+            jnge strict near %%target
         %elifidni %2, l
-            jnl %%target
+            jnl strict near %%target
         %elifidni %2, le
-            jnle %%target
+            jnle strict near %%target
         %elifidni %2, a
-            jna %%target
+            jna strict near %%target
         %elifidni %2, ae
-            jnae %%target
+            jnae strict near %%target
         %elifidni %2, b
-            jnb %%target
+            jnb strict near %%target
         %elifidni %2, be
-            jnbe %%target
+            jnbe strict near %%target
         %endif
     %else
         %error "ELSEIF without IF"
@@ -420,7 +420,7 @@
 
 %macro ELSE 0
     %ifctx if
-        jmp %$endif_label
+        jmp strict near %$endif_label
         .if_ %+ %$uid %+ _else_ %+ %$branch:
         %assign %$branch %$branch + 1
     %else
