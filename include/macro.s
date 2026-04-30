@@ -353,10 +353,11 @@
 
     %if %%ok
         jmp %$block_exit
-        %$else:          ; Close previous block
-        %pop             ; Pop the previous if/elseif context
+        %$else:
+        %xdefine %%saved_exit %$block_exit    ; CAPTURE actual label text before pop!
+        %pop
         %push elseif
-        %define %$block_exit %$block_exit
+        %define %$block_exit %%saved_exit     ; Restore in new context
         %if %0 == 4
             cmp %1, %4
         %else
@@ -414,9 +415,10 @@
     %if %%ok
         jmp %$block_exit
         %$else:
+        %xdefine %%saved_exit %$block_exit    ; CAPTURE before pop!
         %pop
         %push else
-        %define %$block_exit %$block_exit
+        %define %$block_exit %%saved_exit     ; Restore in new context
     %else
         %error "ELSE without IF"
     %endif
