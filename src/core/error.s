@@ -11,6 +11,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 ; ============================================================================
 ; ERROR REPORTER
 ; ============================================================================
@@ -79,10 +81,10 @@ error_init:
 ; If CTX_FLAG_WERROR is set, warnings become errors â€” but
 ; this function always treats its input as a hard error.
 ; Input    : rdi = pointer to AsmCtx
-            rsi = pointer to filename string (or NULL)
-            rdx = line number (0 if unknown)
-            rcx = column number (0 if unknown)
-            r8  = pointer to message string
+;             rsi = pointer to filename string (or NULL)
+;             rdx = line number (0 if unknown)
+;             rcx = column number (0 if unknown)
+;             r8  = pointer to message string
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ; Clobbers : r9, r10, r11
 ;
@@ -177,10 +179,10 @@ error_emit:
 ; Increments AsmCtx.warn_count.
 ; If CTX_FLAG_WERROR is set, calls error_emit instead.
 ; Input    : rdi = pointer to AsmCtx
-            rsi = pointer to filename string (or NULL)
-            rdx = line number (0 if unknown)
-            rcx = column number (0 if unknown)
-            r8  = pointer to message string
+;             rsi = pointer to filename string (or NULL)
+;             rdx = line number (0 if unknown)
+;             rcx = column number (0 if unknown)
+;             r8  = pointer to message string
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ; Clobbers : r9, r10, r11
 ;
@@ -274,10 +276,10 @@ error_warn:
 ; Emits a note (supplementary information) to stderr.
 ; Does not increment any counter.
 ; Input    : rdi = pointer to AsmCtx
-            rsi = pointer to filename string (or NULL)
-            rdx = line number (0 if unknown)
-            rcx = column number (0 if unknown)
-            r8  = pointer to message string
+;             rsi = pointer to filename string (or NULL)
+;             rdx = line number (0 if unknown)
+;             rcx = column number (0 if unknown)
+;             r8  = pointer to message string
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ; Clobbers : r9, r10, r11
 ;
@@ -349,7 +351,7 @@ error_note:
 ; Used for verbose/debug output â€” not a diagnostic.
 ; Only emits if CTX_FLAG_VERBOSE is set.
 ; Input    : rdi = pointer to AsmCtx
-            rsi = pointer to message string
+;             rsi = pointer to message string
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ; Clobbers : rcx, rdx, r8, r9
 ;
@@ -422,7 +424,7 @@ error_info:
 ; Emits a fatal error message and exits immediately.
 ; Does not return.
 ; Input    : rdi = pointer to AsmCtx (or NULL)
-            rsi = pointer to message string
+;             rsi = pointer to message string
 ; Output   : does not return
 ; Clobbers : all
 ;
@@ -650,8 +652,8 @@ error_summary:
 ; error_write_raw
 ; Writes exactly rdx bytes from rsi to file descriptor rdi.
 ; Input    : rdi = file descriptor
-            rsi = pointer to buffer
-            rdx = byte count
+;             rsi = pointer to buffer
+;             rdx = byte count
 ; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
 ; Clobbers : rax, r11
 ;
@@ -671,7 +673,7 @@ error_write_raw:
 ; error_write_str
 ; Writes a null-terminated string to file descriptor rdi.
 ; Input    : rdi = file descriptor
-            rsi = pointer to null-terminated string
+;             rsi = pointer to null-terminated string
 ; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
 ; Clobbers : rax, rdx, rcx, r11
 ;
@@ -700,7 +702,7 @@ error_write_str:
 ; Uses an internal static buffer â€” not reentrant.
 ; Input    : rdi = unsigned integer value
 ; Output   : rax = EXIT_OK
-             rdx = pointer to null-terminated decimal string
+;              rdx = pointer to null-terminated decimal string
 ; Clobbers : rcx, r8, r9, r10
 ;
 error_uint_to_str:
