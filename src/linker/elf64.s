@@ -386,7 +386,8 @@ elf64_write_phdrs:
     
     ; CODE Segment
     mov     dword [r14 + PHDR_type],   PT_LOAD
-    mov     dword [r14 + PHDR_flags],  (PF_R | PF_X)
+    mov     dword [r14 + PHDR_flags],  (PF_R
+    PF_X)
     mov     qword [r14 + PHDR_offset], r15
     mov     rax, [r12 + ASMCTX_entry_point]
     mov     qword [r14 + PHDR_vaddr],  rax
@@ -408,7 +409,8 @@ elf64_write_phdrs:
     ; DATA Segment
     add     r14, 56
     mov     dword [r14 + PHDR_type],   PT_LOAD
-    mov     dword [r14 + PHDR_flags],  (PF_R | PF_W)
+    mov     dword [r14 + PHDR_flags],  (PF_R
+    PF_W)
     mov     qword [r14 + PHDR_offset], r15
     
     ; Virtual Address for data segment: Entry + (Data_Offset - Code_Offset)
@@ -688,7 +690,8 @@ elf64_write_symtab:
     mov     eax, [r10 + SYMBOL_name_idx]
     mov     [rsp + 24 + SYM64_NAME], eax
     
-    ; st_info: (bind << 4) | (kind == LABEL ? FUNC : OBJECT)
+    ; st_info: (bind << 4)
+    (kind == LABEL ? FUNC : OBJECT)
     movzx   eax, byte [r10 + SYMBOL_vis]   ; VIS_LOCAL=0, VIS_GLOBAL=1, VIS_WEAK=2
     shl     al, 4
     mov     cl, [r10 + SYMBOL_kind]
@@ -961,7 +964,8 @@ elf64_write_rela:
     mov     rax, [rdi + RELOC_offset]
     mov     qword [rsp + RELA_OFFSET], rax
 
-    ; r_info: (sym_index << 32) | reloc_type
+    ; r_info: (sym_index << 32)
+    reloc_type
     mov     rsi, [rdi + RELOC_sym] ; symbol name ptr
     mov     rdi, [r12 + ASMCTX_symtab]
     extern  symbol_find
@@ -1024,8 +1028,13 @@ elf64_write_shdrs:
     sub     rsp, ELF64_SHDR_SIZE   ; scratch shdr
     
     ; 1. NULL Section [0]
-    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
-    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    mov     rdi, rsp
+    mov rsi, ELF64_SHDR_SIZE
+    call mem_zero
+    mov     rdi, r12
+    mov rsi, rsp
+    mov rdx, ELF64_SHDR_SIZE
+    call io_write
     
     ; 2. Iterate User Sections
     mov     r14, [rbx + ASMCTX_sections]
@@ -1043,7 +1052,9 @@ elf64_write_shdrs:
     
     mov     r13, [r14 + rcx * 8]   ; r13 = SECTION*
     
-    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     rdi, rsp
+    mov rsi, ELF64_SHDR_SIZE
+    call mem_zero
     
     ; Name index (placeholder)
     mov     dword [rsp + SHDR_NAME], 0 
@@ -1059,7 +1070,10 @@ elf64_write_shdrs:
     
     ; sh_offset: Align current r11 to section alignment
     mov     rax, [r13 + SECTION_align]
-    test    rax, rax | jnz .use_align | mov rax, 1 | .use_align:
+    test    rax, rax
+    jnz .use_align
+    mov rax, 1
+    .use_align:
     
     ; r11 = (r11 + rax - 1) & ~(rax - 1)
     dec     rax
@@ -1079,14 +1093,18 @@ elf64_write_shdrs:
 .no_offset_inc:
     
     mov     rax, [r13 + SECTION_align]
-    test    rax, rax | jz .def_align
+    test    rax, rax
+    jz .def_align
     mov     qword [rsp + SHDR_ADDRALIGN], rax
     jmp     .emit
 .def_align:
     mov     qword [rsp + SHDR_ADDRALIGN], 1
     
 .emit:
-    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    mov     rdi, r12
+    mov rsi, rsp
+    mov rdx, ELF64_SHDR_SIZE
+    call io_write
     
     inc     ecx
     jmp     .sec_loop
@@ -1100,7 +1118,9 @@ elf64_write_shdrs:
     shl     rax, 3
     sub     rsp, rax
     mov     r14, rsp               ; r14 = processed_sigs array
-    mov     rdi, r14 | mov rsi, rax | call mem_zero
+    mov     rdi, r14
+    mov rsi, rax
+    call mem_zero
     xor     r15, r15               ; n_processed = 0
     pop     r11                    ; r11 = offset before groups
     
@@ -1111,21 +1131,29 @@ elf64_write_shdrs:
     
     mov     rax, [rbx + ASMCTX_sections]
     mov     r10, [rax + rcx * 8]   ; r10 = SECTION*
-    test    word [r10 + SECTION_flags], SHF_GROUP | jz .next_group_header
-    mov     r8, [r10 + SECTION_group_sig] | test r8, r8 | jz .next_group_header
+    test    word [r10 + SECTION_flags], SHF_GROUP
+    jz .next_group_header
+    mov     r8, [r10 + SECTION_group_sig]
+    test r8, r8
+    jz .next_group_header
     
     ; De-duplicate
     xor     rdx, rdx
 .sig_check_shdr:
-    cmp     rdx, r15 | jge .new_group_shdr
-    cmp     [r14 + rdx * 8], r8 | je .next_group_header
-    inc     rdx | jmp .sig_check_shdr
+    cmp     rdx, r15
+    jge .new_group_shdr
+    cmp     [r14 + rdx * 8], r8
+    je .next_group_header
+    inc     rdx
+    jmp .sig_check_shdr
     
 .new_group_shdr:
     mov     [r14 + r15 * 8], r8
     inc     r15
     
-    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     rdi, rsp
+    mov rsi, ELF64_SHDR_SIZE
+    call mem_zero
     mov     dword [rsp + SHDR_NAME], 55    ; ".group"
     mov     dword [rsp + SHDR_TYPE], 17    ; SHT_GROUP
     mov     qword [rsp + SHDR_OFFSET], r11
@@ -1147,21 +1175,28 @@ elf64_write_shdrs:
     mov     r9, 4                  ; start with GRP_COMDAT word
     xor     rdx, rdx               ; j = 0
 .count_members:
-    cmp     dx, [rbx + ASMCTX_seccount] | jge .emit_group_shdr
+    cmp     dx, [rbx + ASMCTX_seccount]
+    jge .emit_group_shdr
     mov     rax, [rbx + ASMCTX_sections]
     mov     rax, [rax + rdx * 8]
-    cmp     [rax + SECTION_group_sig], r8 | jne .next_count
+    cmp     [rax + SECTION_group_sig], r8
+    jne .next_count
     add     r9, 4
 .next_count:
-    inc     rdx | jmp .count_members
+    inc     rdx
+    jmp .count_members
     
 .emit_group_shdr:
     mov     qword [rsp + SHDR_SIZE], r9
     add     r11, r9                ; Advance offset for next group
-    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    mov     rdi, r12
+    mov rsi, rsp
+    mov rdx, ELF64_SHDR_SIZE
+    call io_write
     
 .next_group_header:
-    inc     rcx | jmp .group_loop
+    inc     rcx
+    jmp .group_loop
 
 .groups_done:
     movzx   eax, word [rbx + ASMCTX_seccount]
@@ -1169,7 +1204,9 @@ elf64_write_shdrs:
     add     rsp, rax               ; Clean up processed_sigs
 
     ; 3. .symtab
-    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     rdi, rsp
+    mov rsi, ELF64_SHDR_SIZE
+    call mem_zero
     mov     dword [rsp + SHDR_NAME], 18    ; ".symtab"
     mov     dword [rsp + SHDR_TYPE], 2     ; SHT_SYMTAB
     mov     qword [rsp + SHDR_ENTSIZE], 24 ; sizeof(Elf64_Sym)
@@ -1179,21 +1216,38 @@ elf64_write_shdrs:
     add     eax, 2                 ; NULL + User + Groups + SYMTAB + STRTAB
     mov     dword [rsp + SHDR_LINK], eax
     ; ... remaining shdr fields ...
-    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    mov     rdi, r12
+    mov rsi, rsp
+    mov rdx, ELF64_SHDR_SIZE
+    call io_write
 
     ; 4. .strtab
-    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     rdi, rsp
+    mov rsi, ELF64_SHDR_SIZE
+    call mem_zero
     mov     dword [rsp + SHDR_NAME], 26    ; ".strtab"
     mov     dword [rsp + SHDR_TYPE], 3     ; SHT_STRTAB
-    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    mov     rdi, r12
+    mov rsi, rsp
+    mov rdx, ELF64_SHDR_SIZE
+    call io_write
 
     ; 5. .shstrtab
-    mov     rdi, rsp | mov rsi, ELF64_SHDR_SIZE | call mem_zero
+    mov     rdi, rsp
+    mov rsi, ELF64_SHDR_SIZE
+    call mem_zero
     mov     dword [rsp + SHDR_NAME], 34    ; ".shstrtab"
     mov     dword [rsp + SHDR_TYPE], 3     ; SHT_STRTAB
-    mov     rdi, r12 | mov rsi, rsp | mov rdx, ELF64_SHDR_SIZE | call io_write
+    mov     rdi, r12
+    mov rsi, rsp
+    mov rdx, ELF64_SHDR_SIZE
+    call io_write
     
-    pop     r15 | pop     r14 | pop     r13 | pop     r12 | pop     rbx
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
     epilogue
 
 ;*

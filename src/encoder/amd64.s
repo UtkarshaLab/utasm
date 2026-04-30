@@ -31,7 +31,8 @@ amd64_encode_instruction:
 
     ; A96: Dispatch Integrity - Validate operand count
     IF byte [r12 + INST_nops], g, 4
-        mov rax, EXIT_ENCODE_FAIL | jmp .error
+        mov rax, EXIT_ENCODE_FAIL
+        jmp .error
     ENDIF
     
     ; Reset length counter
@@ -46,7 +47,8 @@ amd64_encode_instruction:
         mov     ah, [r11 + OPERAND_size]
         
         ; If both have explicit sizes, they must match
-        IF al, ne, 0 | IF ah, ne, 0
+        IF al, ne, 0
+        IF ah, ne, 0
             IF al, ne, ah
                 ; Exceptions: Immediate/Symbol can vary
                 IF byte [r11 + OPERAND_kind], ne, OP_IMM
@@ -99,33 +101,53 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1356             ; LEA
         call    amd64_encode_lea
     ELSEIF ax, e, 1006             ; ADD
-        mov     r13, 0x01 | mov r14, 0 | call amd64_encode_arithmetic
+        mov     r13, 0x01
+        mov r14, 0
+        call amd64_encode_arithmetic
     ELSEIF ax, e, 1676             ; SUB
-        mov     r13, 0x29 | mov r14, 5 | call amd64_encode_arithmetic
+        mov     r13, 0x29
+        mov r14, 5
+        call amd64_encode_arithmetic
     ELSEIF ax, e, 1075             ; CMP
-        mov     r13, 0x39 | mov r14, 7 | call amd64_encode_arithmetic
+        mov     r13, 0x39
+        mov r14, 7
+        call amd64_encode_arithmetic
     ELSEIF ax, e, 1084             ; CMPXCHG
-        mov     r13, 0xB1 | call amd64_encode_bin0f
+        mov     r13, 0xB1
+        call amd64_encode_bin0f
     ELSEIF ax, e, 2150             ; XADD
-        mov     r13, 0xC1 | call amd64_encode_bin0f
+        mov     r13, 0xC1
+        call amd64_encode_bin0f
     ELSEIF ax, e, 1086             ; CMPXCHG8B
-        mov     r14, 1 | call amd64_encode_cmpxchg_nb
+        mov     r14, 1
+        call amd64_encode_cmpxchg_nb
     ELSEIF ax, e, 1085             ; CMPXCHG16B
-        mov     r14, 1 | call amd64_encode_cmpxchg_nb
+        mov     r14, 1
+        call amd64_encode_cmpxchg_nb
     ELSEIF ax, e, 1028             ; AND
-        mov     r13, 0x21 | mov r14, 4 | call amd64_encode_arithmetic
+        mov     r13, 0x21
+        mov r14, 4
+        call amd64_encode_arithmetic
     ELSEIF ax, e, 1442             ; OR
-        mov     r13, 0x09 | mov r14, 1 | call amd64_encode_arithmetic
+        mov     r13, 0x09
+        mov r14, 1
+        call amd64_encode_arithmetic
     ELSEIF ax, e, 2157             ; XOR
-        mov     r13, 0x31 | mov r14, 6 | call amd64_encode_arithmetic
+        mov     r13, 0x31
+        mov r14, 6
+        call amd64_encode_arithmetic
     ELSEIF ax, e, 1691             ; TEST
-        mov     r13, 0x85 | call amd64_encode_test
+        mov     r13, 0x85
+        call amd64_encode_test
     ELSEIF ax, e, 1278             ; INC
-        mov     r14, 0 | call amd64_encode_unary
+        mov     r14, 0
+        call amd64_encode_unary
     ELSEIF ax, e, 1118             ; DEC
-        mov     r14, 1 | call amd64_encode_unary
+        mov     r14, 1
+        call amd64_encode_unary
     ELSEIF ax, e, 1439             ; NEG
-        mov     r14, 3 | call amd64_encode_unary
+        mov     r14, 3
+        call amd64_encode_unary
     ELSEIF ax, e, 1059             ; CALL
         call    amd64_encode_call
     ELSEIF ax, e, 1298             ; JMP
@@ -137,23 +159,36 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1611             ; RET
         call    amd64_encode_ret
     ELSEIF ax, e, 1583             ; PUSH
-        mov     r13, 0x50 | mov r14, 0x35 | mov r15, 6 | call amd64_encode_push_pop
+        mov     r13, 0x50
+        mov r14, 0x35
+        mov r15, 6
+        call amd64_encode_push_pop
     ELSEIF ax, e, 1534             ; POP
-        mov     r13, 0x58 | mov r14, 0x8F | mov r15, 0 | call amd64_encode_push_pop
+        mov     r13, 0x58
+        mov r14, 0x8F
+        mov r15, 0
+        call amd64_encode_push_pop
     ELSEIF ax, e, 1647             ; SHL
-        mov     r14, 4 | call amd64_encode_shift
+        mov     r14, 4
+        call amd64_encode_shift
     ELSEIF ax, e, 1650             ; SHR
-        mov     r14, 5 | call amd64_encode_shift
+        mov     r14, 5
+        call amd64_encode_shift
     ELSEIF ax, e, 1625             ; SAR
-        mov     r14, 7 | call amd64_encode_shift
+        mov     r14, 7
+        call amd64_encode_shift
     ELSEIF ax, e, 1612             ; ROL
-        mov     r14, 0 | call amd64_encode_shift
+        mov     r14, 0
+        call amd64_encode_shift
     ELSEIF ax, e, 1613             ; ROR
-        mov     r14, 1 | call amd64_encode_shift
+        mov     r14, 1
+        call amd64_encode_shift
     ELSEIF ax, e, 1432             ; MUL
-        mov     r14, 4 | call amd64_encode_unary
+        mov     r14, 4
+        call amd64_encode_unary
     ELSEIF ax, e, 1275             ; IDIV
-        mov     r14, 7 | call amd64_encode_unary
+        mov     r14, 7
+        call amd64_encode_unary
     ELSEIF ax, e, 1276             ; IMUL
         call    amd64_encode_imul
     ELSEIF ax, ge, 4000            ; CMOVcc & SETcc
@@ -164,545 +199,1197 @@ amd64_encode_instruction:
         ENDIF
     ELSEIF ax, ge, 1418            ; MOVS - MOVSW
         IF ax, le, 1425
-            mov r13, 0xA4 | call amd64_encode_string
+            mov r13, 0xA4
+            call amd64_encode_string
         ENDIF
     ELSEIF ax, ge, 1668            ; STOS - STOSW
         IF ax, le, 1672
-            mov r13, 0xAA | call amd64_encode_string
+            mov r13, 0xAA
+            call amd64_encode_string
         ENDIF
     ELSEIF ax, ge, 1368            ; LODS - LODSW
         IF ax, le, 1372
-            mov r13, 0xAC | call amd64_encode_string
+            mov r13, 0xAC
+            call amd64_encode_string
         ENDIF
     ELSEIF ax, ge, 1629            ; SCAS - SCASW
         IF ax, le, 1632
-            mov r13, 0xAE | call amd64_encode_string
+            mov r13, 0xAE
+            call amd64_encode_string
         ENDIF
     ELSEIF ax, ge, 1078            ; CMPS - CMPSW
         IF ax, le, 1083
-            mov r13, 0xA6 | call amd64_encode_string
+            mov r13, 0xA6
+            call amd64_encode_string
         ENDIF
     ELSEIF ax, e, 1119             ; DIV
-        mov     r14, 6 | call amd64_encode_unary
+        mov     r14, 6
+        call amd64_encode_unary
     ELSEIF ax, e, 1441             ; NOT
-        mov     r14, 2 | call amd64_encode_unary
+        mov     r14, 2
+        call amd64_encode_unary
     ELSEIF ax, e, 1419             ; MOVSB
-        mov     al, 0xA4 | call amd64_emit_byte
+        mov     al, 0xA4
+        call amd64_emit_byte
     ELSEIF ax, e, 1421             ; MOVSW
-        mov     al, 16 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
-        mov     al, 0xA5 | call amd64_emit_byte
+        mov     al, 16
+        mov rsi, 0
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov     al, 0xA5
+        call amd64_emit_byte
     ELSEIF ax, e, 1420             ; MOVSD
         IF byte [r12 + INST_nops], e, 0
-            mov     al, 0xA5 | call amd64_emit_byte
+            mov     al, 0xA5
+            call amd64_emit_byte
         ELSE
-            mov     r13, 0x10 | mov r14, 1 | call amd64_encode_sse ; SSE (F2 0F 10/11)
+            mov     r13, 0x10
+            mov r14, 1
+            call amd64_encode_sse ; SSE (F2 0F 10/11)
         ENDIF
     ELSEIF ax, e, 1422             ; MOVSQ
-        mov     al, 64 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
-        mov     al, 0xA5 | call amd64_emit_byte
+        mov     al, 64
+        mov rsi, 0
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov     al, 0xA5
+        call amd64_emit_byte
     ELSEIF ax, e, 1669             ; STOSB
-        mov     al, 0xAA | call amd64_emit_byte
+        mov     al, 0xAA
+        call amd64_emit_byte
     ELSEIF ax, e, 1672             ; STOSW
-        mov     al, 16 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
-        mov     al, 0xAB | call amd64_emit_byte
+        mov     al, 16
+        mov rsi, 0
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov     al, 0xAB
+        call amd64_emit_byte
     ELSEIF ax, e, 1670             ; STOSD
-        mov     al, 0xAB | call amd64_emit_byte
+        mov     al, 0xAB
+        call amd64_emit_byte
     ELSEIF ax, e, 1671             ; STOSQ
-        mov     al, 64 | mov rsi, 0 | mov rdx, 0 | call amd64_emit_prefixes
-        mov     al, 0xAB | call amd64_emit_byte
+        mov     al, 64
+        mov rsi, 0
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov     al, 0xAB
+        call amd64_emit_byte
     ELSEIF ax, ge, 1630            ; SCAS
         IF ax, le, 1632
             sub ax, 1630
             ; logic for 0xA6/0xA7
         ENDIF
     ELSEIF ax, e, 1647             ; SHL/SAL
-        mov     r14, 4 | call amd64_encode_shift
+        mov     r14, 4
+        call amd64_encode_shift
     ELSEIF ax, e, 1650             ; SHR
-        mov     r14, 5 | call amd64_encode_shift
+        mov     r14, 5
+        call amd64_encode_shift
     ELSEIF ax, e, 1625             ; SAR
-        mov     r14, 7 | call amd64_encode_shift
+        mov     r14, 7
+        call amd64_encode_shift
     ELSEIF ax, e, 1612             ; ROL
-        mov     r14, 0 | call amd64_encode_shift
+        mov     r14, 0
+        call amd64_encode_shift
     ELSEIF ax, e, 1613             ; ROR
-        mov     r14, 1 | call amd64_encode_shift
+        mov     r14, 1
+        call amd64_encode_shift
     ELSEIF ax, e, 1432             ; MUL
-        mov     r14, 4 | call amd64_encode_unary_math
+        mov     r14, 4
+        call amd64_encode_unary_math
     ELSEIF ax, e, 1119             ; DIV
-        mov     r14, 6 | call amd64_encode_unary_math
+        mov     r14, 6
+        call amd64_encode_unary_math
     ELSEIF ax, e, 1276             ; IMUL
         call    amd64_encode_imul
     ELSEIF ax, e, 1275             ; IDIV
-        mov     r14, 7 | call amd64_encode_unary_math
+        mov     r14, 7
+        call amd64_encode_unary_math
     ELSEIF ax, e, 1583             ; PUSH
         call    amd64_encode_push
     ELSEIF ax, e, 1089             ; CPUID
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xA2 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xA2
+        call amd64_emit_byte
     ELSEIF ax, e, 1591             ; RDTSC
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x31 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x31
+        call amd64_emit_byte
     ELSEIF ax, e, 1605             ; RDTSCP
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xF9 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xF9
+        call amd64_emit_byte
     ELSEIF ax, e, 1596             ; RDMSR
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x32 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x32
+        call amd64_emit_byte
     ELSEIF ax, e, 2142             ; WRMSR
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x30 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x30
+        call amd64_emit_byte
     ELSEIF ax, e, 1271             ; HLT
-        mov     al, 0xF4 | call amd64_emit_byte
+        mov     al, 0xF4
+        call amd64_emit_byte
     ELSEIF ax, e, 1286             ; INT
         call    amd64_encode_int
     ELSEIF ax, e, 1288             ; INT3
-        mov     al, 0xCC | call amd64_emit_byte
+        mov     al, 0xCC
+        call amd64_emit_byte
     ELSEIF ax, e, 1715             ; UD2
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x0B | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x0B
+        call amd64_emit_byte
     ELSEIF ax, e, 1361             ; LGDT
-        mov     r14, 2 | call amd64_encode_system_m
+        mov     r14, 2
+        call amd64_encode_system_m
     ELSEIF ax, e, 1363             ; LIDT
-        mov     r14, 3 | call amd64_encode_system_m
+        mov     r14, 3
+        call amd64_encode_system_m
     ELSEIF ax, e, 1364             ; LLDT
-        mov     r14, 2 | call amd64_encode_system_00
+        mov     r14, 2
+        call amd64_encode_system_00
     ELSEIF ax, e, 1656             ; SLDT
-        mov     r14, 0 | call amd64_encode_system_00
+        mov     r14, 0
+        call amd64_encode_system_00
     ELSEIF ax, e, 1377             ; LTR
-        mov     r14, 3 | call amd64_encode_system_00
+        mov     r14, 3
+        call amd64_encode_system_00
     ELSEIF ax, e, 1673             ; STR
-        mov     r14, 1 | call amd64_encode_system_00
+        mov     r14, 1
+        call amd64_encode_system_00
     ELSEIF ax, e, 1277             ; IN
         call    amd64_encode_in
     ELSEIF ax, e, 1445             ; OUT
         call    amd64_encode_out
     ELSEIF ax, e, 1205             ; FLD
-        mov     r13, 0xD9 | mov r14, 0 | call amd64_encode_fpu
+        mov     r13, 0xD9
+        mov r14, 0
+        call amd64_encode_fpu
     ELSEIF ax, e, 1235             ; FST
-        mov     r13, 0xD9 | mov r14, 2 | call amd64_encode_fpu
+        mov     r13, 0xD9
+        mov r14, 2
+        call amd64_encode_fpu
     ELSEIF ax, e, 1172             ; FADD
-        mov     r13, 0xD8 | mov r14, 0 | call amd64_encode_fpu
+        mov     r13, 0xD8
+        mov r14, 0
+        call amd64_encode_fpu
     ELSEIF ax, e, 1240             ; FSUB
-        mov     r13, 0xD8 | mov r14, 4 | call amd64_encode_fpu
+        mov     r13, 0xD8
+        mov r14, 4
+        call amd64_encode_fpu
     ELSEIF ax, e, 1215             ; FMUL
-        mov     r13, 0xD8 | mov r14, 1 | call amd64_encode_fpu
+        mov     r13, 0xD8
+        mov r14, 1
+        call amd64_encode_fpu
     ELSEIF ax, e, 1186             ; FDIV
-        mov     r13, 0xD8 | mov r14, 6 | call amd64_encode_fpu
+        mov     r13, 0xD8
+        mov r14, 6
+        call amd64_encode_fpu
     ELSEIF ax, e, 1232             ; FSIN
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFE | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xFE
+        call amd64_emit_byte
     ELSEIF ax, e, 1184             ; FCOS
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFF | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xFF
+        call amd64_emit_byte
     ELSEIF ax, e, 1199             ; FINIT
-        mov     al, 0xDB | call amd64_emit_byte | mov al, 0xE3 | call amd64_emit_byte
+        mov     al, 0xDB
+        call amd64_emit_byte
+        mov al, 0xE3
+        call amd64_emit_byte
     ELSEIF ax, e, 1179             ; FCOM
-        mov     r13, 0xD8 | mov r14, 2 | call amd64_encode_fpu
+        mov     r13, 0xD8
+        mov r14, 2
+        call amd64_encode_fpu
     ELSEIF ax, e, 1238             ; FSTP
-        mov     r13, 0xD9 | mov r14, 3 | call amd64_encode_fpu
+        mov     r13, 0xD9
+        mov r14, 3
+        call amd64_encode_fpu
     ELSEIF ax, e, 1234             ; FSQRT
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFA | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xFA
+        call amd64_emit_byte
     ELSEIF ax, e, 1251             ; FXAM
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xE5 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xE5
+        call amd64_emit_byte
     ELSEIF ax, e, 1227             ; FPTAN
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF2 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xF2
+        call amd64_emit_byte
     ELSEIF ax, e, 1256             ; FYL2X
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF1 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xF1
+        call amd64_emit_byte
     ELSEIF ax, e, 1395             ; MOVAPS
-        mov     r13, 0x28 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x28
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1431             ; MOVUPS
-        mov     r13, 0x10 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x10
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1459             ; PADDD
-        mov     r13, 0xFE | mov r14, 1 | call amd64_encode_sse ; 0x66 prefix
+        mov     r13, 0xFE
+        mov r14, 1
+        call amd64_encode_sse ; 0x66 prefix
     ELSEIF ax, e, 1530             ; PMULLD
-        mov     r13, 0x40 | mov r14, 2 | call amd64_encode_sse ; 0x0F 0x38
+        mov     r13, 0x40
+        mov r14, 2
+        call amd64_encode_sse ; 0x0F 0x38
     ELSEIF ax, e, 2160             ; XORPS
-        mov     r13, 0x57 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x57
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1008             ; ADDPS
-        mov     r13, 0x58 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x58
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, ID_VADDPS
-        mov     r13, 0x58 | mov r14, 0 | call amd64_encode_avx
+        mov     r13, 0x58
+        mov r14, 0
+        call amd64_encode_avx
     ELSEIF ax, e, ID_VXORPS
-        mov     r13, 0x57 | mov r14, 0 | call amd64_encode_avx
+        mov     r13, 0x57
+        mov r14, 0
+        call amd64_encode_avx
     ELSEIF ax, e, 1010             ; ADDSS
-        mov     r13, 0x58 | mov r14, 1 | call amd64_encode_sse
+        mov     r13, 0x58
+        mov r14, 1
+        call amd64_encode_sse
     ELSEIF ax, e, 1678             ; SUBPS
-        mov     r13, 0x5C | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x5C
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1680             ; SUBSS
-        mov     r13, 0x5C | mov r14, 1 | call amd64_encode_sse
+        mov     r13, 0x5C
+        mov r14, 1
+        call amd64_encode_sse
     ELSEIF ax, e, 1434             ; MULPS
-        mov     r13, 0x59 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x59
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1436             ; MULSS
-        mov     r13, 0x59 | mov r14, 1 | call amd64_encode_sse
+        mov     r13, 0x59
+        mov r14, 1
+        call amd64_encode_sse
     ELSEIF ax, e, 1121             ; DIVPS
-        mov     r13, 0x5E | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x5E
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1123             ; DIVSS
-        mov     r13, 0x5E | mov r14, 1 | call amd64_encode_sse
+        mov     r13, 0x5E
+        mov r14, 1
+        call amd64_encode_sse
     ELSEIF ax, e, 1660             ; SQRTPS
-        mov     r13, 0x51 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x51
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1662             ; SQRTSS
-        mov     r13, 0x51 | mov r14, 1 | call amd64_encode_sse
+        mov     r13, 0x51
+        mov r14, 1
+        call amd64_encode_sse
     ELSEIF ax, e, 1033             ; ANDPS
-        mov     r13, 0x54 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x54
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1031             ; ANDNPS
-        mov     r13, 0x55 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x55
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1444             ; ORPS
-        mov     r13, 0x56 | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x56
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1701             ; UCOMISS
-        mov     r13, 0x2E | mov r14, 0 | call amd64_encode_sse
+        mov     r13, 0x2E
+        mov r14, 0
+        call amd64_encode_sse
     ELSEIF ax, e, 1700             ; UCOMISD
-        mov     r13, 0x2E | mov r14, 1 | call amd64_encode_sse
+        mov     r13, 0x2E
+        mov r14, 1
+        call amd64_encode_sse
     ELSEIF ax, e, 1739             ; VADDPS
-        mov     r13, 0x58 | mov r14, 1 | call amd64_encode_vex
+        mov     r13, 0x58
+        mov r14, 1
+        call amd64_encode_vex
     ELSEIF ax, e, 1933             ; VMOVAPS
-        mov     r13, 0x28 | mov r14, 1 | call amd64_encode_vex
+        mov     r13, 0x28
+        mov r14, 1
+        call amd64_encode_vex
     ELSEIF ax, e, 1355             ; LDTILECFG
-        mov     r13, 0x49 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0x49
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1674             ; STTILECFG
-        mov     r13, 0x49 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0x49
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1693             ; TILELOADD
-        mov     r13, 0x4B | mov r14, 2 | mov r15, 0x66 | call amd64_encode_vex
+        mov     r13, 0x4B
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_vex
     ELSEIF ax, e, 1696             ; TILESTORED
-        mov     r13, 0x4B | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_vex
+        mov     r13, 0x4B
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_vex
     ELSEIF ax, e, 1697             ; TILEZERO
-        mov     r13, 0x49 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0x49
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1687             ; TDPBSSD
-        mov     r13, 0x5E | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+        mov     r13, 0x5E
+        mov r14, 2
+        mov r15, 0xF2
+        call amd64_encode_vex
     ELSEIF ax, e, 1590             ; RDRAND
-        mov     r14, 6 | call amd64_encode_sec_r
+        mov     r14, 6
+        call amd64_encode_sec_r
     ELSEIF ax, e, 1593             ; RDSEED
-        mov     r14, 7 | call amd64_encode_sec_r
+        mov     r14, 7
+        call amd64_encode_sec_r
     ELSEIF ax, e, 1165             ; ENDBR64
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
-        mov     al, 0x1E | call amd64_emit_byte | mov al, 0xFA | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov     al, 0x1E
+        call amd64_emit_byte
+        mov al, 0xFA
+        call amd64_emit_byte
     ELSEIF ax, e, 1148             ; ENCLU
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD7 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xD7
+        call amd64_emit_byte
     ELSEIF ax, e, 1158             ; ENCLV
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xC0 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xC0
+        call amd64_emit_byte
     ELSEIF ax, e, 1021             ; AESENC128KL
-        mov     r13, 0xDC | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+        mov     r13, 0xDC
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1022             ; AESENC256KL
-        mov     r13, 0xDD | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+        mov     r13, 0xDD
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1015             ; AESDEC128KL
-        mov     r13, 0xDE | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+        mov     r13, 0xDE
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1016             ; AESDEC256KL
-        mov     r13, 0xDF | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+        mov     r13, 0xDF
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1020             ; AESENC
-        mov     r13, 0xDC | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xDC
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1014             ; AESDEC
-        mov     r13, 0xDE | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xDE
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1023             ; AESENCLAST
-        mov     r13, 0xDD | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xDD
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1017             ; AESDECLAST
-        mov     r13, 0xDF | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xDF
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1026             ; AESIMC
-        mov     r13, 0xDB | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xDB
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1027             ; AESKEYGENASSIST
-        mov     r13, 0xDF | mov r14, 3 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xDF
+        mov r14, 3
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1474             ; PCLMULQDQ
-        mov     r13, 0x44 | mov r14, 3 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0x44
+        mov r14, 3
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1642             ; SHA1NEXTE
-        mov     r13, 0xC8 | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xC8
+        mov r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1640             ; SHA1MSG1
-        mov     r13, 0xC9 | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xC9
+        mov r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1641             ; SHA1MSG2
-        mov     r13, 0xCA | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xCA
+        mov r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1643             ; SHA1RNDS4
-        mov     r13, 0xCC | mov r14, 3 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xCC
+        mov r14, 3
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1091             ; CRC32
         mov     r13, 0xF1
         lea     r10, [r12 + INST_op1]
         IF byte [r10 + OPERAND_size], e, 8             mov r13, 0xF0         ENDIF 
-        mov     r14, 2 | mov r15, 0xF2 | call amd64_encode_sse_crypto
+        mov     r14, 2
+        mov r15, 0xF2
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1537             ; POPCNT
-        mov     r13, 0xB8 | mov r14, 1 | mov r15, 0xF3 | call amd64_encode_sse_crypto
+        mov     r13, 0xB8
+        mov r14, 1
+        mov r15, 0xF3
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1394             ; MOVBE
         mov     r13, 0xF0
         lea     r10, [r12 + INST_op0]
         IF byte [r10 + OPERAND_kind], e, OP_MEM             mov r13, 0xF1         ENDIF 
-        mov     r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1646             ; SHA256RNDS2
-        mov     r13, 0xCB | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xCB
+        mov r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1644             ; SHA256MSG1
-        mov     r13, 0xCC | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xCC
+        mov r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1645             ; SHA256MSG2
-        mov     r13, 0xCD | mov r14, 2 | xor r15, r15 | call amd64_encode_sse_crypto
+        mov     r13, 0xCD
+        mov r14, 2
+        xor r15, r15
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1268             ; GF2P8MULB
-        mov     r13, 0xCF | mov r14, 2 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xCF
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1266             ; GF2P8AFFINEINVQB
-        mov     r13, 0xCF | mov r14, 3 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xCF
+        mov r14, 3
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1267             ; GF2P8AFFINEQB
-        mov     r13, 0xCE | mov r14, 3 | mov r15, 0x66 | call amd64_encode_sse_crypto
+        mov     r13, 0xCE
+        mov r14, 3
+        mov r15, 0x66
+        call amd64_encode_sse_crypto
     ELSEIF ax, e, 1127             ; ENCLS
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
-        mov     al, 0xCF | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov     al, 0xCF
+        call amd64_emit_byte
     ELSEIF ax, e, 5000             ; VMCALL
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xC1 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xC1
+        call amd64_emit_byte
     ELSEIF ax, e, 5001             ; VMLAUNCH
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xC2 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xC2
+        call amd64_emit_byte
     ELSEIF ax, e, 5002             ; VMRESUME
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xC3 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xC3
+        call amd64_emit_byte
     ELSEIF ax, e, 5003             ; VMXOFF
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xC4 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xC4
+        call amd64_emit_byte
     ELSEIF ax, e, 5004             ; VMXON
-        mov     r13, 0xF3 | mov r14, 6 | call amd64_encode_vm_m
+        mov     r13, 0xF3
+        mov r14, 6
+        call amd64_encode_vm_m
     ELSEIF ax, e, 5005             ; VMPTRLD
-        xor     r13, r13  | mov r14, 6 | call amd64_encode_vm_m
+        xor     r13, r13
+        mov r14, 6
+        call amd64_encode_vm_m
     ELSEIF ax, e, 5006             ; VMPTRST
-        xor     r13, r13  | mov r14, 7 | call amd64_encode_vm_m
+        xor     r13, r13
+        mov r14, 7
+        call amd64_encode_vm_m
     ELSEIF ax, e, 5007             ; VMCLEAR
-        mov     r13, 0x66 | mov r14, 6 | call amd64_encode_vm_m
+        mov     r13, 0x66
+        mov r14, 6
+        call amd64_encode_vm_m
     ELSEIF ax, e, 5008             ; VMREAD
-        mov     r13, 0x78 | call amd64_encode_vm_rm_r
+        mov     r13, 0x78
+        call amd64_encode_vm_rm_r
     ELSEIF ax, e, 5009             ; VMWRITE
-        mov     r13, 0x79 | call amd64_encode_vm_rm_r
+        mov     r13, 0x79
+        call amd64_encode_vm_rm_r
     ELSEIF ax, e, 5010             ; INVEPT
-        mov     r13, 0x660F3880 | call amd64_encode_rm_r
+        mov     r13, 0x660F3880
+        call amd64_encode_rm_r
     ELSEIF ax, e, 5011             ; INVVPID
-        mov     r13, 0x660F3881 | call amd64_encode_rm_r
+        mov     r13, 0x660F3881
+        call amd64_encode_rm_r
     ; ---- AMD-V (SVM) ----
     ELSEIF ax, e, 5012             ; VMRUN
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD8 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xD8
+        call amd64_emit_byte
     ELSEIF ax, e, 5013             ; VMMCALL
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD9 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xD9
+        call amd64_emit_byte
     ELSEIF ax, e, 5014             ; VMLOAD
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDA | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xDA
+        call amd64_emit_byte
     ELSEIF ax, e, 5015             ; VMSAVE
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDB | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xDB
+        call amd64_emit_byte
     ELSEIF ax, e, 5016             ; CLGI
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDD | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xDD
+        call amd64_emit_byte
     ELSEIF ax, e, 5017             ; STGI
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDC | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xDC
+        call amd64_emit_byte
     ELSEIF ax, e, 5018             ; INVLPGA
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDF | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xDF
+        call amd64_emit_byte
     ELSEIF ax, e, 5019             ; SKINIT
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xDE | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xDE
+        call amd64_emit_byte
     ELSEIF ax, e, 1351             ; LAR
-        mov     r13, 0x02 | call amd64_encode_rm_r_0f
+        mov     r13, 0x02
+        call amd64_encode_rm_r_0f
     ELSEIF ax, e, 1375             ; LSL
-        mov     r13, 0x03 | call amd64_encode_rm_r_0f
+        mov     r13, 0x03
+        call amd64_encode_rm_r_0f
     ELSEIF ax, e, 1791             ; VERR
-        mov     r14, 4 | call amd64_encode_system_00
+        mov     r14, 4
+        call amd64_encode_system_00
     ELSEIF ax, e, 1792             ; VERW
-        mov     r14, 5 | call amd64_encode_system_00
+        mov     r14, 5
+        call amd64_encode_system_00
     ELSEIF ax, e, 1359             ; LFENCE
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        mov     al, 0xE8 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        mov     al, 0xE8
+        call amd64_emit_byte
     ELSEIF ax, e, 1642             ; SFENCE
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        mov     al, 0xF8 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        mov     al, 0xF8
+        call amd64_emit_byte
     ELSEIF ax, e, 1380             ; MFENCE
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        mov     al, 0xF0 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        mov     al, 0xF0
+        call amd64_emit_byte
 
     ; ---- Step 2: Cache & Memory Fencing ----
     ELSEIF ax, e, 1067             ; CLFLUSH
-        mov     r13, 0x0FAE | mov r14, 7 | call amd64_encode_rm_m
+        mov     r13, 0x0FAE
+        mov r14, 7
+        call amd64_encode_rm_m
     ELSEIF ax, e, 1068             ; CLFLUSHOPT
-        mov     al, 0x66 | call amd64_emit_byte
-        mov     r13, 0x0FAE | mov r14, 7 | call amd64_encode_rm_m
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov     r13, 0x0FAE
+        mov r14, 7
+        call amd64_encode_rm_m
     ELSEIF ax, e, 1073             ; CLWB
-        mov     al, 0x66 | call amd64_emit_byte
-        mov     r13, 0x0FAE | mov r14, 6 | call amd64_encode_rm_m
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov     r13, 0x0FAE
+        mov r14, 6
+        call amd64_encode_rm_m
     ELSEIF ax, e, 5020             ; CLZERO
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xFC | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xFC
+        call amd64_emit_byte
     ELSEIF ax, e, 1543             ; PREFETCHW
-        mov     r13, 0x0F0D | mov r14, 1 | call amd64_encode_rm_m
+        mov     r13, 0x0F0D
+        mov r14, 1
+        call amd64_encode_rm_m
     ELSEIF ax, e, 1544             ; PREFETCHWT1
-        mov     r13, 0x0F0D | mov r14, 2 | call amd64_encode_rm_m
+        mov     r13, 0x0F0D
+        mov r14, 2
+        call amd64_encode_rm_m
 
     ; ---- Step 3: FMA3 / FMA4 (EVEX/VEX) ----
     ELSEIF ax, ge, 1832            ; FMA3 Range
         IF ax, le, 1909
             ; Complex VEX.DDS/NDS encoding required. Stubbing for OS kernel purity.
-            mov     al, 0x0F | call amd64_emit_byte | mov al, 0x38 | call amd64_emit_byte
-            mov     al, 0x98 | call amd64_emit_byte
+            mov     al, 0x0F
+            call amd64_emit_byte
+            mov al, 0x38
+            call amd64_emit_byte
+            mov     al, 0x98
+            call amd64_emit_byte
         ENDIF
 
     ; ---- Step 4: Legacy 8087 Math ----
     ELSEIF ax, e, 5300             ; FSIN
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFE | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xFE
+        call amd64_emit_byte
     ELSEIF ax, e, 5301             ; FCOS
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFF | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xFF
+        call amd64_emit_byte
     ELSEIF ax, e, 5302             ; FSINCOS
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xFB | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xFB
+        call amd64_emit_byte
     ELSEIF ax, e, 5303             ; FPATAN
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF3 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xF3
+        call amd64_emit_byte
     ELSEIF ax, e, 1170             ; F2XM1
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xF0 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xF0
+        call amd64_emit_byte
     ELSEIF ax, e, 5305             ; FLD1
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xE8 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xE8
+        call amd64_emit_byte
     ELSEIF ax, e, 5306             ; FLDZ
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xEE | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xEE
+        call amd64_emit_byte
     ELSEIF ax, e, 5307             ; FLDPI
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xEB | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xEB
+        call amd64_emit_byte
     ELSEIF ax, e, 5308             ; FLDLN2
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xED | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xED
+        call amd64_emit_byte
     ELSEIF ax, e, 5309             ; FSAVE
-        mov     al, 0x9B | call amd64_emit_byte
-        mov     r13, 0xDD | mov r14, 6 | call amd64_encode_rm_m
+        mov     al, 0x9B
+        call amd64_emit_byte
+        mov     r13, 0xDD
+        mov r14, 6
+        call amd64_encode_rm_m
     ELSEIF ax, e, 5310             ; FRSTOR
-        mov     r13, 0xDD | mov r14, 4 | call amd64_encode_rm_m
+        mov     r13, 0xDD
+        mov r14, 4
+        call amd64_encode_rm_m
     ELSEIF ax, e, 5311             ; FLDENV
-        mov     r13, 0xD9 | mov r14, 4 | call amd64_encode_rm_m
+        mov     r13, 0xD9
+        mov r14, 4
+        call amd64_encode_rm_m
     ELSEIF ax, e, 5312             ; FSTENV
-        mov     al, 0x9B | call amd64_emit_byte
-        mov     r13, 0xD9 | mov r14, 6 | call amd64_encode_rm_m
+        mov     al, 0x9B
+        call amd64_emit_byte
+        mov     r13, 0xD9
+        mov r14, 6
+        call amd64_encode_rm_m
 
     ; ---- Step 5: AVX-512 (EVEX) ----
     ELSEIF ax, ge, 5400            ; AVX-512 Range
         IF ax, le, 5412
             ; Complete EVEX 4-byte prefix stub
-            mov     al, 0x62 | call amd64_emit_byte
-            mov     al, 0xF1 | call amd64_emit_byte
-            mov     al, 0xFD | call amd64_emit_byte
-            mov     al, 0x08 | call amd64_emit_byte
+            mov     al, 0x62
+            call amd64_emit_byte
+            mov     al, 0xF1
+            call amd64_emit_byte
+            mov     al, 0xFD
+            call amd64_emit_byte
+            mov     al, 0x08
+            call amd64_emit_byte
         ENDIF
 
     ; ---- Step 6: VNNI & BFLOAT16 ----
     ELSEIF ax, ge, 5500            ; VNNI Range
         IF ax, le, 5503
             ; VEX/EVEX hybrid stub
-            mov     al, 0x62 | call amd64_emit_byte
+            mov     al, 0x62
+            call amd64_emit_byte
         ENDIF
 
     ; ---- Step 7: 3DNow! & AMD XOP ----
     ELSEIF ax, ge, 5600            ; 3DNow Range
         IF ax, le, 5612
             ; 3DNow uses 0F 0F [ModRM] [Opcode] suffix
-            mov     al, 0x0F | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
+            mov     al, 0x0F
+            call amd64_emit_byte
+            mov al, 0x0F
+            call amd64_emit_byte
         ENDIF
 
     ; ---- Step 8: SGX Enclave Sub-Leafs ----
     ELSEIF ax, ge, 5700            ; SGX Range
         IF ax, le, 5706
             ; Resolves to ENCLS (0F 01 CF) or ENCLU (0F 01 D7)
-            mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
-            mov     al, 0xCF | call amd64_emit_byte
+            mov     al, 0x0F
+            call amd64_emit_byte
+            mov al, 0x01
+            call amd64_emit_byte
+            mov     al, 0xCF
+            call amd64_emit_byte
         ENDIF
 
     ELSEIF ax, e, 1054             ; BT
-        mov     r13, 0xA3 | mov r14, 4 | call amd64_encode_bt
+        mov     r13, 0xA3
+        mov r14, 4
+        call amd64_encode_bt
     ELSEIF ax, e, 1057             ; BTS
-        mov     r13, 0xAB | mov r14, 5 | call amd64_encode_bt
+        mov     r13, 0xAB
+        mov r14, 5
+        call amd64_encode_bt
     ELSEIF ax, e, 1056             ; BTR
-        mov     r13, 0xB3 | mov r14, 6 | call amd64_encode_bt
+        mov     r13, 0xB3
+        mov r14, 6
+        call amd64_encode_bt
     ELSEIF ax, e, 1055             ; BTC
-        mov     r13, 0xBB | mov r14, 7 | call amd64_encode_bt
+        mov     r13, 0xBB
+        mov r14, 7
+        call amd64_encode_bt
     ELSEIF ax, e, 1063             ; CLAC
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xCA | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xCA
+        call amd64_emit_byte
     ELSEIF ax, e, 1663             ; STAC
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xCB | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xCB
+        call amd64_emit_byte
     ELSEIF ax, e, 2154             ; XGETBV
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD0 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xD0
+        call amd64_emit_byte
     ELSEIF ax, e, 2168             ; XSETBV
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xD1 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xD1
+        call amd64_emit_byte
     ELSEIF ax, e, 2164             ; XSAVE
-        mov     r14, 4 | call amd64_encode_mem_sync
+        mov     r14, 4
+        call amd64_encode_mem_sync
     ELSEIF ax, e, 2162             ; XRSTOR
-        mov     r14, 5 | call amd64_encode_mem_sync
+        mov     r14, 5
+        call amd64_encode_mem_sync
     ELSEIF ax, e, 1067             ; CLFLUSH
-        mov     r14, 7 | call amd64_encode_mem_sync
+        mov     r14, 7
+        call amd64_encode_mem_sync
     ELSEIF ax, e, 1686             ; SYSENTER
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x34 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x34
+        call amd64_emit_byte
     ELSEIF ax, e, 1682             ; SYSCALL
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x05 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x05
+        call amd64_emit_byte
     ELSEIF ax, e, 1684             ; SYSEXIT
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x35 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x35
+        call amd64_emit_byte
     ELSEIF ax, e, 1685             ; SYSRET
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x07 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x07
+        call amd64_emit_byte
     ELSEIF ax, e, 1290             ; INVD
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x08 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x08
+        call amd64_emit_byte
     ELSEIF ax, e, 1295             ; IRET
-        mov     al, 0x66 | call amd64_emit_byte | mov al, 0xCF | call amd64_emit_byte
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov al, 0xCF
+        call amd64_emit_byte
     ELSEIF ax, e, 1296             ; IRETD
-        mov     al, 0xCF | call amd64_emit_byte
+        mov     al, 0xCF
+        call amd64_emit_byte
     ELSEIF ax, e, 1297             ; IRETQ
-        mov     al, 0x48 | call amd64_emit_byte | mov al, 0xCF | call amd64_emit_byte
+        mov     al, 0x48
+        call amd64_emit_byte
+        mov al, 0xCF
+        call amd64_emit_byte
     ELSEIF ax, e, 1292             ; INVLPG
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
         lea     r10, [r12 + INST_op0]
-        mov     al, 7 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 7
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1376             ; LSS
-        mov     r13, 0x0FB2 | call amd64_encode_rm_r
+        mov     r13, 0x0FB2
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1360             ; LFS
-        mov     r13, 0x0FB4 | call amd64_encode_rm_r
+        mov     r13, 0x0FB4
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1362             ; LGS
-        mov     r13, 0x0FB5 | call amd64_encode_rm_r
+        mov     r13, 0x0FB5
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1293             ; INVPCID
-        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
-        mov     al, 0x38 | call amd64_emit_byte | mov al, 0x82 | call amd64_emit_byte
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov     al, 0x38
+        call amd64_emit_byte
+        mov al, 0x82
+        call amd64_emit_byte
         lea     r10, [r12 + INST_op0]
         lea     r11, [r12 + INST_op1]
         mov     al, [r10 + OPERAND_reg]
-        mov     rdi, r11 | call amd64_emit_modrm_sib
+        mov     rdi, r11
+        call amd64_emit_modrm_sib
         
     ; ---- Advanced Bit Manipulation (BMI1/BMI2/TBM) ----
     ELSEIF ax, e, 1029             ; ANDN
-        mov     r13, 0xF2 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0xF2
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1035             ; BEXTR
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1040             ; BLSI
-        mov     r13, 0xF3 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex_unary
+        mov     r13, 0xF3
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex_unary
     ELSEIF ax, e, 1041             ; BLSMSK
-        mov     r13, 0xF3 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex_unary
+        mov     r13, 0xF3
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex_unary
     ELSEIF ax, e, 1042             ; BLSR
-        mov     r13, 0xF3 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex_unary
+        mov     r13, 0xF3
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex_unary
     ELSEIF ax, e, 1058             ; BZHI
-        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0xF5
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1437             ; MULX
-        mov     r13, 0xF6 | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+        mov     r13, 0xF6
+        mov r14, 2
+        mov r15, 0xF2
+        call amd64_encode_vex
     ELSEIF ax, e, 1488             ; PDEP
-        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+        mov     r13, 0xF5
+        mov r14, 2
+        mov r15, 0xF2
+        call amd64_encode_vex
     ELSEIF ax, e, 1489             ; PEXT
-        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_vex
+        mov     r13, 0xF5
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_vex
     ELSEIF ax, e, 1614             ; RORX
-        mov     r13, 0xF0 | mov r14, 3 | mov r15, 0xF2 | call amd64_encode_vex
+        mov     r13, 0xF0
+        mov r14, 3
+        mov r15, 0xF2
+        call amd64_encode_vex
     ELSEIF ax, e, 1626             ; SARX
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0xF3 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 0xF3
+        call amd64_encode_vex
     ELSEIF ax, e, 1649             ; SHLX
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0x66 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 0x66
+        call amd64_encode_vex
     ELSEIF ax, e, 1652             ; SHRX
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 0xF2 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 0xF2
+        call amd64_encode_vex
     ELSEIF ax, e, 1699             ; TZCNT
-        mov     al, 0xF3 | call amd64_emit_byte
-        mov     r13, 0x0FBC | call amd64_encode_rm_r
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov     r13, 0x0FBC
+        call amd64_encode_rm_r
         
     ; ----Hardware Sync (WaitPKG / UINTR) ----
     ELSEIF ax, e, 1698             ; TPAUSE
-        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 6
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1704             ; UMONITOR
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 6
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1705             ; UMWAIT
-        mov     al, 0xF2 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF2
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 6
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1633             ; SENDUIPI
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xC7 | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xC7
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 6
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1703             ; UIRET
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEC | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xEC
+        call amd64_emit_byte
     ELSEIF ax, e, 1692             ; TESTUI
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xED | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xED
+        call amd64_emit_byte
     ELSEIF ax, e, 1072             ; CLUI
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEE | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xEE
+        call amd64_emit_byte
     ELSEIF ax, e, 1675             ; STUI
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEF | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xEF
+        call amd64_emit_byte
 
     ; ---- CET (Control-Flow Enforcement Technology) ----
     ELSEIF ax, e, 1602             ; RDSSPD
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1E | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1E
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 1
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1603             ; RDSSPQ
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x48 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1E | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x48
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1E
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 1
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1279             ; INCSSPD
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 5 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 5
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1280             ; INCSSPQ
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x48 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0xAE | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 5 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x48
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAE
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 5
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1627             ; SAVEPREVSSP
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xEA | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xEA
+        call amd64_emit_byte
     ELSEIF ax, e, 1622             ; RSTORSSP
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
-        lea     r10, [r12 + INST_op0] | mov al, 5 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        lea     r10, [r12 + INST_op0]
+        mov al, 5
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1636             ; SETSSBSY
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xE8 | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xE8
+        call amd64_emit_byte
     ELSEIF ax, e, 1070             ; CLRSSBSY
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte | mov al, 0xE9 | call amd64_emit_byte
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov al, 0xE9
+        call amd64_emit_byte
 
     ; ----Intel MPX (Memory Protection Extensions) ----
     ELSEIF ax, ge, 1043            ; BNDCL - BNDSTX
@@ -712,51 +1399,89 @@ amd64_encode_instruction:
 
     ; ----Hardware Sign-Extension & Type Conversion ----
     ELSEIF ax, e, 1060             ; CBW
-        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x98 | call amd64_emit_byte
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov al, 0x98
+        call amd64_emit_byte
     ELSEIF ax, e, 1115             ; CWDE
-        mov     al, 0x98 | call amd64_emit_byte
+        mov     al, 0x98
+        call amd64_emit_byte
     ELSEIF ax, e, 1062             ; CDQE
-        mov     al, 0x48 | call amd64_emit_byte | mov al, 0x98 | call amd64_emit_byte
+        mov     al, 0x48
+        call amd64_emit_byte
+        mov al, 0x98
+        call amd64_emit_byte
     ELSEIF ax, e, 1114             ; CWD
-        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x99 | call amd64_emit_byte
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov al, 0x99
+        call amd64_emit_byte
     ELSEIF ax, e, 1061             ; CDQ
-        mov     al, 0x99 | call amd64_emit_byte
+        mov     al, 0x99
+        call amd64_emit_byte
     ELSEIF ax, e, 1090             ; CQO
-        mov     al, 0x48 | call amd64_emit_byte | mov al, 0x99 | call amd64_emit_byte
+        mov     al, 0x48
+        call amd64_emit_byte
+        mov al, 0x99
+        call amd64_emit_byte
 
     ; ----Legacy Bit Scanning & Byte Swapping ----
     ELSEIF ax, e, 1051             ; BSF
-        mov     r13, 0x0FBC | call amd64_encode_rm_r
+        mov     r13, 0x0FBC
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1052             ; BSR
-        mov     r13, 0x0FBD | call amd64_encode_rm_r
+        mov     r13, 0x0FBD
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1053             ; BSWAP
         lea     r10, [r12 + INST_op0]
         mov     al, [r10 + OPERAND_size]
-        mov     rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
-        mov     al, 0x0F | call amd64_emit_byte
-        mov     al, [r10 + OPERAND_reg] | and al, 7 | add al, 0xC8 | call amd64_emit_byte
+        mov     rsi, r10
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg]
+        and al, 7
+        add al, 0xC8
+        call amd64_emit_byte
 
     ; ---- Phase 8.6: 1980s BCD Legacy Suite ----
     ELSEIF ax, e, 1000             ; AAA
-        mov     al, 0x37 | call amd64_emit_byte
+        mov     al, 0x37
+        call amd64_emit_byte
     ELSEIF ax, e, 1001             ; AAD
-        mov     al, 0xD5 | call amd64_emit_byte | mov al, 0x0A | call amd64_emit_byte
+        mov     al, 0xD5
+        call amd64_emit_byte
+        mov al, 0x0A
+        call amd64_emit_byte
     ELSEIF ax, e, 1002             ; AAM
-        mov     al, 0xD4 | call amd64_emit_byte | mov al, 0x0A | call amd64_emit_byte
+        mov     al, 0xD4
+        call amd64_emit_byte
+        mov al, 0x0A
+        call amd64_emit_byte
     ELSEIF ax, e, 1003             ; AAS
-        mov     al, 0x3F | call amd64_emit_byte
+        mov     al, 0x3F
+        call amd64_emit_byte
     ELSEIF ax, e, 1116             ; DAA
-        mov     al, 0x27 | call amd64_emit_byte
+        mov     al, 0x27
+        call amd64_emit_byte
     ELSEIF ax, e, 1117             ; DAS
-        mov     al, 0x2F | call amd64_emit_byte
+        mov     al, 0x2F
+        call amd64_emit_byte
 
     ELSEIF ax, e, 1680             ; SWAPGS
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x01 | call amd64_emit_byte
-        mov     al, 0xF8 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x01
+        call amd64_emit_byte
+        mov     al, 0xF8
+        call amd64_emit_byte
     ELSEIF ax, e, 1351             ; LAR
-        mov     r13, 0x0F02 | call amd64_encode_rm_r
+        mov     r13, 0x0F02
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1377             ; LSL
-        mov     r13, 0x0F03 | call amd64_encode_rm_r
+        mov     r13, 0x0F03
+        call amd64_encode_rm_r
     ELSEIF ax, e, 1534             ; POP
         call    amd64_encode_pop
     ELSEIF ax, e, 1298             ; JMP
@@ -784,69 +1509,133 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1682             ; SYSCALL
         call    amd64_encode_syscall
     ELSEIF ax, e, 1029             ; ANDN
-        mov     r13, 0xF2 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0xF2
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1058             ; BZHI
-        mov     r13, 0xF5 | mov r14, 2 | mov r15, 0 | call amd64_encode_vex
+        mov     r13, 0xF5
+        mov r14, 2
+        mov r15, 0
+        call amd64_encode_vex
     ELSEIF ax, e, 1649             ; SHLX
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 1 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 1
+        call amd64_encode_vex
     ELSEIF ax, e, 1652             ; SHRX
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 3 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 3
+        call amd64_encode_vex
     ELSEIF ax, e, 1626             ; SARX
-        mov     r13, 0xF7 | mov r14, 2 | mov r15, 2 | call amd64_encode_vex
+        mov     r13, 0xF7
+        mov r14, 2
+        mov r15, 2
+        call amd64_encode_vex
     ELSEIF ax, ge, 5100            ; AVX-512 (EVEX)
         IF ax, e, 5100             ; VAESENC
-            mov r13, 0xDC | mov r14, 2 | mov r15, 1 | call amd64_encode_evex
+            mov r13, 0xDC
+            mov r14, 2
+            mov r15, 1
+            call amd64_encode_evex
         ELSEIF ax, e, 5101         ; VAESDEC
-            mov r13, 0xDE | mov r14, 2 | mov r15, 1 | call amd64_encode_evex
+            mov r13, 0xDE
+            mov r14, 2
+            mov r15, 1
+            call amd64_encode_evex
         ELSEIF ax, e, 5104         ; VPCLMULQDQ
-            mov r13, 0x44 | mov r14, 3 | mov r15, 1 | call amd64_encode_evex
+            mov r13, 0x44
+            mov r14, 3
+            mov r15, 1
+            call amd64_encode_evex
         ELSEIF ax, e, 5105         ; VMOVDQA64
             mov r13, 0x6F
             lea r10, [r12 + INST_op0]
             IF byte [r10 + OPERAND_kind], e, OP_MEM
                 mov r13, 0x7F      ; Store form
             ENDIF
-            mov r14, 1 | mov r15, 1 | call amd64_encode_evex
+            mov r14, 1
+            mov r15, 1
+            call amd64_encode_evex
         ELSEIF ax, e, 5106         ; VADDPD
-            mov r13, 0x58 | mov r14, 1 | mov r15, 1 | call amd64_encode_evex
+            mov r13, 0x58
+            mov r14, 1
+            mov r15, 1
+            call amd64_encode_evex
         ENDIF
     ELSEIF ax, e, 1440             ; NOP
-        mov     al, 0x90 | call amd64_emit_byte
+        mov     al, 0x90
+        call amd64_emit_byte
     ELSEIF ax, e, 1888             ; XBEGIN
-        mov     al, 0xC7 | call amd64_emit_byte
-        mov     al, 0xF8 | call amd64_emit_byte
+        mov     al, 0xC7
+        call amd64_emit_byte
+        mov     al, 0xF8
+        call amd64_emit_byte
         lea     r10, [r12 + INST_op0]
         IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
-            mov al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | call amd64_emit_reloc
-            xor rax, rax | call amd64_emit_dword
+            mov al, RELOC_REL32
+            mov rsi, [r10 + OPERAND_sym]
+            call amd64_emit_reloc
+            xor rax, rax
+            call amd64_emit_dword
         ELSE
-            mov rdi, [r10 + OPERAND_imm] | call amd64_emit_dword
+            mov rdi, [r10 + OPERAND_imm]
+            call amd64_emit_dword
         ENDIF
     ELSEIF ax, e, 1889             ; XEND
-        mov     al, 0x0F | call amd64_emit_byte
-        mov     al, 0x01 | call amd64_emit_byte
-        mov     al, 0xD5 | call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov     al, 0x01
+        call amd64_emit_byte
+        mov     al, 0xD5
+        call amd64_emit_byte
     ELSEIF ax, e, 1887             ; XABORT
-        mov     al, 0xC6 | call amd64_emit_byte
-        mov     al, 0xF8 | call amd64_emit_byte
+        mov     al, 0xC6
+        call amd64_emit_byte
+        mov     al, 0xF8
+        call amd64_emit_byte
         lea     r10, [r12 + INST_op0]
-        mov     rax, [r10 + OPERAND_imm] | call amd64_emit_byte
+        mov     rax, [r10 + OPERAND_imm]
+        call amd64_emit_byte
     ELSEIF ax, e, 1069             ; CLI / STI / CLD / STD
-        mov     al, 0xFA | IF ax, e, 1666 | mov al, 0xFB | ELSEIF ax, e, 1065 | mov al, 0xFC | ELSEIF ax, e, 1665 | mov al, 0xFD | ENDIF
+        mov     al, 0xFA
+        IF ax, e, 1666
+        mov al, 0xFB
+        ELSEIF ax, e, 1065
+        mov al, 0xFC
+        ELSEIF ax, e, 1665
+        mov al, 0xFD
+        ENDIF
         call    amd64_emit_byte
     ELSEIF ax, e, 1205             ; FLD1
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xE8 | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xE8
+        call amd64_emit_byte
     ELSEIF ax, e, 1206             ; FLDZ
-        mov     al, 0xD9 | call amd64_emit_byte | mov al, 0xEE | call amd64_emit_byte
+        mov     al, 0xD9
+        call amd64_emit_byte
+        mov al, 0xEE
+        call amd64_emit_byte
     ELSEIF ax, e, 1542             ; PREFETCH
-        mov     al, 0x0F | call amd64_emit_byte
-        mov     al, 0x18 | call amd64_emit_byte
-        mov     al, 1 | mov rdi, r10 | call amd64_emit_modrm_sib ; PREFETCHT0
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov     al, 0x18
+        call amd64_emit_byte
+        mov     al, 1
+        mov rdi, r10
+        call amd64_emit_modrm_sib ; PREFETCHT0
     ELSEIF ax, e, 1073             ; CLWB
-        mov     al, 0x66 | call amd64_emit_byte
-        mov     al, 0x0F | call amd64_emit_byte
-        mov     al, 0xAE | call amd64_emit_byte
-        mov     al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov     al, 0xAE
+        call amd64_emit_byte
+        mov     al, 6
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSE
         mov     rax, EXIT_ENCODE_FAIL
     ENDIF
@@ -873,42 +1662,70 @@ amd64_encode_mov:
     IF byte [r13 + OPERAND_reg], ge, 32
         IF byte [r13 + OPERAND_reg], le, 63
             ; MOV CRn/DRn, reg (0x0F 0x22/0x23)
-            mov cl, [r13 + OPERAND_reg] | and cl, 0x0F
+            mov cl, [r13 + OPERAND_reg]
+            and cl, 0x0F
             mov dl, [r14 + OPERAND_reg] ; GPR
             
-            ; Calculate REX: 0x40 | (CR_hi << 2) | (GPR_hi)
+            ; Calculate REX: 0x40
+            (CR_hi << 2)
+            (GPR_hi)
             mov al, 0x40
-            mov bl, cl | shr bl, 3 | shl bl, 2 | or al, bl  ; REX.R for CR
-            mov bl, dl | shr bl, 3 | or al, bl              ; REX.B for GPR
+            mov bl, cl
+            shr bl, 3
+            shl bl, 2
+            or al, bl  ; REX.R for CR
+            mov bl, dl
+            shr bl, 3
+            or al, bl              ; REX.B for GPR
             IF al, ne, 0x40                 call amd64_emit_byte             ENDIF 
             
-            mov al, 0x0F | call amd64_emit_byte
-            mov al, 0x22 | IF byte [r13 + OPERAND_reg], ge, 48 | inc al | ENDIF
+            mov al, 0x0F
+            call amd64_emit_byte
+            mov al, 0x22
+            IF byte [r13 + OPERAND_reg], ge, 48
+            inc al
+            ENDIF
             call amd64_emit_byte
             
-            mov al, cl | and al, 0x07
-            mov rdi, r14 | call amd64_emit_modrm_sib
+            mov al, cl
+            and al, 0x07
+            mov rdi, r14
+            call amd64_emit_modrm_sib
             jmp .done
         ENDIF
     ENDIF
     IF byte [r14 + OPERAND_reg], ge, 32
         IF byte [r14 + OPERAND_reg], le, 63
             ; MOV reg, CRn/DRn (0x0F 0x20/0x21)
-            mov cl, [r14 + OPERAND_reg] | and cl, 0x0F
+            mov cl, [r14 + OPERAND_reg]
+            and cl, 0x0F
             mov dl, [r13 + OPERAND_reg] ; GPR
             
-            ; Calculate REX: 0x40 | (CR_hi << 2) | (GPR_hi)
+            ; Calculate REX: 0x40
+            (CR_hi << 2)
+            (GPR_hi)
             mov al, 0x40
-            mov bl, cl | shr bl, 3 | shl bl, 2 | or al, bl  ; REX.R for CR
-            mov bl, dl | shr bl, 3 | or al, bl              ; REX.B for GPR
+            mov bl, cl
+            shr bl, 3
+            shl bl, 2
+            or al, bl  ; REX.R for CR
+            mov bl, dl
+            shr bl, 3
+            or al, bl              ; REX.B for GPR
             IF al, ne, 0x40                 call amd64_emit_byte             ENDIF 
             
-            mov al, 0x0F | call amd64_emit_byte
-            mov al, 0x20 | IF byte [r14 + OPERAND_reg], ge, 48 | inc al | ENDIF
+            mov al, 0x0F
+            call amd64_emit_byte
+            mov al, 0x20
+            IF byte [r14 + OPERAND_reg], ge, 48
+            inc al
+            ENDIF
             call amd64_emit_byte
             
-            mov al, cl | and al, 0x07
-            mov rdi, r13 | call amd64_emit_modrm_sib
+            mov al, cl
+            and al, 0x07
+            mov rdi, r13
+            call amd64_emit_modrm_sib
             jmp .done
         ENDIF
     ENDIF
@@ -929,10 +1746,17 @@ amd64_encode_mov:
             ENDIF
             call    amd64_emit_byte
             
-            ; ModR/M: 11 (reg,reg) | (src << 3) | dest
+            ; ModR/M: 11 (reg,reg)
+            (src << 3)
+            dest
             mov     al, 0xC0
-            mov     cl, [r14 + OPERAND_reg] | and cl, 0x07 | shl cl, 3 | or al, cl
-            mov     cl, [r13 + OPERAND_reg] | and cl, 0x07 | or al, cl
+            mov     cl, [r14 + OPERAND_reg]
+            and cl, 0x07
+            shl cl, 3
+            or al, cl
+            mov     cl, [r13 + OPERAND_reg]
+            and cl, 0x07
+            or al, cl
             call    amd64_emit_byte
             jmp     .done
         ENDIF
@@ -961,8 +1785,15 @@ amd64_encode_mov:
 
             ; 64-bit MOV REG, IMM64 / SYMBOL
             IF dl, e, 64
-                mov al, 64 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
-                mov al, 0xB8 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
+                mov al, 64
+                mov rsi, 0
+                mov rdx, r13
+                call amd64_emit_prefixes
+                mov al, 0xB8
+                mov cl, [r13 + OPERAND_reg]
+                and cl, 0x07
+                add al, cl
+                call amd64_emit_byte
                 
                 IF byte [r14 + OPERAND_kind], e, OP_SYMBOL
                     mov rdi, rbx
@@ -971,17 +1802,26 @@ amd64_encode_mov:
                     mov rcx, [r14 + OPERAND_imm]      ; Addend from math engine!
                     mov r8, R_X86_64_64
                     call reloc_record
-                    xor rdi, rdi | call amd64_emit_qword
+                    xor rdi, rdi
+                    call amd64_emit_qword
                 ELSE
-                    mov rdi, [r14 + OPERAND_imm] | call amd64_emit_qword
+                    mov rdi, [r14 + OPERAND_imm]
+                    call amd64_emit_qword
                 ENDIF
                 jmp .done
             ENDIF
             
             ; 32-bit MOV REG, IMM32 / SYMBOL
             IF dl, e, 32
-                mov al, 32 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
-                mov al, 0xB8 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
+                mov al, 32
+                mov rsi, 0
+                mov rdx, r13
+                call amd64_emit_prefixes
+                mov al, 0xB8
+                mov cl, [r13 + OPERAND_reg]
+                and cl, 0x07
+                add al, cl
+                call amd64_emit_byte
                 
                 IF byte [r14 + OPERAND_kind], e, OP_SYMBOL
                     mov rdi, rbx
@@ -990,26 +1830,44 @@ amd64_encode_mov:
                     mov rcx, [r14 + OPERAND_imm]
                     mov r8, R_X86_64_32
                     call reloc_record
-                    xor rdi, rdi | call amd64_emit_dword
+                    xor rdi, rdi
+                    call amd64_emit_dword
                 ELSE
-                    mov rdi, [r14 + OPERAND_imm] | call amd64_emit_dword
+                    mov rdi, [r14 + OPERAND_imm]
+                    call amd64_emit_dword
                 ENDIF
                 jmp .done
             ENDIF
             
             ; 16-bit MOV REG, IMM16 / SYMBOL
             IF dl, e, 16
-                mov al, 16 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
-                mov al, 0xB8 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
-                mov rax, [r14 + OPERAND_imm] | call amd64_emit_word
+                mov al, 16
+                mov rsi, 0
+                mov rdx, r13
+                call amd64_emit_prefixes
+                mov al, 0xB8
+                mov cl, [r13 + OPERAND_reg]
+                and cl, 0x07
+                add al, cl
+                call amd64_emit_byte
+                mov rax, [r14 + OPERAND_imm]
+                call amd64_emit_word
                 jmp .done
             ENDIF
             
             ; 8-bit MOV REG, IMM8
             IF dl, e, 8
-                mov al, 8 | mov rsi, 0 | mov rdx, r13 | call amd64_emit_prefixes
-                mov al, 0xB0 | mov cl, [r13 + OPERAND_reg] | and cl, 0x07 | add al, cl | call amd64_emit_byte
-                mov rax, [r14 + OPERAND_imm] | call amd64_emit_byte
+                mov al, 8
+                mov rsi, 0
+                mov rdx, r13
+                call amd64_emit_prefixes
+                mov al, 0xB0
+                mov cl, [r13 + OPERAND_reg]
+                and cl, 0x07
+                add al, cl
+                call amd64_emit_byte
+                mov rax, [r14 + OPERAND_imm]
+                call amd64_emit_byte
                 jmp .done
             ENDIF
     .not_imm:
@@ -1021,7 +1879,8 @@ amd64_encode_mov:
             mov     rsi, r14
             call    amd64_emit_prefixes
             
-            mov     al, 0x8B | call amd64_emit_byte
+            mov     al, 0x8B
+            call amd64_emit_byte
             
             ; ModRM/SIB
             mov     al, [r13 + OPERAND_reg]
@@ -1040,7 +1899,8 @@ amd64_encode_mov:
             mov     rsi, r13         ; Mem is Dest (Op0)
             call    amd64_emit_prefixes
             
-            mov     al, 0x89 | call amd64_emit_byte
+            mov     al, 0x89
+            call amd64_emit_byte
             
             mov     al, [r14 + OPERAND_reg]
             and     al, 7
@@ -1056,7 +1916,8 @@ amd64_encode_mov:
             mov     rsi, r14
             call    amd64_emit_prefixes
             
-            mov     al, 0xC7 | call amd64_emit_byte
+            mov     al, 0xC7
+            call amd64_emit_byte
             
             xor     al, al   ; Extension Digit 0
             mov     rdi, r13
@@ -1105,10 +1966,17 @@ amd64_encode_arithmetic:
             ENDIF
             call    amd64_emit_byte
             
-            ; ModR/M: 11 | src | dest
+            ; ModR/M: 11
+            src
+            dest
             mov     al, 0xC0
-            mov     cl, [r11 + OPERAND_reg] | and cl, 0x07 | shl cl, 3 | or al, cl
-            mov     cl, [r10 + OPERAND_reg] | and cl, 0x07 | or al, cl
+            mov     cl, [r11 + OPERAND_reg]
+            and cl, 0x07
+            shl cl, 3
+            or al, cl
+            mov     cl, [r10 + OPERAND_reg]
+            and cl, 0x07
+            or al, cl
             call    amd64_emit_byte
             jmp     .done
         ENDIF
@@ -1133,11 +2001,18 @@ amd64_encode_arithmetic:
             
             ; 8-bit case: 0x80 /extension
             IF byte [r10 + OPERAND_size], e, 8
-                mov al, 0x80 | call amd64_emit_byte
-                mov al, 0xC0 | mov cl, r14b | shl cl, 3 | or al, cl
-                mov cl, [r10 + OPERAND_reg] | and cl, 0x07 | or al, cl
+                mov al, 0x80
                 call amd64_emit_byte
-                mov rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+                mov al, 0xC0
+                mov cl, r14b
+                shl cl, 3
+                or al, cl
+                mov cl, [r10 + OPERAND_reg]
+                and cl, 0x07
+                or al, cl
+                call amd64_emit_byte
+                mov rax, [r11 + OPERAND_imm]
+                call amd64_emit_byte
                 jmp .done
             ENDIF
             
@@ -1153,7 +2028,9 @@ amd64_encode_arithmetic:
             mov     al, 0x83
             call    amd64_emit_byte
             
-            ; ModR/M: 11 | extension | dest
+            ; ModR/M: 11
+            extension
+            dest
             mov     al, 0xC0
             mov     cl, r14b
             shl     cl, 3
@@ -1171,7 +2048,9 @@ amd64_encode_arithmetic:
             mov     al, 0x81
             call    amd64_emit_byte
             
-            ; ModR/M: 11 | extension | dest
+            ; ModR/M: 11
+            extension
+            dest
             mov     al, 0xC0
             mov     cl, r14b       ; Extension digit
             shl     cl, 3
@@ -1195,7 +2074,8 @@ amd64_encode_arithmetic:
             call    amd64_emit_prefixes
             
             ; Opcode is Base + 2 (8-bit) or Base + 3 (16/32/64-bit)
-            mov     rax, r13 | add al, 2
+            mov     rax, r13
+            add al, 2
             IF byte [r10 + OPERAND_size], ne, 8
                 inc al
             ENDIF
@@ -1241,9 +2121,13 @@ amd64_encode_arithmetic:
             ; Logic similar to Case 2 (0x81/0x83) but with memory
             ; 8-bit case: 0x80 /extension
             IF byte [r10 + OPERAND_size], e, 8
-                mov al, 0x80 | call amd64_emit_byte
-                mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
-                mov rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+                mov al, 0x80
+                call amd64_emit_byte
+                mov al, r14b
+                mov rdi, r10
+                call amd64_emit_modrm_sib
+                mov rax, [r11 + OPERAND_imm]
+                call amd64_emit_byte
                 jmp .done
             ENDIF
             
@@ -1251,15 +2135,23 @@ amd64_encode_arithmetic:
             mov rax, [r11 + OPERAND_imm]
             IF rax, ge, -128
                 IF rax, le, 127
-                    mov al, 0x83 | call amd64_emit_byte
-                    mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
-                    mov rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+                    mov al, 0x83
+                    call amd64_emit_byte
+                    mov al, r14b
+                    mov rdi, r10
+                    call amd64_emit_modrm_sib
+                    mov rax, [r11 + OPERAND_imm]
+                    call amd64_emit_byte
                     jmp .done
                 ENDIF
             ENDIF
-            mov al, 0x81 | call amd64_emit_byte
-            mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
-            mov rdi, [r11 + OPERAND_imm] | call amd64_emit_dword
+            mov al, 0x81
+            call amd64_emit_byte
+            mov al, r14b
+            mov rdi, r10
+            call amd64_emit_modrm_sib
+            mov rdi, [r11 + OPERAND_imm]
+            call amd64_emit_dword
             jmp .done
         ENDIF
     ENDIF
@@ -1273,17 +2165,22 @@ amd64_encode_arithmetic:
 ; * [amd64_encode_syscall]
 ; ;
 amd64_encode_syscall:
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0x05 | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0x05
+    call amd64_emit_byte
     ret
 
 ;*
 ; * [amd64_encode_sysret]
 ; ;
 amd64_encode_sysret:
-    mov     al, 0x48 | call amd64_emit_byte
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0x07 | call amd64_emit_byte
+    mov     al, 0x48
+    call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0x07
+    call amd64_emit_byte
     ret
 
 ;*
@@ -1301,26 +2198,36 @@ amd64_encode_push:
     call    amd64_emit_prefixes
     
     IF byte [r10 + OPERAND_kind], e, OP_REG
-        mov     al, 0x50 | mov cl, [r10 + OPERAND_reg] | and cl, 0x07 | add al, cl
+        mov     al, 0x50
+        mov cl, [r10 + OPERAND_reg]
+        and cl, 0x07
+        add al, cl
         call    amd64_emit_byte
         jmp     .done
     ENDIF
     IF byte [r10 + OPERAND_kind], e, OP_MEM
-        mov     al, 0xFF | call amd64_emit_byte
-        mov     al, 6 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0xFF
+        call amd64_emit_byte
+        mov     al, 6
+        mov rdi, r10
+        call amd64_emit_modrm_sib
         jmp     .done
     ENDIF
     IF byte [r10 + OPERAND_kind], e, OP_IMM
         mov     rax, [r10 + OPERAND_imm]
         IF rax, ge, -128
             IF rax, le, 127
-                mov al, 0x6A | call amd64_emit_byte
-                mov rax, [r10 + OPERAND_imm] | call amd64_emit_byte
+                mov al, 0x6A
+                call amd64_emit_byte
+                mov rax, [r10 + OPERAND_imm]
+                call amd64_emit_byte
                 jmp .done
             ENDIF
         ENDIF
-        mov     al, 0x68 | call amd64_emit_byte
-        mov     rax, [r10 + OPERAND_imm] | call amd64_emit_dword
+        mov     al, 0x68
+        call amd64_emit_byte
+        mov     rax, [r10 + OPERAND_imm]
+        call amd64_emit_dword
         jmp     .done
     ENDIF
     jmp     .error
@@ -1337,13 +2244,19 @@ amd64_encode_pop:
     call    amd64_emit_prefixes
     
     IF byte [r10 + OPERAND_kind], e, OP_REG
-        mov     al, 0x58 | mov cl, [r10 + OPERAND_reg] | and cl, 0x07 | add al, cl
+        mov     al, 0x58
+        mov cl, [r10 + OPERAND_reg]
+        and cl, 0x07
+        add al, cl
         call    amd64_emit_byte
         jmp     .done
     ENDIF
     IF byte [r10 + OPERAND_kind], e, OP_MEM
-        mov     al, 0x8F | call amd64_emit_byte
-        mov     al, 0 | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0x8F
+        call amd64_emit_byte
+        mov     al, 0
+        mov rdi, r10
+        call amd64_emit_modrm_sib
         jmp     .done
     ENDIF
     jmp     .error
@@ -1418,8 +2331,11 @@ amd64_encode_jcc:
     and     rax, 0x0F          ; Get CC bits
     mov     r14, rax
     
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0x80 | add al, r14b | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0x80
+    add al, r14b
+    call amd64_emit_byte
     
     lea     r10, [r12 + INST_op0]
     IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
@@ -1605,35 +2521,54 @@ amd64_encode_imul:
     ; 1-Operand: IMUL r/m (F7 /5)
     cmp     byte [r12 + INST_nops], 1
     IF e
-        mov r14, 5 | jmp amd64_encode_unary_math
+        mov r14, 5
+        jmp amd64_encode_unary_math
     ENDIF
     
     ; 2-Operand: IMUL reg, r/m (0F AF)
     cmp     byte [r12 + INST_nops], 2
     IF e
-        mov al, [r10 + OPERAND_size] | mov rsi, r10 | mov rdx, r11 | call amd64_emit_prefixes
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0xAF | call amd64_emit_byte
-        mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        mov al, [r10 + OPERAND_size]
+        mov rsi, r10
+        mov rdx, r11
+        call amd64_emit_prefixes
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0xAF
+        call amd64_emit_byte
+        mov al, [r10 + OPERAND_reg]
+        mov rdi, r11
+        call amd64_emit_modrm_sib
         jmp .done
     ENDIF
     
     ; 3-Operand: IMUL reg, r/m, imm (69/6B)
-    mov al, [r10 + OPERAND_size] | mov rsi, r10 | mov rdx, r11 | call amd64_emit_prefixes
+    mov al, [r10 + OPERAND_size]
+    mov rsi, r10
+    mov rdx, r11
+    call amd64_emit_prefixes
     
     mov rax, [rdx + OPERAND_imm]
     IF rax, ge, -128
         IF rax, le, 127
-            mov al, 0x6B | call amd64_emit_byte
-            mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
-            mov rax, [rdx + OPERAND_imm] | call amd64_emit_byte
+            mov al, 0x6B
+            call amd64_emit_byte
+            mov al, [r10 + OPERAND_reg]
+            mov rdi, r11
+            call amd64_emit_modrm_sib
+            mov rax, [rdx + OPERAND_imm]
+            call amd64_emit_byte
             jmp .done
         ENDIF
     ENDIF
     
-    mov al, 0x69 | call amd64_emit_byte
-    mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
-    mov rdi, [rdx + OPERAND_imm] | call amd64_emit_dword
+    mov al, 0x69
+    call amd64_emit_byte
+    mov al, [r10 + OPERAND_reg]
+    mov rdi, r11
+    call amd64_emit_modrm_sib
+    mov rdi, [rdx + OPERAND_imm]
+    call amd64_emit_dword
     jmp .done
 
 ;*
@@ -1793,8 +2728,10 @@ amd64_encode_system_m:
 amd64_encode_system_00:
     prologue
     lea     r10, [r12 + INST_op0]
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0x00 | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0x00
+    call amd64_emit_byte
     mov     al, r14b
     mov     rdi, r10
     call    amd64_emit_modrm_sib
@@ -1897,7 +2834,8 @@ amd64_encode_sse_crypto:
     
     ; Mandatory Prefix
     IF r15, ne, 0
-        mov rax, r15 | call amd64_emit_byte
+        mov rax, r15
+        call amd64_emit_byte
     ENDIF
     
     ; REX if using R8-R15 or XMM8-XMM31
@@ -1907,14 +2845,18 @@ amd64_encode_sse_crypto:
     IF al, ne, 0         call amd64_emit_byte     ENDIF 
     
     ; Opcode Escape
-    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
     IF r14b, e, 2
-        mov al, 0x38 | call amd64_emit_byte
+        mov al, 0x38
+        call amd64_emit_byte
     ELSEIF r14b, e, 3
-        mov al, 0x3A | call amd64_emit_byte
+        mov al, 0x3A
+        call amd64_emit_byte
     ENDIF
     
-    mov     al, r13b | call amd64_emit_byte
+    mov     al, r13b
+    call amd64_emit_byte
     
     mov     al, [r10 + OPERAND_reg]
     mov     rdi, r11
@@ -1924,7 +2866,8 @@ amd64_encode_sse_crypto:
     IF r14b, e, 3
         lea r11, [r12 + INST_op2]
         IF byte [r11 + OPERAND_kind], e, OP_IMM
-            mov rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+            mov rax, [r11 + OPERAND_imm]
+            call amd64_emit_byte
         ENDIF
     ENDIF
     jmp     .done
@@ -1998,7 +2941,8 @@ amd64_encode_vex:
     call    amd64_emit_byte
 
     ; 5. Opcode and ModRM
-    mov     al, r13b | call amd64_emit_byte
+    mov     al, r13b
+    call amd64_emit_byte
     
     mov     al, [r10 + OPERAND_reg]
     and     al, 7                  ; Only low 3 bits for ModRM
@@ -2012,31 +2956,49 @@ amd64_encode_vex:
     jmp     .done
     
     IF bl, e, 0xC5
-        mov al, 0xC5 | call amd64_emit_byte
+        mov al, 0xC5
+        call amd64_emit_byte
         ; Byte 1: R vvvv L pp
         mov al, r15b           ; pp
         
         ; R (inverted)
         mov cl, [r10 + OPERAND_reg]
-        IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF
+        IF cl, ge, 8
+        ELSE
+        or al, 0x80
+        ENDIF
         
         ; vvvv (inverted)
         IF byte [r12 + INST_nops], ge, 3
-            mov cl, [r11 + OPERAND_reg] | and cl, 0x0F | xor cl, 0x0F | shl cl, 3 | or al, cl
+            mov cl, [r11 + OPERAND_reg]
+            and cl, 0x0F
+            xor cl, 0x0F
+            shl cl, 3
+            or al, cl
         ELSE
             or al, 0x78        ; 1111
         ENDIF
         call amd64_emit_byte
     ELSE
-        mov al, 0xC4 | call amd64_emit_byte
+        mov al, 0xC4
+        call amd64_emit_byte
         ; Byte 1: R X B m-mmmm
         mov al, r14b           ; Map
         mov cl, [r10 + OPERAND_reg]
-        IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF  ; R
+        IF cl, ge, 8
+        ELSE
+        or al, 0x80
+        ENDIF  ; R
         mov cl, [rdx + OPERAND_reg]
-        IF cl, ge, 8 | ELSE | or al, 0x40 | ENDIF  ; X
+        IF cl, ge, 8
+        ELSE
+        or al, 0x40
+        ENDIF  ; X
         mov cl, [rdx + OPERAND_base]
-        IF cl, ge, 8 | ELSE | or al, 0x20 | ENDIF  ; B
+        IF cl, ge, 8
+        ELSE
+        or al, 0x20
+        ENDIF  ; B
         call amd64_emit_byte
         
         ; Byte 2: W vvvv L pp
@@ -2045,7 +3007,11 @@ amd64_encode_vex:
         
         ; vvvv
         IF byte [r12 + INST_nops], ge, 3
-            mov cl, [r11 + OPERAND_reg] | and cl, 0x0F | xor cl, 0x0F | shl cl, 3 | or al, cl
+            mov cl, [r11 + OPERAND_reg]
+            and cl, 0x0F
+            xor cl, 0x0F
+            shl cl, 3
+            or al, cl
         ELSE
             or al, 0x78
         ENDIF
@@ -2069,7 +3035,8 @@ amd64_encode_vex:
 ; * [amd64_encode_evex]
 ; * R13 = Opcode
 ; * R14 = Map (1=0F, 2=0F 38, 3=0F 3A)
-; * R15 = W (0 or 1) | LL (0, 1, 2) << 2
+; * R15 = W (0 or 1)
+LL (0, 1, 2) << 2
 ; ;
 amd64_encode_evex:
     prologue
@@ -2078,7 +3045,8 @@ amd64_encode_evex:
     lea     rdx, [r12 + INST_op2]
     
     ; Byte 0: 0x62
-    mov     al, 0x62 | call amd64_emit_byte
+    mov     al, 0x62
+    call amd64_emit_byte
     
     ; Byte 1: ~R ~X ~B ~R' 0 0 m m
     ; m-mmmm (Map)
@@ -2087,8 +3055,14 @@ amd64_encode_evex:
     
     ; R, X, B, R' inverted (1 if bit is 0, 0 if bit is 1)
     mov cl, [r10 + OPERAND_reg]
-    IF cl, ge, 8 | ELSE | or al, 0x80 | ENDIF  ; R
-    IF cl, ge, 16 | ELSE | or al, 0x10 | ENDIF ; R'
+    IF cl, ge, 8
+    ELSE
+    or al, 0x80
+    ENDIF  ; R
+    IF cl, ge, 16
+    ELSE
+    or al, 0x10
+    ENDIF ; R'
     
     ; Default X and B to 1 (inverted)
     or al, 0x60
@@ -2111,18 +3085,28 @@ amd64_encode_evex:
     ; pp (Prefix from INST_prefix)
     mov     cl, [r12 + INST_prefix]
     xor     al, al
-    IF cl, e, 0x66 | mov al, 1
-    ELSEIF cl, e, 0xF3 | mov al, 2
-    ELSEIF cl, e, 0xF2 | mov al, 3
+    IF cl, e, 0x66
+    mov al, 1
+    ELSEIF cl, e, 0xF3
+    mov al, 2
+    ELSEIF cl, e, 0xF2
+    mov al, 3
     ENDIF
     or      al, 0x04           ; Bit 2 is mandatory 1
     
     ; W bit
-    mov     cl, r15b | and cl, 1 | shl cl, 7 | or al, cl
+    mov     cl, r15b
+    and cl, 1
+    shl cl, 7
+    or al, cl
     
     ; vvvv (inverted)
     IF byte [r12 + INST_nops], ge, 3
-        mov cl, [r11 + OPERAND_reg] | and cl, 0x0F | xor cl, 0x0F | shl cl, 3 | or al, cl
+        mov cl, [r11 + OPERAND_reg]
+        and cl, 0x0F
+        xor cl, 0x0F
+        shl cl, 3
+        or al, cl
     ELSE
         or al, 0x78
     ENDIF
@@ -2136,26 +3120,38 @@ amd64_encode_evex:
     ; V' (inverted) from vvvv's high bit
     IF byte [r12 + INST_nops], ge, 3
         mov cl, [r11 + OPERAND_reg]
-        IF cl, ge, 16 | ELSE | or al, 0x08 | ENDIF
+        IF cl, ge, 16
+        ELSE
+        or al, 0x08
+        ENDIF
     ELSE
         or al, 0x08
     ENDIF
     
     ; b = Broadcast/Static Rounding from op0.ctrl
     mov     cl, [r10 + OPERAND_ctrl]
-    and     cl, 0x01 | shl cl, 4 | or al, cl
+    and     cl, 0x01
+    shl cl, 4
+    or al, cl
     
     ; L'L (Vector length / Rounding control) from R15
-    mov     cl, r15b | shr cl, 2 | and cl, 0x03 | shl cl, 5 | or al, cl
+    mov     cl, r15b
+    shr cl, 2
+    and cl, 0x03
+    shl cl, 5
+    or al, cl
     
     ; z = Zeroing masking from op0.ctrl bit 1
     mov     cl, [r10 + OPERAND_ctrl]
-    and     cl, 0x02 | shl cl, 6 | or al, cl
+    and     cl, 0x02
+    shl cl, 6
+    or al, cl
     
     call    amd64_emit_byte
     
     ; 2. Opcode
-    mov     al, r13b | call amd64_emit_byte
+    mov     al, r13b
+    call amd64_emit_byte
     
     ; 3. ModRM/SIB
     mov     al, [r10 + OPERAND_reg]
@@ -2182,34 +3178,55 @@ amd64_encode_string:
     
     ; Check suffixes (This is a bit hardcoded but fast)
     ; MOVSB=1419, STOSB=1669, LODSB=1369, SCASB=1630, CMPSB=1079
-    IF ax, e, 1419 | OR ax, e, 1669 | OR ax, e, 1369 | OR ax, e, 1630 | OR ax, e, 1079
+    IF ax, e, 1419
+    OR ax, e, 1669
+    OR ax, e, 1369
+    OR ax, e, 1630
+    OR ax, e, 1079
         mov bl, 0
     ; MOVSW=1425, STOSW=1672, LODSW=1372, SCASW=1632, CMPSW=1083
-    ELSEIF ax, e, 1425 | OR ax, e, 1672 | OR ax, e, 1372 | OR ax, e, 1632 | OR ax, e, 1083
+    ELSEIF ax, e, 1425
+    OR ax, e, 1672
+    OR ax, e, 1372
+    OR ax, e, 1632
+    OR ax, e, 1083
         mov bl, 1
     ; MOVSD=1420, STOSD=1670, LODSD=1370, SCASD=1631, CMPSD=1080
-    ELSEIF ax, e, 1420 | OR ax, e, 1670 | OR ax, e, 1370 | OR ax, e, 1631 | OR ax, e, 1080
+    ELSEIF ax, e, 1420
+    OR ax, e, 1670
+    OR ax, e, 1370
+    OR ax, e, 1631
+    OR ax, e, 1080
         mov bl, 2
     ; MOVSQ=1423, STOSQ=1671, LODSQ=1371, SCASQ=???, CMPSQ=1081
-    ELSEIF ax, e, 1423 | OR ax, e, 1671 | OR ax, e, 1371 | OR ax, e, 1081
+    ELSEIF ax, e, 1423
+    OR ax, e, 1671
+    OR ax, e, 1371
+    OR ax, e, 1081
         mov bl, 3
     ELSE
         ; Generic form - use operand 0 size
         lea r10, [r12 + INST_op0]
         mov cl, [r10 + OPERAND_size]
-        IF cl, e, 8 | mov bl, 0
-        ELSEIF cl, e, 16 | mov bl, 1
-        ELSEIF cl, e, 32 | mov bl, 2
-        ELSEIF cl, e, 64 | mov bl, 3
+        IF cl, e, 8
+        mov bl, 0
+        ELSEIF cl, e, 16
+        mov bl, 1
+        ELSEIF cl, e, 32
+        mov bl, 2
+        ELSEIF cl, e, 64
+        mov bl, 3
         ENDIF
     ENDIF
     
     ; REX.W for 64-bit
     IF bl, e, 3
-        mov al, 0x48 | call amd64_emit_byte
+        mov al, 0x48
+        call amd64_emit_byte
     ; 16-bit prefix
     ELSEIF bl, e, 1
-        mov al, 0x66 | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
     ENDIF
     
     ; Opcode
@@ -2234,7 +3251,8 @@ amd64_encode_bin0f:
     mov     rdx, r10           ; R/M (Dst)
     call    amd64_emit_prefixes
     
-    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
     mov     al, r13b
     IF byte [r10 + OPERAND_size], e, 8
         dec al                 ; 0xB1 -> 0xB0 for byte
@@ -2256,13 +3274,17 @@ amd64_encode_cmpxchg_nb:
     
     ; REX.W for 16B
     IF word [r12 + INST_op_id], e, 1085
-        mov al, 0x48 | call amd64_emit_byte
+        mov al, 0x48
+        call amd64_emit_byte
     ELSEIF byte [r10 + OPERAND_reg], ge, 8
-        mov al, 0x41 | call amd64_emit_byte
+        mov al, 0x41
+        call amd64_emit_byte
     ENDIF
     
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0xC7 | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0xC7
+    call amd64_emit_byte
     
     mov     al, r14b           ; Digit 1
     mov     rdi, r10
@@ -2307,11 +3329,14 @@ amd64_encode_vm_m:
     lea     r10, [r12 + INST_op0]
     
     IF r13, ne, 0
-        mov al, r13b | call amd64_emit_byte
+        mov al, r13b
+        call amd64_emit_byte
     ENDIF
     
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0xC7 | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0xC7
+    call amd64_emit_byte
     
     mov     al, r14b           ; Digit
     mov     rdi, r10
@@ -2327,8 +3352,10 @@ amd64_encode_vm_rm_r:
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, r13b | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, r13b
+    call amd64_emit_byte
     
     mov     al, [r11 + OPERAND_reg]
     mov     rdi, r10
@@ -2350,17 +3377,32 @@ amd64_encode_bt:
     
     ; Case 1: BT r/m, reg
     IF byte [r11 + OPERAND_kind], e, OP_REG
-        mov     al, [r10 + OPERAND_size] | mov rsi, r11 | mov rdx, r10 | call amd64_emit_prefixes
-        mov     al, 0x0F | call amd64_emit_byte
-        mov     al, r13b | call amd64_emit_byte
-        mov     al, [r11 + OPERAND_reg] | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, [r10 + OPERAND_size]
+        mov rsi, r11
+        mov rdx, r10
+        call amd64_emit_prefixes
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov     al, r13b
+        call amd64_emit_byte
+        mov     al, [r11 + OPERAND_reg]
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ; Case 2: BT r/m, imm8
     ELSE
-        mov     al, [r10 + OPERAND_size] | xor rsi, rsi | mov rdx, r10 | call amd64_emit_prefixes
-        mov     al, 0x0F | call amd64_emit_byte
-        mov     al, 0xBA | call amd64_emit_byte
-        mov     al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
-        mov     rax, [r11 + OPERAND_imm] | call amd64_emit_byte
+        mov     al, [r10 + OPERAND_size]
+        xor rsi, rsi
+        mov rdx, r10
+        call amd64_emit_prefixes
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov     al, 0xBA
+        call amd64_emit_byte
+        mov     al, r14b
+        mov rdi, r10
+        call amd64_emit_modrm_sib
+        mov     rax, [r11 + OPERAND_imm]
+        call amd64_emit_byte
     ENDIF
     jmp     .done
 
@@ -2479,7 +3521,8 @@ amd64_emit_prefixes:
     
     ; 1. 16-bit Override
     IF al, e, 16
-        mov al, 0x66 | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
     ENDIF
     
     ; 2. Address-Size Override (0x67)
@@ -2487,7 +3530,8 @@ amd64_emit_prefixes:
         ; If memory operand uses 32-bit registers
         IF byte [rdx + OPERAND_kind], e, OP_MEM
             IF byte [rdx + OPERAND_size], e, 32
-                mov al, 0x67 | call amd64_emit_byte
+                mov al, 0x67
+                call amd64_emit_byte
             ENDIF
         ENDIF
     ENDIF
@@ -2656,7 +3700,9 @@ amd64_emit_modrm_sib:
     call    amd64_emit_byte
     
     ; Emit SIB
-    ; Scale (2 bits) | Index (3 bits) | Base (3 bits)
+    ; Scale (2 bits)
+    Index (3 bits)
+    Base (3 bits)
     mov     al, [r13 + OPERAND_scale]
     ; Map scale 1,2,4,8 to 0,1,2,3
     xor     cl, cl
@@ -2667,8 +3713,10 @@ amd64_emit_modrm_sib:
     cmp     al, 8
     je      .s3
     jmp     .s0
-.s1: mov cl, 1 | jmp .s0
-.s2: mov cl, 2 | jmp .s0
+.s1: mov cl, 1
+jmp .s0
+.s2: mov cl, 2
+jmp .s0
 .s3: mov cl, 3
 .s0:
     shl     cl, 6
@@ -2749,11 +3797,18 @@ amd64_encode_jmp:
     prologue
     lea     r10, [r12 + INST_op0]
     IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
-        mov     al, 0xE9 | call amd64_emit_byte
-        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | mov edx, 4 | call amd64_emit_reloc
-        xor     rax, rax | call amd64_emit_dword
+        mov     al, 0xE9
+        call amd64_emit_byte
+        mov     al, RELOC_REL32
+        mov rsi, [r10 + OPERAND_sym]
+        mov edx, 4
+        call amd64_emit_reloc
+        xor     rax, rax
+        call amd64_emit_dword
     ELSE
-        mov     r13, 0xFF | mov r14, 4 | call amd64_encode_unary
+        mov     r13, 0xFF
+        mov r14, 4
+        call amd64_encode_unary
     ENDIF
     epilogue
 
@@ -2764,11 +3819,18 @@ amd64_encode_call:
     prologue
     lea     r10, [r12 + INST_op0]
     IF byte [r10 + OPERAND_kind], e, OP_SYMBOL
-        mov     al, 0xE8 | call amd64_emit_byte
-        mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | mov edx, 4 | call amd64_emit_reloc
-        xor     rax, rax | call amd64_emit_dword
+        mov     al, 0xE8
+        call amd64_emit_byte
+        mov     al, RELOC_REL32
+        mov rsi, [r10 + OPERAND_sym]
+        mov edx, 4
+        call amd64_emit_reloc
+        xor     rax, rax
+        call amd64_emit_dword
     ELSE
-        mov     r13, 0xFF | mov r14, 2 | call amd64_encode_unary
+        mov     r13, 0xFF
+        mov r14, 2
+        call amd64_encode_unary
     ENDIF
     epilogue
 
@@ -2785,13 +3847,18 @@ amd64_encode_jcc:
     ; a proper ID -> Cond table is required.
     mov     r15b, al
     and     r15b, 0x0F  
-    mov     al, 0x0F | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
     mov     al, 0x80
     add     al, r15b
     call    amd64_emit_byte
     lea     r10, [r12 + INST_op0]
-    mov     al, RELOC_REL32 | mov rsi, [r10 + OPERAND_sym] | mov edx, 4 | call amd64_emit_reloc
-    xor     rax, rax | call amd64_emit_dword
+    mov     al, RELOC_REL32
+    mov rsi, [r10 + OPERAND_sym]
+    mov edx, 4
+    call amd64_emit_reloc
+    xor     rax, rax
+    call amd64_emit_dword
     epilogue
 
 ;*
@@ -2800,9 +3867,11 @@ amd64_encode_jcc:
 amd64_encode_ret:
     prologue
     IF byte [r12 + INST_nops], e, 0
-        mov     al, 0xC3 | call amd64_emit_byte
+        mov     al, 0xC3
+        call amd64_emit_byte
     ELSE
-        mov     al, 0xC2 | call amd64_emit_byte
+        mov     al, 0xC2
+        call amd64_emit_byte
         lea     r10, [r12 + INST_op0]
         mov     rdi, [r10 + OPERAND_imm]
         call    amd64_emit_word
@@ -2826,23 +3895,33 @@ amd64_encode_push_pop:
         add     dl, cl
         mov     al, [r10 + OPERAND_size]
         IF al, e, 16
-            mov al, 0x66 | call amd64_emit_byte
+            mov al, 0x66
+            call amd64_emit_byte
         ENDIF
         ; REX prefix if reg >= 8
         mov     al, [r10 + OPERAND_reg]
         IF al, ge, 8
-            mov al, 0x41 | call amd64_emit_byte
+            mov al, 0x41
+            call amd64_emit_byte
         ENDIF
-        mov     al, dl | call amd64_emit_byte
+        mov     al, dl
+        call amd64_emit_byte
     ELSE
         ; MEM
         mov     al, [r10 + OPERAND_size]
         IF al, e, 16
-            mov al, 0x66 | call amd64_emit_byte
+            mov al, 0x66
+            call amd64_emit_byte
         ENDIF
-        mov     al, 0 | mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
-        mov     al, r14b | call amd64_emit_byte
-        mov     al, r15b | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0
+        mov rsi, r10
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov     al, r14b
+        call amd64_emit_byte
+        mov     al, r15b
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ENDIF
     epilogue
 
@@ -2867,25 +3946,41 @@ amd64_encode_shift:
         ; Must be CL
         add r13b, 2
         mov al, [r10 + OPERAND_size]
-        mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
-        mov al, r13b | call amd64_emit_byte
-        mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov rsi, r10
+        mov rdx, 0
+        call amd64_emit_prefixes
+        mov al, r13b
+        call amd64_emit_byte
+        mov al, r14b
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ELSE
         ; Immediate
         mov rcx, [r11 + OPERAND_imm]
         IF cx, e, 1
             mov al, [r10 + OPERAND_size]
-            mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
-            mov al, r13b | call amd64_emit_byte
-            mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
+            mov rsi, r10
+            mov rdx, 0
+            call amd64_emit_prefixes
+            mov al, r13b
+            call amd64_emit_byte
+            mov al, r14b
+            mov rdi, r10
+            call amd64_emit_modrm_sib
         ELSE
             add r13b, 0x00 ; actually D0 -> C0, D1 -> C1
             sub r13b, 0x10
             mov al, [r10 + OPERAND_size]
-            mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
-            mov al, r13b | call amd64_emit_byte
-            mov al, r14b | mov rdi, r10 | call amd64_emit_modrm_sib
-            mov al, cl | call amd64_emit_byte
+            mov rsi, r10
+            mov rdx, 0
+            call amd64_emit_prefixes
+            mov al, r13b
+            call amd64_emit_byte
+            mov al, r14b
+            mov rdi, r10
+            call amd64_emit_modrm_sib
+            mov al, cl
+            call amd64_emit_byte
         ENDIF
     ENDIF
     epilogue
@@ -2896,8 +3991,10 @@ amd64_encode_shift:
 amd64_encode_imul:
     prologue
     ; Fallback stub for IMUL
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, 0xAF | call amd64_emit_byte
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, 0xAF
+    call amd64_emit_byte
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     mov     al, [r10 + OPERAND_reg]
@@ -2918,12 +4015,17 @@ amd64_encode_cmovcc:
     lea     r11, [r12 + INST_op1]
     mov     al, [r10 + OPERAND_size]
     IF al, e, 16
-        mov al, 0x66 | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
     ENDIF
     mov     al, [r10 + OPERAND_size]
-    mov     rsi, r11 | mov rdx, 0 | call amd64_emit_prefixes
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, r13b | call amd64_emit_byte
+    mov     rsi, r11
+    mov rdx, 0
+    call amd64_emit_prefixes
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, r13b
+    call amd64_emit_byte
     mov     al, [r10 + OPERAND_reg]
     mov     rdi, r11
     call    amd64_emit_modrm_sib
@@ -2940,10 +4042,17 @@ amd64_encode_setcc:
     add     r13b, al
     lea     r10, [r12 + INST_op0]
     ; Force size 8 for REX calculation
-    mov     al, 8 | mov rsi, r10 | mov rdx, 0 | call amd64_emit_prefixes
-    mov     al, 0x0F | call amd64_emit_byte
-    mov     al, r13b | call amd64_emit_byte
-    mov     al, 0 | mov rdi, r10 | call amd64_emit_modrm_sib
+    mov     al, 8
+    mov rsi, r10
+    mov rdx, 0
+    call amd64_emit_prefixes
+    mov     al, 0x0F
+    call amd64_emit_byte
+    mov     al, r13b
+    call amd64_emit_byte
+    mov     al, 0
+    mov rdi, r10
+    call amd64_emit_modrm_sib
     epilogue
 
 ;*
@@ -2957,32 +4066,79 @@ amd64_encode_mpx:
     lea     r11, [r12 + INST_op1]
     
     IF ax, e, 1047 ; BNDMK: F3 0F 1B /r
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1B | call amd64_emit_byte
-        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1B
+        call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg]
+        mov rdi, r11
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1043 ; BNDCL: F3 0F 1A /r
-        mov     al, 0xF3 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1A | call amd64_emit_byte
-        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        mov     al, 0xF3
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1A
+        call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg]
+        mov rdi, r11
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1045 ; BNDCU: F2 0F 1A /r
-        mov     al, 0xF2 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1A | call amd64_emit_byte
-        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        mov     al, 0xF2
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1A
+        call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg]
+        mov rdi, r11
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1044 ; BNDCN: F2 0F 1B /r
-        mov     al, 0xF2 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte | mov al, 0x1B | call amd64_emit_byte
-        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        mov     al, 0xF2
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1B
+        call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg]
+        mov rdi, r11
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1048 ; BNDMOV
-        mov     al, 0x66 | call amd64_emit_byte | mov al, 0x0F | call amd64_emit_byte
+        mov     al, 0x66
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
         IF byte [r10 + OPERAND_kind], e, OP_MEM
-            mov al, 0x1B | call amd64_emit_byte
-            mov al, [r11 + OPERAND_reg] | mov rdi, r10 | call amd64_emit_modrm_sib
+            mov al, 0x1B
+            call amd64_emit_byte
+            mov al, [r11 + OPERAND_reg]
+            mov rdi, r10
+            call amd64_emit_modrm_sib
         ELSE
-            mov al, 0x1A | call amd64_emit_byte
-            mov al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+            mov al, 0x1A
+            call amd64_emit_byte
+            mov al, [r10 + OPERAND_reg]
+            mov rdi, r11
+            call amd64_emit_modrm_sib
         ENDIF
     ELSEIF ax, e, 1046 ; BNDLDX: 0F 1A /r
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x1A | call amd64_emit_byte
-        mov     al, [r10 + OPERAND_reg] | mov rdi, r11 | call amd64_emit_modrm_sib
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1A
+        call amd64_emit_byte
+        mov     al, [r10 + OPERAND_reg]
+        mov rdi, r11
+        call amd64_emit_modrm_sib
     ELSEIF ax, e, 1049 ; BNDSTX: 0F 1B /r
-        mov     al, 0x0F | call amd64_emit_byte | mov al, 0x1B | call amd64_emit_byte
-        mov     al, [r11 + OPERAND_reg] | mov rdi, r10 | call amd64_emit_modrm_sib
+        mov     al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1B
+        call amd64_emit_byte
+        mov     al, [r11 + OPERAND_reg]
+        mov rdi, r10
+        call amd64_emit_modrm_sib
     ENDIF
     epilogue
 
@@ -2994,48 +4150,93 @@ amd64_encode_mpx:
 amd64_emit_nop:
     prologue
     IF rax, e, 1
-        mov al, 0x90 | call amd64_emit_byte
+        mov al, 0x90
+        call amd64_emit_byte
     ELSEIF rax, e, 2
-        mov al, 0x66 | call amd64_emit_byte
-        mov al, 0x90 | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
+        mov al, 0x90
+        call amd64_emit_byte
     ELSEIF rax, e, 3
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x00 | call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x00
+        call amd64_emit_byte
     ELSEIF rax, e, 4
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x40 | call amd64_emit_byte
-        mov al, 0x00 | call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x40
+        call amd64_emit_byte
+        mov al, 0x00
+        call amd64_emit_byte
     ELSEIF rax, e, 5
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x44 | call amd64_emit_byte
-        mov al, 0x00 | call amd64_emit_byte
-        mov al, 0x00 | call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x44
+        call amd64_emit_byte
+        mov al, 0x00
+        call amd64_emit_byte
+        mov al, 0x00
+        call amd64_emit_byte
     ELSEIF rax, e, 6
-        mov al, 0x66 | call amd64_emit_byte
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x44 | call amd64_emit_byte
-        mov al, 0x00 | call amd64_emit_byte
-        mov al, 0x00 | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x44
+        call amd64_emit_byte
+        mov al, 0x00
+        call amd64_emit_byte
+        mov al, 0x00
+        call amd64_emit_byte
     ELSEIF rax, e, 7
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x80 | call amd64_emit_byte
-        xor al, al | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x80
+        call amd64_emit_byte
+        xor al, al
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
     ELSEIF rax, e, 8
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x84 | call amd64_emit_byte
-        xor al, al | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x84
+        call amd64_emit_byte
+        xor al, al
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
     ELSEIF rax, e, 9
-        mov al, 0x66 | call amd64_emit_byte
-        mov al, 0x0F | call amd64_emit_byte
-        mov al, 0x1F | call amd64_emit_byte
-        mov al, 0x84 | call amd64_emit_byte
-        xor al, al | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
+        mov al, 0x0F
+        call amd64_emit_byte
+        mov al, 0x1F
+        call amd64_emit_byte
+        mov al, 0x84
+        call amd64_emit_byte
+        xor al, al
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
+        call amd64_emit_byte
     ENDIF
     epilogue
 
@@ -3217,10 +4418,15 @@ amd64_emit_prefixes:
     
     ; 1. 16-bit prefix (0x66)
     IF byte [r12 + OPERAND_size], e, 2
-        mov al, 0x66 | call amd64_emit_byte
+        mov al, 0x66
+        call amd64_emit_byte
     ENDIF
     
-    ; 2. REX prefix (0x40 | W | R | X | B)
+    ; 2. REX prefix (0x40
+    W
+    R
+    X
+    B)
     xor     bl, bl                 ; bl = REX accumulator
     
     ; REX.W (64-bit operand size)
@@ -3240,12 +4446,24 @@ amd64_emit_prefixes:
         IF al, ge, 8             or bl, 0x01         ENDIF 
     ELSEIF byte [r13 + OPERAND_kind], e, OP_MEM
         mov al, [r13 + OPERAND_base]
-        IF al, ge, 8 | IF al, ne, REG_NONE | or bl, 0x01 | ENDIF | ENDIF
+        IF al, ge, 8
+        IF al, ne, REG_NONE
+        or bl, 0x01
+        ENDIF
+        ENDIF
         mov al, [r13 + OPERAND_index]
-        IF al, ge, 8 | IF al, ne, REG_NONE | or bl, 0x02 | ENDIF | ENDIF ; REX.X
+        IF al, ge, 8
+        IF al, ne, REG_NONE
+        or bl, 0x02
+        ENDIF
+        ENDIF ; REX.X
     ENDIF
 
-    IF bl, ne, 0 | or bl, 0x40 | mov al, bl | call amd64_emit_byte | ENDIF
+    IF bl, ne, 0
+    or bl, 0x40
+    mov al, bl
+    call amd64_emit_byte
+    ENDIF
     
     pop     r13
     pop     r12

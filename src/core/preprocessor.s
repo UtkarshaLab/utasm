@@ -323,7 +323,8 @@ prep_expand_start:
     ELSE
         ; Variadic limit (hardcoded to 32 slots in allocation)
         IF r15, ge, 32
-            mov rax, EXIT_MACRO_ARITY_FAIL | jmp .error
+            mov rax, EXIT_MACRO_ARITY_FAIL
+            jmp .error
         ENDIF
     ENDIF
     
@@ -501,7 +502,8 @@ prep_expand_next:
             mov     rdi, [r10 + TOKEN_value]
             movzx   rax, byte [rdi]
             sub     al, '0'
-            IF al, ge, 1 | IF al, le, 9
+            IF al, ge, 1
+            IF al, le, 9
                 ; Yes, it's stringification!
                 ; 1. Consume the directive token
                 inc     qword [r13 + MACROEXP_body]
@@ -555,7 +557,8 @@ prep_expand_next:
 
     ; CASE 2: %1-%9 (Parameter Reference)
     sub     al, '0'
-    IF al, ge, 1 | IF al, le, 9
+    IF al, ge, 1
+    IF al, le, 9
         ; it's a param ref! (1-9)
         ; check if it is within nparams
         movzx   rcx, byte [r13 + MACROEXP_nparams]
@@ -582,12 +585,14 @@ prep_expand_next:
         ; simple parser for digit
         movzx   rax, byte [rdi]
         sub     al, '0'
-        IF al, ge, 1 | IF al, le, 9
+        IF al, ge, 1
+        IF al, le, 9
             ; r14 = starting index (1-based)
             movzx   r14, al
             
             ; check for ".." suffix
-            IF byte [rdi + 1], e, '.' | IF byte [rdi + 2], e, '.'
+            IF byte [rdi + 1], e, '.'
+            IF byte [rdi + 2], e, '.'
                 ; It's %{n..}!
                 ; We need to expand all params from r14 to nparams.
                 ; This is complex for a single prep_expand_next call 

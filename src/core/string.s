@@ -1272,7 +1272,8 @@ str_utf8_decode:
     cmp     r9d, 0x80
     jne     .error
     
-    ; Decode: ((al & 0x1F) << 6) | (r8 & 0x3F)
+    ; Decode: ((al & 0x1F) << 6)
+    (r8 & 0x3F)
     and     eax, 0x1F
     shl     eax, 6
     and     r8d, 0x3F
@@ -1306,7 +1307,9 @@ str_utf8_decode:
     cmp     r9d, 0x80
     jne     .error
     
-    ; Decode: ((al & 0x0F) << 12) | ((r8 & 0x3F) << 6) | (rc)
+    ; Decode: ((al & 0x0F) << 12)
+    ((r8 & 0x3F) << 6)
+    (rc)
     and     eax, 0x0F
     shl     eax, 12
     and     r8d, 0x3F

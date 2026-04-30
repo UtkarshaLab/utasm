@@ -36,7 +36,8 @@ archive_init:
     
     ; 1. Check Magic
     IF r13, b, AR_MAG_LEN
-        mov rax, EXIT_INVALID_FORMAT | jmp .error
+        mov rax, EXIT_INVALID_FORMAT
+        jmp .error
     ENDIF
     
     ; Compare magic
@@ -50,7 +51,8 @@ archive_init:
     extern  mem_compare
     call    mem_compare
     IF rax, ne, 0
-        mov rax, EXIT_INVALID_FORMAT | jmp .error
+        mov rax, EXIT_INVALID_FORMAT
+        jmp .error
     ENDIF
     
     ; 2. Initialize Struct
@@ -146,7 +148,8 @@ archive_get_member_size:
     mov     al, [rdi]
     IF al, e, ' '         mov al, 0     ENDIF 
     mov     [r12], al
-    inc     rdi | inc     r12
+    inc     rdi
+    inc     r12
     loop    .copy
     mov     byte [r12], 0
     
@@ -255,7 +258,9 @@ archive_get_member_data:
     
     ; Validate offset
     IF rsi, ge, r9
-        xor rax, rax | xor rdx, rdx | epilogue
+        xor rax, rax
+        xor rdx, rdx
+        epilogue
     ENDIF
     
     lea     r10, [r8 + rsi]        ; r10 = ARHDR*

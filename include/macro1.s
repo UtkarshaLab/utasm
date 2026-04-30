@@ -293,21 +293,20 @@
 ; ============================================================================
 
 ; Global counter for unique IF block IDs
-%assign __if_seq 0
+%assign __if_id 0
+; Global branch counter for current IF block
+%assign __if_branch 0
 
-;*
-; * [IF] / [ELSEIF] / [ELSE] / [ENDIF]
-; * Purpose: Structured conditional branching.
-; * Uses global sequence with context-local capture and token pasting.
+;\*
+; \* [IF] / [ELSEIF] / [ELSE] / [ENDIF]
+; \* Purpose: Structured conditional branching.
+; \* Each IF block gets a unique ID. Branch labels use regular local labels
+; \* built with token pasting from global counters.
 ; ;
 %macro IF 3-4
-    %assign __if_seq __if_seq + 1
+    %assign __if_id __if_id + 1
+    %assign __if_branch 0
     %push if
-    %assign %$uid __if_seq
-    %assign %$branch 0
-    %xdefine %$endif_label .if_ %+ %$uid %+ _endif
-    %xdefine %%target .if_ %+ %$uid %+ _else_ %+ %$branch
-
     %if %0 == 4
         cmp %1, %4
     %else
@@ -315,39 +314,39 @@
     %endif
 
     %ifidni %2, ==
-        jne %%target
+        jne .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, =
-        jne %%target
+        jne .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, !=
-        je  %%target
+        je .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, <>
-        je  %%target
+        je .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, e
-        jne %%target
+        jne .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, ne
-        je  %%target
+        je .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, g
-        jng %%target
+        jng .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, ge
-        jnge %%target
+        jnge .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, l
-        jnl %%target
+        jnl .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, le
-        jnle %%target
+        jnle .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, a
-        jna %%target
+        jna .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, ae
-        jnae %%target
+        jnae .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, b
-        jnb %%target
+        jnb .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, be
-        jnbe %%target
+        jnbe .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, z
-        jnz %%target
+        jnz .if_ %+ __if_id %+ _else_ %+ __if_branch
     %elifidni %2, nz
-        jz %%target
+        jz .if_ %+ __if_id %+ _else_ %+ __if_branch
     %else
-        jn%+ %2 %%target
+        jn%+ %2 .if_ %+ __if_id %+ _else_ %+ __if_branch
     %endif
 %endmacro
 
@@ -360,18 +359,11 @@
     %endif
 
     %if %%ok
-        jmp %$endif_label
-        .if_ %+ %$uid %+ _else_ %+ %$branch:
-        
-        %xdefine %%old_uid %$uid
-        %assign %%next_branch %$branch + 1
+        jmp .if_ %+ __if_id %+ _endif
+        .if_ %+ __if_id %+ _else_ %+ __if_branch:
+        %assign __if_branch __if_branch + 1
         %pop
         %push elseif
-        %assign %$uid %%old_uid
-        %assign %$branch %%next_branch
-        %xdefine %$endif_label .if_ %+ %$uid %+ _endif
-        %xdefine %%target .if_ %+ %$uid %+ _else_ %+ %$branch
-
         %if %0 == 4
             cmp %1, %4
         %else
@@ -379,39 +371,39 @@
         %endif
 
         %ifidni %2, ==
-            jne %%target
+            jne .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, =
-            jne %%target
+            jne .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, !=
-            je  %%target
+            je .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, <>
-            je  %%target
+            je .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, e
-            jne %%target
+            jne .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, ne
-            je  %%target
+            je .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, g
-            jng %%target
+            jng .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, ge
-            jnge %%target
+            jnge .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, l
-            jnl %%target
+            jnl .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, le
-            jnle %%target
+            jnle .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, a
-            jna %%target
+            jna .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, ae
-            jnae %%target
+            jnae .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, b
-            jnb %%target
+            jnb .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, be
-            jnbe %%target
+            jnbe .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, z
-            jnz %%target
+            jnz .if_ %+ __if_id %+ _else_ %+ __if_branch
         %elifidni %2, nz
-            jz %%target
+            jz .if_ %+ __if_id %+ _else_ %+ __if_branch
         %else
-            jn%+ %2 %%target
+            jn%+ %2 .if_ %+ __if_id %+ _else_ %+ __if_branch
         %endif
     %else
         %error "ELSEIF without IF"
@@ -427,14 +419,11 @@
     %endif
 
     %if %%ok
-        jmp %$endif_label
-        .if_ %+ %$uid %+ _else_ %+ %$branch:
-        
-        %xdefine %%old_uid %$uid
+        jmp .if_ %+ __if_id %+ _endif
+        .if_ %+ __if_id %+ _else_ %+ __if_branch:
+        %assign __if_branch __if_branch + 1
         %pop
         %push else
-        %assign %$uid %%old_uid
-        %xdefine %$endif_label .if_ %+ %$uid %+ _endif
     %else
         %error "ELSE without IF"
     %endif
@@ -442,25 +431,25 @@
 
 %macro ENDIF 0
     %ifctx if
-        .if_ %+ %$uid %+ _else_ %+ %$branch:
-        .if_ %+ %$uid %+ _endif:
+        .if_ %+ __if_id %+ _else_ %+ __if_branch:
+        .if_ %+ __if_id %+ _endif:
         %pop
     %elifctx elseif
-        .if_ %+ %$uid %+ _else_ %+ %$branch:
-        .if_ %+ %$uid %+ _endif:
+        .if_ %+ __if_id %+ _else_ %+ __if_branch:
+        .if_ %+ __if_id %+ _endif:
         %pop
     %elifctx else
-        .if_ %+ %$uid %+ _endif:
+        .if_ %+ __if_id %+ _endif:
         %pop
     %else
         %error "ENDIF without IF"
     %endif
 %endmacro
 
-;*
-; * [WHILE] / [ENDWHILE]
-; * Purpose: Structured loop control.
-; * Usage: WHILE rcx, ne, 0 ... ENDWHILE
+;\*
+; \* [WHILE] / [ENDWHILE]
+; \* Purpose: Structured loop control.
+; \* Usage: WHILE rcx, ne, 0 ... ENDWHILE
 ; ;
 %macro WHILE 3-4
     %push   while
@@ -470,7 +459,7 @@
     %else
         cmp     %1, %3
     %endif
-    
+
     %ifidni %2, ==
         jne %$loop_end
     %elifidni %2, =
@@ -498,9 +487,9 @@
     %endif
 %endmacro
 
-;*
-; * [j_likely] / [j_unlikely]
-; * Purpose: Hints to the CPU (and maintainer) about branch probability.
+;\*
+; \* [j_likely] / [j_unlikely]
+; \* Purpose: Hints to the CPU (and maintainer) about branch probability.
 ; ;
 %macro j_likely 2
     j%1     %2

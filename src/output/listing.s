@@ -39,7 +39,9 @@ listing_generate:
     ; For now, use output_name + ".lst"
     mov     rdi, [rbx + ASMCTX_output]
     ; (Logic to append .lst would go here)
-    mov     rsi, AMD64_O_WRONLY | AMD64_O_CREAT | AMD64_O_TRUNC
+    mov     rsi, AMD64_O_WRONLY
+    AMD64_O_CREAT
+    AMD64_O_TRUNC
     mov     rdx, 0o644
     call    io_open
     check_err

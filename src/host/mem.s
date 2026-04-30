@@ -23,7 +23,9 @@
 ;
 ; mem_map
 ; Maps a private anonymous region of memory (equivalent to mmap with
-; MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE).
+; MAP_PRIVATE
+MAP_ANONYMOUS
+MAP_POPULATE).
 ; The returned pointer is page-aligned.
 
 ; Input  : rdi = requested size in bytes
@@ -43,11 +45,15 @@ mem_map:
     and     rax, ~4095
     mov     rbx, rax               ; rbx = page-aligned size
 
-    ; mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
+    ; mmap(NULL, size, PROT_READ
+    PROT_WRITE, MAP_PRIVATE
+    MAP_ANONYMOUS, -1, 0)
     xor     rdi, rdi               ; addr = NULL
     mov     rsi, rbx               ; length
-    mov     rdx, 3                 ; PROT_READ | PROT_WRITE
-    mov     r10, 0x22              ; MAP_PRIVATE | MAP_ANONYMOUS
+    mov     rdx, 3                 ; PROT_READ
+    PROT_WRITE
+    mov     r10, 0x22              ; MAP_PRIVATE
+    MAP_ANONYMOUS
     mov     r8, -1                 ; fd = -1
     xor     r9, r9                 ; offset = 0
     mov     rax, SYS_MMAP

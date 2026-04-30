@@ -369,7 +369,8 @@ parser_evaluate_expression:
 
 ;*
 ; * [parser_evaluate_term]
-; * Purpose: Multiplicative level (* / << >> & | ^)
+; * Purpose: Multiplicative level (* / << >> &
+^)
 ; ;
 parser_evaluate_term:
     prologue
@@ -816,19 +817,31 @@ parser_check_prefix:
     
     lea     rsi, [str_rep]
     call    str_compare
-    IF rax, e, 0 | mov al, 0xF3 | epilogue | ENDIF
+    IF rax, e, 0
+        mov al, 0xF3
+        epilogue
+    ENDIF
     
     lea     rsi, [str_repe]
     call    str_compare
-    IF rax, e, 0 | mov al, 0xF3 | epilogue | ENDIF
+    IF rax, e, 0
+        mov al, 0xF3
+        epilogue
+    ENDIF
     
     lea     rsi, [str_repne]
     call    str_compare
-    IF rax, e, 0 | mov al, 0xF2 | epilogue | ENDIF
+    IF rax, e, 0
+        mov al, 0xF2
+        epilogue
+    ENDIF
     
     lea     rsi, [str_lock]
     call    str_compare
-    IF rax, e, 0 | mov al, 0xF0 | epilogue | ENDIF
+    IF rax, e, 0
+        mov al, 0xF0
+        epilogue
+    ENDIF
     
     xor     rax, rax
     epilogue
@@ -1265,22 +1278,34 @@ parser_check_aarch64_shift:
     
     lea     rsi, [str_lsl]
     call    str_cmp
-    IF rax, e, 0 | mov rax, SHIFT_LSL | jmp .done | ENDIF
+    IF rax, e, 0
+        mov rax, SHIFT_LSL
+        jmp .done
+    ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_lsr]
     call    str_cmp
-    IF rax, e, 0 | mov rax, SHIFT_LSR | jmp .done | ENDIF
+    IF rax, e, 0
+        mov rax, SHIFT_LSR
+        jmp .done
+    ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_asr]
     call    str_cmp
-    IF rax, e, 0 | mov rax, SHIFT_ASR | jmp .done | ENDIF
+    IF rax, e, 0
+        mov rax, SHIFT_ASR
+        jmp .done
+    ENDIF
     
     mov     rdi, rbx
     lea     rsi, [str_ror]
     call    str_cmp
-    IF rax, e, 0 | mov rax, SHIFT_ROR | jmp .done | ENDIF
+    IF rax, e, 0
+        mov rax, SHIFT_ROR
+        jmp .done
+    ENDIF
     
     mov     rax, ERR
 .done:
@@ -1532,19 +1557,22 @@ parser_handle_section_directive:
         lea     rsi, [str_text]
         call    str_cmp
         IF rax, e, OK
-            mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_EXECINSTR)
+            mov word [r13 + SECTION_flags], (SHF_ALLOC
+            SHF_EXECINSTR)
         ELSE
             ; .data -> AW
             lea     rsi, [str_data]
             call    str_cmp
             IF rax, e, OK
-                mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
+                mov word [r13 + SECTION_flags], (SHF_ALLOC
+                SHF_WRITE)
             ELSE
                 ; .bss -> AW, NOBITS
                 lea     rsi, [str_bss]
                 call    str_cmp
                 IF rax, e, OK
-                    mov word [r13 + SECTION_flags], (SHF_ALLOC | SHF_WRITE)
+                    mov word [r13 + SECTION_flags], (SHF_ALLOC
+                    SHF_WRITE)
                     mov dword [r13 + SECTION_elf_type], SHT_NOBITS
                 ELSE
                     ; .rodata -> A
@@ -1586,7 +1614,8 @@ parser_handle_section_directive:
             jmp     .flag_loop
         .flag_done:
             ; A90: Enforce W^X security policy (Write XOR Execute)
-            mov     ecx, (SHF_WRITE | SHF_EXECINSTR)
+            mov     ecx, (SHF_WRITE
+            SHF_EXECINSTR)
             mov     edx, eax
             and     edx, ecx
             IF edx, e, ecx
@@ -1731,7 +1760,8 @@ parser_handle_visibility:
         movzx   eax, byte [rdx + SYMBOL_vis]
         IF al, ne, r12b
             ; If already Global/Weak, don't allow demotion to Local if defined
-            IF al, e, VIS_GLOBAL | OR al, e, VIS_WEAK
+            IF al, e, VIS_GLOBAL
+            OR al, e, VIS_WEAK
                 IF r12b, e, VIS_LOCAL
                     ; Symbol is already visible to the linker; demotion is unsafe
                     mov     rax, EXIT_VISIBILITY_CONFLICT
@@ -1780,7 +1810,8 @@ parser_handle_comm:
     check_err
     mov     r11, rdx
     IF byte [r11 + TOKEN_kind], ne, TOK_IDENT
-        mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+        mov     rax, EXIT_UNEXPECTED_TOKEN
+        jmp .done
     ENDIF
     mov     r12, [r11 + TOKEN_value]
     
@@ -1789,7 +1820,8 @@ parser_handle_comm:
     check_err
     mov     r11, rdx
     IF byte [r11 + TOKEN_kind], ne, TOK_COMMA
-        mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+        mov     rax, EXIT_UNEXPECTED_TOKEN
+        jmp .done
     ENDIF
     
     ; 3. Get Size
@@ -1816,7 +1848,8 @@ parser_handle_comm:
         check_err
         mov     r11, rdx
         IF byte [r11 + TOKEN_kind], ne, TOK_INT
-            mov     rax, EXIT_UNEXPECTED_TOKEN | jmp .done
+            mov     rax, EXIT_UNEXPECTED_TOKEN
+            jmp .done
         ENDIF
         mov     r14, [r11 + TOKEN_value]
         
