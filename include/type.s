@@ -243,6 +243,8 @@ struc PREP
     field has_peek,     1       ; TRUE if peek is valid
     field mac_depth,    1       ; macro recursion depth (A83)
     field pad0,         3       ; alignment padding
+    field line,         4       ; current source line
+    field col,          4       ; current source column
     field peek,         TOKEN_SIZE ; peek buffer
     field lexer,        8       ; current LexerState
     field ctx,          8       ; pointer to AsmCtx

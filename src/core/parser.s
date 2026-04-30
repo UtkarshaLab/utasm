@@ -7,8 +7,8 @@
 ;
 
 %include "include/constant.s"
-%include "include/type.s"
 %include "include/macro.s"
+%include "include/type.s"
 
 extern arena_alloc
 extern preprocessor_next_token
@@ -84,6 +84,11 @@ parser_parse_instruction:
         check_err
         jmp     .get_mnemonic
         ENDIF
+
+    .error_no_global:
+        mov     rax, EXIT_INVALID_LABEL
+        jmp     .error
+
 
     IF al, e, TOK_LOCAL_LABEL
         ; Local Label: concat last_global + local_name
@@ -234,6 +239,14 @@ parser_parse_operand:
             mov     byte [r12 + OPERAND_kind], OP_REG
             jmp     .success
             ENDIF
+
+        .success:
+            mov     rax, OK
+            epilogue
+
+        .error:
+            epilogue
+
         ; Not a register, fall through to expression (it's a symbol)
         ; BUT FIRST: check for AArch64 shift keywords
         mov     rax, [rbx + PREP_ctx]
@@ -294,7 +307,7 @@ parser_parse_operand:
         ENDIF
 
     mov     rax, EXIT_INVALID_OPERAND
-    epilogue
+    jmp     .error
 
 ;*
 ; * [parser_parse_reg_info]
@@ -379,11 +392,8 @@ parser_evaluate_expression:
     epilogue
 
 .overflow:
-    mov     rax, EXIT_INVALID_IMM
-    dec     dword [rbx + ASMCTX_expr_depth]
-    pop     r12
-    pop     rbx
-    epilogue
+    mov     rax, EXIT_OVERFLOW
+    jmp     .done_err
 
 .done_err:
     dec     dword [rbx + ASMCTX_expr_depth]
@@ -465,6 +475,11 @@ parser_evaluate_term:
     
     mov     rdx, rbx
     xor     rax, rax
+    pop     rbx
+    epilogue
+
+.overflow:
+    mov     rax, EXIT_OVERFLOW
     pop     rbx
     epilogue
 
@@ -730,7 +745,7 @@ parser_parse_mem_operand:
             .scale_ok:
                 mov     [r12 + OPERAND_scale], al
                 ENDIF
-            jmp     .loop
+            jmp     .done
             ENDIF
         ; Not a register, must be a symbol/expression
         call    preprocessor_putback_token
@@ -1804,7 +1819,7 @@ parser_handle_visibility:
                 IF r12b, e, VIS_LOCAL
                     ; Symbol is already visible to the linker; demotion is unsafe
                     mov     rax, EXIT_VISIBILITY_CONFLICT
-                    jmp     .done
+                    jmp     .error
                     ENDIF
                     ENDIF
                     ENDIF
@@ -1886,7 +1901,7 @@ parser_handle_comm:
         call    preprocessor_next_token
         check_err
         mov     r11, rdx
-        IF byte [r11 + TOKEN_kind], ne, TOK_INT
+        IF byte [r11 + TOKEN_kind], ne, TOK_NUMBER
             mov     rax, EXIT_UNEXPECTED_TOKEN
             jmp .done
             ENDIF
