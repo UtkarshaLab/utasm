@@ -125,7 +125,7 @@ str_cmp:
 ; Compares at most n bytes of two strings.
 ; Input    : rdi = pointer to string A
 ;             rsi = pointer to string B
-            rdx = maximum bytes to compare
+;             rdx = maximum bytes to compare
 ; Output   : rax = 0 equal, -1 A < B, 1 A > B
 ; Clobbers : rcx, r8
 ;
@@ -1391,7 +1391,7 @@ str_utf8_decode:
 ; str_copy
 ; Copies a null-terminated string to destination.
 ; Input    : rdi = destination pointer
-            rsi = source pointer
+;             rsi = source pointer
 ; Output   : rax = EXIT_OK or EXIT_ERROR
              rdx = destination pointer
 ; Clobbers : rcx, r8

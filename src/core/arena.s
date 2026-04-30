@@ -339,7 +339,7 @@ arena_destroy:
 ; Returns the number of bytes currently allocated in the arena.
 ; Input    : rdi = pointer to Arena struct
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
-             rdx = bytes used (0 if error)
+;              rdx = bytes used (0 if error)
 ; Clobbers : rcx
 ;
 global arena_used
@@ -364,7 +364,7 @@ arena_used:
 ; Returns the number of bytes still available in the arena.
 ; Input    : rdi = pointer to Arena struct
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
-             rdx = bytes remaining (0 if error)
+;              rdx = bytes remaining (0 if error)
 ; Clobbers : rcx
 ;
 global arena_remaining
@@ -390,7 +390,7 @@ arena_remaining:
 ; Use with arena_rollback to free temporary allocations.
 ; Input    : rdi = pointer to Arena struct
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
-             rdx = current pointer (checkpoint)
+;              rdx = current pointer (checkpoint)
 ;
 global arena_checkpoint
 arena_checkpoint:
@@ -409,7 +409,7 @@ arena_checkpoint:
 ; Restores the allocation pointer to a previous checkpoint.
 ; All memory allocated after the checkpoint becomes invalid.
 ; Input    : rdi = pointer to Arena struct
-             rsi = pointer to restore to (from arena_checkpoint)
+;              rsi = pointer to restore to (from arena_checkpoint)
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ;
 global arena_rollback
@@ -441,7 +441,7 @@ arena_rollback:
 ; arena_zero
 ; Zeroes a region of memory. Internal helper only.
 ; Input    : rdi = pointer to region
-            rsi = size in bytes
+;             rsi = size in bytes
 ; Output   : none
 ; Clobbers : rax, rcx, rdi
 ;
