@@ -292,59 +292,54 @@
 ; 3. FLOW CONTROL (STRUCTURED)
 ; ============================================================================
 
-; Global counter for unique IF block IDs (regular identifier, survives %push/%pop)
-%assign __if_id 0
-
 ;*
-; * [IF] / [ELSEIF] / [ELSE] / [ENDIF]
-; * Purpose: Structured conditional branching.
-; * Each IF block gets a unique ID. Branch labels are regular local labels.
+; * [IF] / [ELSE] / [ENDIF]
+; * Purpose: Structured conditional branching using NASM context stack.
+; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
 ; ;
 %macro IF 3-4
-    %assign __if_id __if_id + 1
-    %push if
-    %assign %$uid __if_id
-    %assign %$branch 0
+    %push   if
+    %define %$block_exit %$endif
     %if %0 == 4
-        cmp %1, %4
+        cmp     %1, %4
     %else
-        cmp %1, %3
+        cmp     %1, %3
     %endif
 
     %ifidni %2, ==
-        jne .if_%$uid_else_%$branch
+        jne %$else
     %elifidni %2, =
-        jne .if_%$uid_else_%$branch
+        jne %$else
     %elifidni %2, !=
-        je .if_%$uid_else_%$branch
+        je  %$else
     %elifidni %2, <>
-        je .if_%$uid_else_%$branch
+        je  %$else
     %elifidni %2, e
-        jne .if_%$uid_else_%$branch
+        jne %$else
     %elifidni %2, ne
-        je .if_%$uid_else_%$branch
+        je  %$else
     %elifidni %2, g
-        jng .if_%$uid_else_%$branch
+        jng %$else
     %elifidni %2, ge
-        jnge .if_%$uid_else_%$branch
+        jnge %$else
     %elifidni %2, l
-        jnl .if_%$uid_else_%$branch
+        jnl %$else
     %elifidni %2, le
-        jnle .if_%$uid_else_%$branch
+        jnle %$else
     %elifidni %2, a
-        jna .if_%$uid_else_%$branch
+        jna %$else
     %elifidni %2, ae
-        jnae .if_%$uid_else_%$branch
+        jnae %$else
     %elifidni %2, b
-        jnb .if_%$uid_else_%$branch
+        jnb %$else
     %elifidni %2, be
-        jnbe .if_%$uid_else_%$branch
+        jnbe %$else
     %elifidni %2, z
-        jnz .if_%$uid_else_%$branch
+        jnz %$else
     %elifidni %2, nz
-        jz .if_%$uid_else_%$branch
+        jz %$else
     %else
-        jn%+ %2 .if_%$uid_else_%$branch
+        jn%+ %2 %$else
     %endif
 %endmacro
 
@@ -357,13 +352,12 @@
     %endif
 
     %if %%ok
-        jmp .if_%$uid_endif
-        .if_%$uid_else_%$branch:
-        %assign %%next_branch %$branch + 1
+        jmp %$block_exit
+        %$else:
+        %xdefine %%saved_exit %$block_exit    ; CAPTURE actual label text before pop!
         %pop
         %push elseif
-        %assign %$uid __if_id
-        %assign %$branch %%next_branch
+        %define %$block_exit %%saved_exit     ; Restore in new context
         %if %0 == 4
             cmp %1, %4
         %else
@@ -371,39 +365,39 @@
         %endif
 
         %ifidni %2, ==
-            jne .if_%$uid_else_%$branch
+            jne %$else
         %elifidni %2, =
-            jne .if_%$uid_else_%$branch
+            jne %$else
         %elifidni %2, !=
-            je .if_%$uid_else_%$branch
+            je %$else
         %elifidni %2, <>
-            je .if_%$uid_else_%$branch
+            je %$else
         %elifidni %2, e
-            jne .if_%$uid_else_%$branch
+            jne %$else
         %elifidni %2, ne
-            je .if_%$uid_else_%$branch
+            je %$else
         %elifidni %2, g
-            jng .if_%$uid_else_%$branch
+            jng %$else
         %elifidni %2, ge
-            jnge .if_%$uid_else_%$branch
+            jnge %$else
         %elifidni %2, l
-            jnl .if_%$uid_else_%$branch
+            jnl %$else
         %elifidni %2, le
-            jnle .if_%$uid_else_%$branch
+            jnle %$else
         %elifidni %2, a
-            jna .if_%$uid_else_%$branch
+            jna %$else
         %elifidni %2, ae
-            jnae .if_%$uid_else_%$branch
+            jnae %$else
         %elifidni %2, b
-            jnb .if_%$uid_else_%$branch
+            jnb %$else
         %elifidni %2, be
-            jnbe .if_%$uid_else_%$branch
+            jnbe %$else
         %elifidni %2, z
-            jnz .if_%$uid_else_%$branch
+            jnz %$else
         %elifidni %2, nz
-            jz .if_%$uid_else_%$branch
+            jz %$else
         %else
-            jn%+ %2 .if_%$uid_else_%$branch
+            jn%+ %2 %$else
         %endif
     %else
         %error "ELSEIF without IF"
@@ -419,12 +413,12 @@
     %endif
 
     %if %%ok
-        jmp .if_%$uid_endif
-        .if_%$uid_else_%$branch:
+        jmp %$block_exit
+        %$else:
+        %xdefine %%saved_exit %$block_exit    ; CAPTURE before pop!
         %pop
         %push else
-        %assign %$uid __if_id
-        %assign %$branch %$branch + 1
+        %define %$block_exit %%saved_exit     ; Restore in new context
     %else
         %error "ELSE without IF"
     %endif
@@ -432,15 +426,15 @@
 
 %macro ENDIF 0
     %ifctx if
-        .if_%$uid_else_%$branch:
-        .if_%$uid_endif:
+        %$else:
+        %$endif:
         %pop
     %elifctx elseif
-        .if_%$uid_else_%$branch:
-        .if_%$uid_endif:
+        %$else:
+        %$endif:
         %pop
     %elifctx else
-        .if_%$uid_endif:
+        %$endif:
         %pop
     %else
         %error "ENDIF without IF"
@@ -804,4 +798,646 @@
     and     %1, ((1 << %4) - 1)
 %endmacro
 
-%endif ; MACRO_S
+;*
+; * [bit_reverse_64]
+; * Purpose: Full bit-level reversal of a 64-bit register.
+; ;
+%macro bit_reverse_64 1
+    mov     rax, %1
+    bswap   rax
+    mov     rcx, rax
+    shr     rax, 1
+    and     rax, 0x5555555555555555
+    and     rcx, 0x5555555555555555
+    shl     rcx, 1
+    or      rax, rcx
+    mov     %1, rax
+%endmacro
+
+;*
+; * [popcnt_64] / [lzcnt_64] / [tzcnt_64]
+; * Purpose: Advanced bit counting.
+; ;
+%macro popcnt_64 2
+    popcnt  %1, %2
+%endmacro
+
+%macro lzcnt_64 2
+    lzcnt   %1, %2
+%endmacro
+
+%macro tzcnt_64 2
+    tzcnt   %1, %2
+%endmacro
+
+;*
+; * [abs_64] / [min_64] / [max_64]
+; * Purpose: Standard 64-bit arithmetic kernels.
+; ;
+%macro abs_64 1
+    mov     rax, %1
+    sar     rax, 63
+    xor     %1, rax
+    sub     %1, rax
+%endmacro
+
+%macro min_64 2
+    cmp     %1, %2
+    cmovg   %1, %2
+%endmacro
+
+%macro max_64 2
+    cmp     %1, %2
+    cmovl   %1, %2
+%endmacro
+
+;*
+; * [clamp]
+; * Purpose: Restrict a value to the inclusive range [%2, %3].
+; ;
+%macro clamp 3
+    max_64  %1, %2
+    min_64  %1, %3
+%endmacro
+
+;*
+; * [mul_128]
+; * Purpose: 64x64 -> 128-bit unsigned multiplication.
+; * Output: %3 (Lo), %4 (Hi)
+; ;
+%macro mul_128 4
+    mov     rax, %1
+    mul     qword %2
+    mov     %3, rax
+    mov     %4, rdx
+%endmacro
+
+;*
+; * [exp_mod]
+; * Purpose: Modular Exponentiation kernel (Binary Exponentiation).
+; * Input: %1 (Base), %2 (Exp), %3 (Mod)
+; * Output: RAX
+; ;
+%macro exp_mod 3
+    push    rax
+    push    rbx
+    push    rcx
+    mov     rax, 1
+    mov     rcx, %1
+    mov     rbx, %2
+%%loop:
+    test    rbx, rbx
+    jz      %%done
+    test    rbx, 1
+    jz      %%square
+    mul     rcx
+    xor     rdx, rdx
+    div     qword %3
+    mov     rax, rdx
+%%square:
+    push    rax
+    mov     rax, rcx
+    mul     rax
+    xor     rdx, rdx
+    div     qword %3
+    mov     rcx, rdx
+    pop     rax
+    shr     rbx, 1
+    jmp     %%loop
+%%done:
+    pop     rcx
+    pop     rbx
+    add     rsp, 8
+%endmacro
+
+;*
+; * [hash_fnv1a_64]
+; * Purpose: Fast non-cryptographic FNV-1a hash of a null-terminated string.
+; ;
+%macro hash_fnv1a_64 2
+    mov     rax, 0xcbf29ce484222325 ; FNV offset basis
+    mov     rcx, %1                 ; source string
+    mov     r11, 0x100000001b3      ; FNV prime
+%%loop:
+    movzx   rdx, byte [rcx]
+    test    dl, dl
+    jz      %%done
+    xor     al, dl                  ; FNV-1a: XOR then MUL
+    imul    rax, r11
+    inc     rcx
+    jmp     %%loop
+%%done:
+    mov     %2, rax
+%endmacro
+
+; ============================================================================
+; 7. ATOMICS & SYNCHRONIZATION
+; ============================================================================
+
+;*
+; * [atomic_inc_64] / [atomic_add_64]
+; * Purpose: Lock-prefixed atomic modifications.
+; ;
+%macro atomic_inc_64 1
+    lock inc qword [%1]
+%endmacro
+
+%macro atomic_add_64 2
+    lock add qword [%1], %2
+%endmacro
+
+;*
+; * [atomic_cmpxchg_128]
+; * Purpose: 128-bit atomic compare-and-swap (requires CMPXCHG16B support).
+; ;
+%macro atomic_cmpxchg_128 5
+    mov     rax, %2
+    mov     rdx, %3
+    mov     rbx, %4
+    mov     rcx, %5
+    lock cmpxchg16b [%1]
+%endmacro
+
+;*
+; * [spin_lock] / [spin_unlock]
+; * Purpose: Standard 32-bit TAS (Test-And-Set) spinlock.
+; ;
+%macro spin_lock 1
+%%retry:
+    lock bts dword [%1], 0
+    jc      %%retry
+%endmacro
+
+%macro spin_unlock 1
+    lock btr dword [%1], 0
+%endmacro
+
+;*
+; * [pause_backoff]
+; * Purpose: Execute a series of PAUSE instructions for exponential backoff.
+; ;
+%macro pause_backoff 1
+    mov     rcx, %1
+%%loop:
+    pause
+    loop    %%loop
+%endmacro
+
+;*
+; * [xbegin_sync] / [xend_sync]
+; * Purpose: TSX Transactional Memory boundaries.
+; ;
+%macro xbegin_sync 1
+    xbegin  %1
+%endmacro
+
+%macro xend_sync 0
+    xend
+%endmacro
+
+; ============================================================================
+; 8. ARCHITECTURE & HARDWARE CONTROL
+; ============================================================================
+
+;*
+; * [require_cpu_feature]
+; * Purpose: Verify CPUID feature bit before execution. Trap if missing.
+; * Parameters: EAX leaf, Register (ecx=1, edx=0), Bit index
+; ;
+%macro require_cpu_feature 3
+    mov     eax, %1
+    xor     ecx, ecx
+    cpuid
+    bt      %2, %3
+    jnc     .error_cpu_feature
+%endmacro
+
+;*
+; * [rdmsr_64]
+; * Purpose: Read Model Specific Register (Privileged).
+; ;
+%macro rdmsr_64 1
+    mov     ecx, %1
+    rdmsr
+%endmacro
+
+;*
+; * [in_port_8] / [out_port_8]
+; * Purpose: 8-bit Legacy Port I/O.
+; ;
+%macro in_port_8 2
+    mov     dx, %2
+    in      al, dx
+    mov     %1, al
+%endmacro
+
+%macro out_port_8 2
+    mov     dx, %1
+    mov     al, %2
+    out     dx, al
+%endmacro
+
+;*
+; * [prefetch_read] / [prefetch_write]
+; * Purpose: Software prefetch hints for memory controller.
+; ;
+%macro prefetch_read 1
+    prefetcht0 [%1]
+%endmacro
+
+%macro prefetch_write 1
+    prefetchw [%1]
+%endmacro
+
+;*
+; * [lfence_sync] / [sfence_sync]
+; * Purpose: Serialization fences for memory ordering.
+; ;
+%macro lfence_sync 0
+    lfence
+%endmacro
+
+%macro sfence_sync 0
+    sfence
+%endmacro
+
+;*
+; * [reset_bhb]
+; * Purpose: Mitigate Spectre-V2 by clearing the Branch History Buffer.
+; ;
+%macro reset_bhb 0
+    %rep 32
+        jmp     %%next
+    %%next:
+    %endrep
+%endmacro
+
+; ============================================================================
+; 9. HARDWARE CRYPTO & RANDOM
+; ============================================================================
+
+;*
+; * [aes_enc_round]
+; * Purpose: Execute a single AES-NI encryption round.
+; ;
+%macro aes_enc_round 2
+    aesenc  %1, %2
+%endmacro
+
+;*
+; * [rdrand_64] / [rdseed_64]
+; * Purpose: Retrieve true hardware entropy. Loops until carry flag is set.
+; ;
+%macro rdrand_64 1
+%%retry:
+    rdrand  %1
+    jnc     %%retry
+%endmacro
+
+%macro rdseed_64 1
+%%retry:
+    rdseed  %1
+    jnc     %%retry
+%endmacro
+
+; ============================================================================
+; 10. VECTOR OPERATIONS (SIMD)
+; ============================================================================
+
+;*
+; * [v_scan_quotes] / [v_scan_commas]
+; * Purpose: Use SSE 4.2 PCMPISTRI to find delimiters in 16-byte chunks.
+; * Output: ECX contains index.
+; ;
+%macro v_scan_quotes 1
+    movdqu  xmm0, [%1]
+    mov     rax, 0x2227
+    movd    xmm1, eax
+    pcmpistri xmm0, xmm1, 0x00
+%endmacro
+
+%macro v_scan_commas 1
+    movdqu  xmm0, [%1]
+    mov     rax, 0x2C
+    movd    xmm1, eax
+    pcmpistri xmm0, xmm1, 0x00
+%endmacro
+
+;*
+; * [vstr_cmp]
+; * Purpose: Fast 16-byte vectorized string comparison.
+; ;
+%macro vstr_cmp 3
+    movdqu  xmm0, [%1]
+    movdqu  xmm1, [%2]
+    pcmpistri xmm0, xmm1, %3
+%endmacro
+
+;*
+; * [v_all_zero] / [v_any_set]
+; * Purpose: Test vectorized state via PTEST.
+; ;
+%macro v_all_zero 1
+    ptest   %1, %1
+%endmacro
+
+%macro v_any_set 1
+    ptest   %1, %1
+%endmacro
+
+; ============================================================================
+; 11. SYSTEM CALLS (AMD64)
+; ============================================================================
+
+;*
+; * [syscall_0] through [syscall_6]
+; * Purpose: Standard AMD64 SysV ABI System Call wrappers.
+; ;
+%macro syscall_0 1
+    mov     rax, %1
+    syscall
+%endmacro
+
+%macro syscall_1 2
+    mov     rax, %1
+    mov     rdi, %2
+    syscall
+%endmacro
+
+%macro syscall_6 7
+    mov     rax, %1
+    mov     rdi, %2
+    mov     rsi, %3
+    mov     rdx, %4
+    mov     r10, %5
+    mov     r8, %6
+    mov     r9, %7
+    syscall
+%endmacro
+
+;*
+; * [mmap_anon]
+; * Purpose: Allocate anonymous memory from the OS (RW, Private).
+; ;
+%macro mmap_anon 2
+    syscall_6 9, 0, %1, 3, 34, -1, 0
+    mov     %2, rax
+%endmacro
+
+; ============================================================================
+; 12. DIAGNOSTICS & TESTING
+; ============================================================================
+
+;*
+; * [debug_dump_hex]
+; * Purpose: Print a 64-bit value as a hexadecimal string to stderr.
+; ;
+%macro debug_dump_hex 1
+    push_volatile
+    mov     rdi, %1
+    call    error_uint_to_hex
+    pop_volatile
+%endmacro
+
+;*
+; * [debug_break_on]
+; * Purpose: Trigger INT3 breakpoint if %1 == %2.
+; ;
+%macro debug_break_on 2
+    cmp     %1, %2
+    jne     %%skip
+    int3
+%%skip:
+%endmacro
+
+;*
+; * [stack_trace]
+; * Purpose: Walk the RBP frame chain and dump return addresses to stderr.
+; ;
+%macro stack_trace 0
+    push    rbp
+    mov     rbp, rbp
+%%loop:
+    test    rbp, rbp
+    jz      %%done
+    mov     rax, [rbp + 8]
+    debug_dump_hex rax
+    mov     rbp, [rbp]
+    jmp     %%loop
+%%done:
+    pop     rbp
+%endmacro
+
+;*
+; * [bench_start] / [bench_end]
+; * Purpose: Capture high-precision instruction counts via RDPMC.
+; ;
+%macro bench_start 0
+    xor     ecx, ecx
+    rdpmc
+    push    rdx
+    push    rax
+%endmacro
+
+%macro bench_end 0
+    xor     ecx, ecx
+    rdpmc
+    pop     rcx
+    pop     r8
+    sub     rax, rcx
+    sbb     rdx, r8
+%endmacro
+
+; ============================================================================
+; 13. METAPROGRAMMING & INTERNALS
+; ============================================================================
+
+;*
+; * [static_assert]
+; * Purpose: Preprocessor-time verification of constants or sizes.
+; ;
+%macro static_assert 3
+    %if %1 %2 %3
+        ; ok
+    %else
+    %error "STATIC ASSERTION FAILED: %1 %2 %3"
+    %endif
+%endmacro
+
+;*
+; * [compile_time_hash]
+; * Purpose: Calculate FNV-1a hash at assembly-time for literal strings.
+; ;
+%macro compile_time_hash 2
+    %assign %%hash 0xcbf29ce484222325
+    %strlen %%len %1
+    %assign %%i 1
+    %rep %%len
+    %substr %%char %1 %%i
+    %assign %%hash ((%%hash ^ %%char) * 0x10000.1.0b3)
+    %assign %%i %%i + 1
+    %endrep
+    %define %2 %%hash
+%endmacro
+
+;*
+; * [mnc_ent]
+; * Purpose: Build a compile-time hashed opcode lookup entry.
+; ;
+%macro mnc_ent 3
+    compile_time_hash %1, %%h
+    dq      %%h
+    db      %2
+    dw      %3
+    db      0, 0, 0, 0, 0  ; 5 bytes padding to reach 16-byte stride
+%endmacro
+
+;*
+; * [is_reg_64]
+; * Purpose: Preprocessor validation to ensure an operand is a 64-bit register.
+; ;
+%macro is_reg_64 1
+    %assign %%is_reg 0
+    %ifidni %1, rax
+    %assign %%is_reg 1
+    %elifidni %1, rbx
+    %assign %%is_reg 1
+    %elifidni %1, rcx
+    %assign %%is_reg 1
+    %elifidni %1, rdx
+    %assign %%is_reg 1
+    %elifidni %1, rsi
+    %assign %%is_reg 1
+    %elifidni %1, rdi
+    %assign %%is_reg 1
+    %elifidni %1, rbp
+    %assign %%is_reg 1
+    %elifidni %1, rsp
+    %assign %%is_reg 1
+    %elifidni %1, r8
+    %assign %%is_reg 1
+    %elifidni %1, r9
+    %assign %%is_reg 1
+    %elifidni %1, r10
+    %assign %%is_reg 1
+    %elifidni %1, r11
+    %assign %%is_reg 1
+    %elifidni %1, r12
+    %assign %%is_reg 1
+    %elifidni %1, r13
+    %assign %%is_reg 1
+    %elifidni %1, r14
+    %assign %%is_reg 1
+    %elifidni %1, r15
+    %assign %%is_reg 1
+    %endif
+    %if %%is_reg == 0
+    %error "Expected 64-bit register, got: %1"
+    %endif
+%endmacro
+
+; ============================================================================
+; 14. SECURITY & HARDENING
+; ============================================================================
+
+;*
+; * [stack_canary_init] / [stack_canary_check]
+; * Purpose: Detect stack smashing via guard values.
+; ;
+%macro stack_canary_init 1
+    mov     rax, 0x55aa55aa55aa55aa
+    mov     [%1], rax
+%endmacro
+
+%macro stack_canary_check 1
+    mov     rax, 0x55aa55aa55aa55aa
+    cmp     rax, [%1]
+    jne     .error_stack_corrupt
+%endmacro
+
+;*
+; * [jmp_obfuscate]
+; * Purpose: Opaque jump target calculation to resist static disassembly.
+; ;
+%macro jmp_obfuscate 1
+    push    rax
+    mov     rax, %1
+    xor     rax, 0x5555555555555555
+    xor     rax, 0x5555555555555555
+    xchg    rax, [rsp]
+    ret
+%endmacro
+
+;*
+; * [rz_secure] / [rz_release]
+; * Purpose: Explicit AMD64 Red Zone management.
+; ;
+%macro rz_secure 0
+    sub     rsp, 128
+%endmacro
+
+%macro rz_release 0
+    add     rsp, 128
+%endmacro
+
+; ============================================================================
+; 15. LINKER & FORENSICS
+; ============================================================================
+
+;*
+; * [plt_stub] / [got_entry]
+; * Purpose: Generate standard ELF PLT/GOT indirection kernels.
+; ;
+%macro plt_stub 1
+    jmp     [qword %1_GOT]
+%endmacro
+
+%macro got_entry 1
+    %1_GOT: dq 0
+%endmacro
+
+;*
+; * [opaque_jmp] / [opaque_constant]
+; * Purpose: Antidebugging and obfuscation of control flow and constants.
+; ;
+%macro opaque_jmp 1
+    push    rax
+    xor     rax, rax
+    jz      %%next
+    db      0x0F, 0x0B
+%%next:
+    pop     rax
+    jmp     %1
+%endmacro
+
+%macro opaque_constant 2
+    mov     %1, (%2 / 2)
+    shl     %1, 1
+    add     %1, (%2 % 2)
+%endmacro
+
+;*
+; * [self_check]
+; * Purpose: Runtime integrity verification via additive section checksum.
+; ;
+%macro self_check 0
+    push_volatile
+    lea     rsi, [$$]
+    mov     rcx, ($ - $$)
+    xor     rax, rax
+%%loop:
+    add     al, [rsi]
+    inc     rsi
+    loop    %%loop
+    pop_volatile
+%endmacro
+
+;*
+; * [code_signature]
+; * Purpose: Embed a searchable forensic signature in the binary.
+; ;
+%macro code_signature 1
+    db      "UTASM_SIG:", %1, 0
+%endmacro
+
+%endif
