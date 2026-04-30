@@ -11,6 +11,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 ; ============================================================================
 ; ARENA ALLOCATOR
 ; ============================================================================
@@ -45,9 +47,9 @@
 ; Allocates a fresh arena of the requested size using mmap.
 ; Initializes the Arena struct at the beginning of the mapping.
 ; Input    : rdi = pointer to Arena struct
-            rsi = size in bytes to reserve
+;             rsi = size in bytes to reserve
 ; Output   : rax = EXIT_OK or EXIT_OOM
-             rdx = pointer to Arena struct (same as rdi)
+;              rdx = pointer to Arena struct (same as rdi)
 ; Clobbers : rcx, r8, r9, r10, r11
 ;
 global arena_init
@@ -122,9 +124,9 @@ arena_init:
 ; Allocates n bytes from the arena, aligned to 8 bytes.
 ; Never returns unaligned memory.
 ; Input    : rdi = pointer to Arena struct
-            rsi = number of bytes to allocate
+;             rsi = number of bytes to allocate
 ; Output   : rax = EXIT_OK or EXIT_OOM
-             rdx = pointer to allocated memory (zeroed)
+;              rdx = pointer to allocated memory (zeroed)
 ; Clobbers : rcx, r8
 ;
 global arena_alloc
@@ -189,10 +191,10 @@ arena_alloc:
 ; Allocates exactly n bytes and writes a type tag at offset 0.
 ; Convenience wrapper around arena_alloc for typed structs.
 ; Input    : rdi = pointer to Arena struct
-            rsi = number of bytes to allocate
-            rdx = TAG_* value to write at offset 0
+;             rsi = number of bytes to allocate
+;             rdx = TAG_* value to write at offset 0
 ; Output   : rax = EXIT_OK or EXIT_OOM
-             rdx = pointer to allocated struct
+;              rdx = pointer to allocated struct
 ; Clobbers : rcx, r8, r9
 ;
 global arena_alloc_struct
@@ -222,10 +224,10 @@ arena_alloc_struct:
 ; Copies a string of known length into the arena.
 ; Appends a null terminator.
 ; Input    : rdi = pointer to Arena struct
-            rsi = pointer to source string
-            rdx = string length in bytes (not including null)
+;             rsi = pointer to source string
+;             rdx = string length in bytes (not including null)
 ; Output   : rax = EXIT_OK or EXIT_OOM
-             rdx = pointer to null-terminated copy in arena
+;              rdx = pointer to null-terminated copy in arena
 ; Clobbers : rcx, r8, r9, r10
 ;
 global arena_alloc_string

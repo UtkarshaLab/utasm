@@ -1025,7 +1025,7 @@ error_struct_bounds:
     mov     rdi, STDERR_FILENO
     mov     rsi, rbx
     call    error_write_str
-    call    .print_newline
+    call    error_print_newline
     
     mov     rdi, global_ctx
     lea     r8, [msg_note_field_size]
@@ -1035,7 +1035,7 @@ error_struct_bounds:
     mov     rdi, STDERR_FILENO
     mov     rsi, rdx
     call    error_write_str
-    call    .print_newline
+    call    error_print_newline
     
     mov     rdi, global_ctx
     lea     r8, [msg_note_access_size]

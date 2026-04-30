@@ -11,6 +11,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 ; ============================================================================
 ; LEXER
 ; ============================================================================
@@ -51,11 +53,11 @@
 ; Initialises a LexerState for a source buffer.
 ; Must be called before any other lexer function.
 ; Input    : rdi = pointer to LexerState (allocated by caller)
-            rsi = pointer to source file buffer
-            rdx = size of source buffer in bytes
-            rcx = pointer to filename string
-            r8  = pointer to AsmCtx
-            r9  = pointer to Arena
+;             rsi = pointer to source file buffer
+;             rdx = size of source buffer in bytes
+;             rcx = pointer to filename string
+;             r8  = pointer to AsmCtx
+;             r9  = pointer to Arena
 ; Output   : rax = EXIT_OK or EXIT_INTERNAL
 ; Clobbers : r10, r11
 ;
@@ -111,9 +113,9 @@ lexer_init:
 ; If a peeked token exists, returns and clears it instead.
 ; Skips whitespace and comments automatically.
 ; Input    : rdi = pointer to LexerState
-            rsi = pointer to Token struct to fill
+;             rsi = pointer to Token struct to fill
 ; Output   : rax = EXIT_OK or error code
-             rdx = pointer to filled Token (same as rsi)
+;              rdx = pointer to filled Token (same as rsi)
 ; Clobbers : rcx, r8, r9, r10, r11
 ;
 global lexer_next
@@ -1338,9 +1340,9 @@ lexer_next:
 ; Subsequent calls to lexer_peek return the same token.
 ; Subsequent calls to lexer_next consume and return it.
 ; Input    : rdi = pointer to LexerState
-            rsi = pointer to Token struct to fill
+;             rsi = pointer to Token struct to fill
 ; Output   : rax = EXIT_OK or error code
-             rdx = pointer to filled Token (same as rsi)
+;              rdx = pointer to filled Token (same as rsi)
 ; Clobbers : rcx, r8, r9, r10, r11
 ;
 global lexer_peek
@@ -1404,10 +1406,10 @@ lexer_peek:
 ; Reads the next token and verifies it matches the expected kind.
 ; Emits an error if it does not match.
 ; Input    : rdi = pointer to LexerState
-            rsi = pointer to Token struct to fill
-            rdx = expected TOK_* kind value
+;             rsi = pointer to Token struct to fill
+;             rdx = expected TOK_* kind value
 ; Output   : rax = EXIT_OK or EXIT_UNEXPECTED_TOKEN
-             rdx = pointer to filled Token
+;              rdx = pointer to filled Token
 ; Clobbers : rcx, r8, r9, r10, r11
 ;
 global lexer_expect

@@ -11,6 +11,10 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
+extern arena_alloc
+
 ; ============================================================================
 ; SYMBOL TABLE (Hash Table Implementation)
 ; ============================================================================
@@ -53,6 +57,10 @@ symbol_init:
     call    mem_zero
 
     xor     rax, rax
+    pop     rbx
+    epilogue
+
+.error:
     pop     rbx
     epilogue
 
