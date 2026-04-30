@@ -292,54 +292,59 @@
 ; 3. FLOW CONTROL (STRUCTURED)
 ; ============================================================================
 
+; Global counter for unique IF block IDs (regular identifier, survives %push/%pop)
+%assign __if_id 0
+
 ;*
-; * [IF] / [ELSE] / [ENDIF]
-; * Purpose: Structured conditional branching using NASM context stack.
-; * Usage: IF rax, e, 0 ... ELSE ... ENDIF
+; * [IF] / [ELSEIF] / [ELSE] / [ENDIF]
+; * Purpose: Structured conditional branching.
+; * Each IF block gets a unique ID. Branch labels are regular local labels.
 ; ;
 %macro IF 3-4
-    %push   if
-    %define %$block_exit %$endif
+    %assign __if_id __if_id + 1
+    %push if
+    %assign %$uid __if_id
+    %assign %$branch 0
     %if %0 == 4
-        cmp     %1, %4
+        cmp %1, %4
     %else
-        cmp     %1, %3
+        cmp %1, %3
     %endif
 
     %ifidni %2, ==
-        jne %$else
+        jne .if_%$uid_else_%$branch
     %elifidni %2, =
-        jne %$else
+        jne .if_%$uid_else_%$branch
     %elifidni %2, !=
-        je  %$else
+        je .if_%$uid_else_%$branch
     %elifidni %2, <>
-        je  %$else
+        je .if_%$uid_else_%$branch
     %elifidni %2, e
-        jne %$else
+        jne .if_%$uid_else_%$branch
     %elifidni %2, ne
-        je  %$else
+        je .if_%$uid_else_%$branch
     %elifidni %2, g
-        jng %$else
+        jng .if_%$uid_else_%$branch
     %elifidni %2, ge
-        jnge %$else
+        jnge .if_%$uid_else_%$branch
     %elifidni %2, l
-        jnl %$else
+        jnl .if_%$uid_else_%$branch
     %elifidni %2, le
-        jnle %$else
+        jnle .if_%$uid_else_%$branch
     %elifidni %2, a
-        jna %$else
+        jna .if_%$uid_else_%$branch
     %elifidni %2, ae
-        jnae %$else
+        jnae .if_%$uid_else_%$branch
     %elifidni %2, b
-        jnb %$else
+        jnb .if_%$uid_else_%$branch
     %elifidni %2, be
-        jnbe %$else
+        jnbe .if_%$uid_else_%$branch
     %elifidni %2, z
-        jnz %$else
+        jnz .if_%$uid_else_%$branch
     %elifidni %2, nz
-        jz %$else
+        jz .if_%$uid_else_%$branch
     %else
-        jn%+ %2 %$else
+        jn%+ %2 .if_%$uid_else_%$branch
     %endif
 %endmacro
 
@@ -352,12 +357,13 @@
     %endif
 
     %if %%ok
-        jmp %$block_exit
-        %$else:
-        %xdefine %%saved_exit %$block_exit    ; CAPTURE actual label text before pop!
+        jmp .if_%$uid_endif
+        .if_%$uid_else_%$branch:
+        %assign %%next_branch %$branch + 1
         %pop
         %push elseif
-        %define %$block_exit %%saved_exit     ; Restore in new context
+        %assign %$uid __if_id
+        %assign %$branch %%next_branch
         %if %0 == 4
             cmp %1, %4
         %else
@@ -365,39 +371,39 @@
         %endif
 
         %ifidni %2, ==
-            jne %$else
+            jne .if_%$uid_else_%$branch
         %elifidni %2, =
-            jne %$else
+            jne .if_%$uid_else_%$branch
         %elifidni %2, !=
-            je %$else
+            je .if_%$uid_else_%$branch
         %elifidni %2, <>
-            je %$else
+            je .if_%$uid_else_%$branch
         %elifidni %2, e
-            jne %$else
+            jne .if_%$uid_else_%$branch
         %elifidni %2, ne
-            je %$else
+            je .if_%$uid_else_%$branch
         %elifidni %2, g
-            jng %$else
+            jng .if_%$uid_else_%$branch
         %elifidni %2, ge
-            jnge %$else
+            jnge .if_%$uid_else_%$branch
         %elifidni %2, l
-            jnl %$else
+            jnl .if_%$uid_else_%$branch
         %elifidni %2, le
-            jnle %$else
+            jnle .if_%$uid_else_%$branch
         %elifidni %2, a
-            jna %$else
+            jna .if_%$uid_else_%$branch
         %elifidni %2, ae
-            jnae %$else
+            jnae .if_%$uid_else_%$branch
         %elifidni %2, b
-            jnb %$else
+            jnb .if_%$uid_else_%$branch
         %elifidni %2, be
-            jnbe %$else
+            jnbe .if_%$uid_else_%$branch
         %elifidni %2, z
-            jnz %$else
+            jnz .if_%$uid_else_%$branch
         %elifidni %2, nz
-            jz %$else
+            jz .if_%$uid_else_%$branch
         %else
-            jn%+ %2 %$else
+            jn%+ %2 .if_%$uid_else_%$branch
         %endif
     %else
         %error "ELSEIF without IF"
@@ -413,12 +419,12 @@
     %endif
 
     %if %%ok
-        jmp %$block_exit
-        %$else:
-        %xdefine %%saved_exit %$block_exit    ; CAPTURE before pop!
+        jmp .if_%$uid_endif
+        .if_%$uid_else_%$branch:
         %pop
         %push else
-        %define %$block_exit %%saved_exit     ; Restore in new context
+        %assign %$uid __if_id
+        %assign %$branch %$branch + 1
     %else
         %error "ELSE without IF"
     %endif
@@ -426,15 +432,15 @@
 
 %macro ENDIF 0
     %ifctx if
-        %$else:
-        %$endif:
+        .if_%$uid_else_%$branch:
+        .if_%$uid_endif:
         %pop
     %elifctx elseif
-        %$else:
-        %$endif:
+        .if_%$uid_else_%$branch:
+        .if_%$uid_endif:
         %pop
     %elifctx else
-        %$endif:
+        .if_%$uid_endif:
         %pop
     %else
         %error "ENDIF without IF"
