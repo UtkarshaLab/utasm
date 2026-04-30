@@ -10,6 +10,30 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+extern arena_alloc
+extern preprocessor_next_token
+extern preprocessor_peek_token
+extern preprocessor_putback_token
+extern str_to_int
+extern symbol_add
+extern symbol_find
+extern str_compare
+extern str_concat
+extern error_emit
+extern asm_ctx_create_section
+extern asmctx_get_section
+extern asmctx_emit_byte
+extern asmctx_emit_word
+extern asmctx_emit_dword
+extern asmctx_emit_qword
+extern parser_is_register
+extern parser_lookup_mnemonic
+extern parser_check_prefix
+extern parser_define_label
+extern parser_evaluate_expression
+extern parser_parse_mem_operand
+extern parser_concat_local_name
+
 [SECTION .text]
 
 ;*

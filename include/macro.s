@@ -367,13 +367,76 @@
             jnb %%target
         %elifidni %2, be
             jnbe %%target
-        %elifidni %2, z
-            jnz %%target
-        %elifidni %2, nz
-            jz %%target
-        %else
-            jn%+ %2 %%target
         %endif
+    %endif
+%endmacro
+
+%macro ELSEIF 3-4
+    %ifctx if
+        jmp %$endif_label
+        %$endif_label: ; Wait, no, we need to jump to the NEXT else
+        ; Re-calculating target for current branch
+        .if_ %+ %$uid %+ _else_ %+ %$branch :
+        %assign %$branch %$branch + 1
+        %xdefine %%target .if_ %+ %$uid %+ _else_ %+ %$branch
+        
+        %if %0 == 4
+            cmp %1, %4
+        %else
+            cmp %1, %3
+        %endif
+        
+        %ifidni %2, ==
+            jne %%target
+        %elifidni %2, =
+            jne %%target
+        %elifidni %2, !=
+            je  %%target
+        %elifidni %2, <>
+            je  %%target
+        %elifidni %2, e
+            jne %%target
+        %elifidni %2, ne
+            je  %%target
+        %elifidni %2, g
+            jng %%target
+        %elifidni %2, ge
+            jnge %%target
+        %elifidni %2, l
+            jnl %%target
+        %elifidni %2, le
+            jnle %%target
+        %elifidni %2, a
+            jna %%target
+        %elifidni %2, ae
+            jnae %%target
+        %elifidni %2, b
+            jnb %%target
+        %elifidni %2, be
+            jnbe %%target
+        %endif
+    %else
+        %error "ELSEIF without IF"
+    %endif
+%endmacro
+
+%macro ELSE 0
+    %ifctx if
+        jmp %$endif_label
+        .if_ %+ %$uid %+ _else_ %+ %$branch :
+        %assign %$branch %$branch + 1
+    %else
+        %error "ELSE without IF"
+    %endif
+%endmacro
+
+%macro ENDIF 0
+    %ifctx if
+        .if_ %+ %$uid %+ _else_ %+ %$branch :
+        %$endif_label:
+        %pop if
+    %else
+        %error "ENDIF without IF"
     %endif
 %endmacro
 
