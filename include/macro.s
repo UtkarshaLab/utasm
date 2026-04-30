@@ -350,30 +350,31 @@
     %elifctx elseif
         %assign %%ok 1
     %endif
-    
+
     %if %%ok
         jmp %$block_exit
-        %$else:
-        %push   elseif
+        %$else:          ; Close previous block
+        %pop             ; Pop the previous if/elseif context
+        %push elseif
         %define %$block_exit %$block_exit
         %if %0 == 4
-            cmp     %1, %4
+            cmp %1, %4
         %else
-            cmp     %1, %3
+            cmp %1, %3
         %endif
-        
+
         %ifidni %2, ==
             jne %$else
         %elifidni %2, =
             jne %$else
         %elifidni %2, !=
-            je  %$else
+            je %$else
         %elifidni %2, <>
-            je  %$else
+            je %$else
         %elifidni %2, e
             jne %$else
         %elifidni %2, ne
-            je  %$else
+            je %$else
         %elifidni %2, g
             jng %$else
         %elifidni %2, ge
@@ -409,11 +410,12 @@
     %elifctx elseif
         %assign %%ok 1
     %endif
-    
+
     %if %%ok
         jmp %$block_exit
         %$else:
-        %push   else
+        %pop
+        %push else
         %define %$block_exit %$block_exit
     %else
         %error "ELSE without IF"
@@ -421,19 +423,15 @@
 %endmacro
 
 %macro ENDIF 0
-    %rep 128
-        %ifctx elseif
-            %$else:
-            %pop
-        %elifctx else
-            %pop
-        %else
-            %exitrep
-        %endif
-    %endrep
-    
     %ifctx if
         %$else:
+        %$endif:
+        %pop
+    %elifctx elseif
+        %$else:
+        %$endif:
+        %pop
+    %elifctx else
         %$endif:
         %pop
     %else
