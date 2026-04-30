@@ -9,6 +9,8 @@
 %include "include/constant.s"
 %include "include/macro.s"
 %include "include/type.s"
+
+DEFAULT REL
 %include "include/elf.s"
 %include "include/arch/aarch64.s"
 
@@ -1824,6 +1826,7 @@ parser_handle_section_directive:
             ENDIF
             ENDIF
     
+.done:
     pop     r12
     pop     rbx
     epilogue
