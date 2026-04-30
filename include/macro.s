@@ -300,7 +300,7 @@
 ; * Purpose: Structured conditional branching.
 ; * Uses global sequence with context-local capture and token pasting.
 ; ;
-%macro IF 3-4
+%macro IF 1-4
     %assign __if_seq __if_seq + 1
     %push if
     %assign %$uid __if_seq
@@ -308,46 +308,72 @@
     %xdefine %$endif_label .if_ %+ %$uid %+ _endif
     %xdefine %%target .if_ %+ %$uid %+ _else_ %+ %$branch
 
-    %if %0 == 4
-        cmp %1, %4
+    %if %0 == 1
+        %ifidni %1, z
+            jnz %%target
+        %elifidni %1, nz
+            jz %%target
+        %elifidni %1, e
+            jnz %%target
+        %elifidni %1, ne
+            je %%target
+        %elifidni %1, c
+            jnc %%target
+        %elifidni %1, nc
+            jc %%target
+        %elifidni %1, s
+            jns %%target
+        %elifidni %1, ns
+            js %%target
+        %elifidni %1, o
+            jno %%target
+        %elifidni %1, no
+            jo %%target
+        %else
+            %error "Unsupported single-argument condition: %1"
+        %endif
     %else
-        cmp %1, %3
-    %endif
+        %if %0 == 4
+            cmp %1, %4
+        %else
+            cmp %1, %3
+        %endif
 
-    %ifidni %2, ==
-        jne %%target
-    %elifidni %2, =
-        jne %%target
-    %elifidni %2, !=
-        je  %%target
-    %elifidni %2, <>
-        je  %%target
-    %elifidni %2, e
-        jne %%target
-    %elifidni %2, ne
-        je  %%target
-    %elifidni %2, g
-        jng %%target
-    %elifidni %2, ge
-        jnge %%target
-    %elifidni %2, l
-        jnl %%target
-    %elifidni %2, le
-        jnle %%target
-    %elifidni %2, a
-        jna %%target
-    %elifidni %2, ae
-        jnae %%target
-    %elifidni %2, b
-        jnb %%target
-    %elifidni %2, be
-        jnbe %%target
-    %elifidni %2, z
-        jnz %%target
-    %elifidni %2, nz
-        jz %%target
-    %else
-        jn%+ %2 %%target
+        %ifidni %2, ==
+            jne %%target
+        %elifidni %2, =
+            jne %%target
+        %elifidni %2, !=
+            je  %%target
+        %elifidni %2, <>
+            je  %%target
+        %elifidni %2, e
+            jne %%target
+        %elifidni %2, ne
+            je  %%target
+        %elifidni %2, g
+            jng %%target
+        %elifidni %2, ge
+            jnge %%target
+        %elifidni %2, l
+            jnl %%target
+        %elifidni %2, le
+            jnle %%target
+        %elifidni %2, a
+            jna %%target
+        %elifidni %2, ae
+            jnae %%target
+        %elifidni %2, b
+            jnb %%target
+        %elifidni %2, be
+            jnbe %%target
+        %elifidni %2, z
+            jnz %%target
+        %elifidni %2, nz
+            jz %%target
+        %else
+            jn%+ %2 %%target
+        %endif
     %endif
 %endmacro
 

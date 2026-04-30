@@ -369,8 +369,7 @@ parser_evaluate_expression:
 
 ;*
 ; * [parser_evaluate_term]
-; * Purpose: Multiplicative level (* / << >> &
-^)
+; * Purpose: Multiplicative level (* / << >> & | ^)
 ; ;
 parser_evaluate_term:
     prologue
@@ -740,7 +739,7 @@ parser_parse_mem_operand:
     jle     .bounds_ok                     ; write size <= field size -> OK
     
     ; FATAL: write exceeds field width
-    extern  error_struct_bounds
+    ; extern error_struct_bounds (Defined locally)
     mov     rdi, [r13 + SYMBOL_name]       ; field name for error message
     mov     rsi, r14                       ; declared field size
     mov     rdx, rcx                       ; attempted access size
@@ -1915,7 +1914,7 @@ str_p2align:   db "p2align", 0
 str_section:   db "section", 0
 str_endstruc:  db "endstruc", 0
 str_field:     db "field", 0
-str_rel:       db "rel", 0
+    ; str_rel (Defined at line 759)
 str_comm:      db "comm", 0
 str_lsl:       db "lsl", 0
 str_lsr:       db "lsr", 0
