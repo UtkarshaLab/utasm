@@ -1817,7 +1817,7 @@ parser_handle_visibility:
         IF al, ne, r12b
             ; If already Global/Weak, don't allow demotion to Local if defined
             IF al, e, VIS_GLOBAL
-            OR al, e, VIS_WEAK
+            ELSEIF al, e, VIS_WEAK
                 IF r12b, e, VIS_LOCAL
                     ; Symbol is already visible to the linker; demotion is unsafe
                     mov     rax, EXIT_SYMBOL_RANGE
