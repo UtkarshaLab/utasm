@@ -13,6 +13,9 @@
 
 DEFAULT REL
 
+extern str_len
+extern global_ctx
+
 ; ============================================================================
 ; ERROR REPORTER
 ; ============================================================================
@@ -126,12 +129,12 @@ error_emit:
 
 .no_color_error:
     ; print: filename:line:col: error: message
-    call    .print_location
-    call    .print_severity_error
-    call    .print_message
+    call    error_print_location
+    call    error_print_severity_error
+    call    error_print_message
 
     ; print source line and caret
-    call    .print_caret_diagnostics
+    call    error_print_caret_diagnostics
 
     ; reset color
     mov     rax, [rbx + ASMCTX_flags]
@@ -236,12 +239,12 @@ error_warn:
     call    error_write_raw
 
 .no_color_warn:
-    call    .print_location
-    call    .print_severity_warn
-    call    .print_message
+    call    error_print_location
+    call    error_print_severity_warn
+    call    error_print_message
     
     ; source line and caret
-    call    .print_caret_diagnostics
+    call    error_print_caret_diagnostics
 
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
@@ -313,9 +316,9 @@ error_note:
     call    error_write_raw
 
 .no_color_note:
-    call    .print_location
-    call    .print_severity_note
-    call    .print_message
+    call    error_print_location
+    call    error_print_severity_note
+    call    error_print_message
 
     mov     rax, [rbx + ASMCTX_flags]
     test    rax, CTX_FLAG_COLOR
@@ -556,13 +559,13 @@ error_summary:
 ; INTERNAL HELPERS
 ; ============================================================================
 
-; ---- .print_location --------------------
+; ---- error_print_location --------------------
 ;
-; .print_location (internal)
+; error_print_location (internal)
 ; Prints "filename:line:col: " to stderr.
 ; Uses rbx=AsmCtx, r12=filename, r13=line, r14=col.
 ;
-.print_location:
+error_print_location:
     ; print filename if available
     test    r12, r12
     jz      .no_file
@@ -611,32 +614,32 @@ error_summary:
 .no_col:
     ret
 
-; ---- .print_severity_error --------------
-.print_severity_error:
+; ---- error_print_severity_error --------------
+error_print_severity_error:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_error]
     mov     rdx, msg_error_len
     call    error_write_raw
     ret
 
-; ---- .print_severity_warn ---------------
-.print_severity_warn:
+; ---- error_print_severity_warn ---------------
+error_print_severity_warn:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_warning]
     mov     rdx, msg_warning_len
     call    error_write_raw
     ret
 
-; ---- .print_severity_note ---------------
-.print_severity_note:
+; ---- error_print_severity_note ---------------
+error_print_severity_note:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_note]
     mov     rdx, msg_note_len
     call    error_write_raw
     ret
 
-; ---- .print_message ---------------------
-.print_message:
+; ---- error_print_message ---------------------
+error_print_message:
     mov     rdi, STDERR_FILENO
     mov     rsi, r15
     call    error_write_str
@@ -733,7 +736,7 @@ error_uint_to_str:
     mov     rdx, r8                 ; pointer to string
     ret
 
-.print_caret_diagnostics:
+error_print_caret_diagnostics:
     prologue
     push    rbx
     push    r12
@@ -1007,7 +1010,7 @@ error_struct_bounds:
     mov     r13, rdx               ; access size
     
     ; 1. Emit the main error
-    mov     rdi, [global_ctx]      ; We'll need a way to get AsmCtx. 
+    mov     rdi, global_ctx      ; We'll need a way to get AsmCtx. 
                                    ; In utasm, we usually pass it or keep it global.
     mov     rsi, 0                 ; filename (will be filled by error_emit if we find it)
     xor     rdx, rdx               ; line
@@ -1016,7 +1019,7 @@ error_struct_bounds:
     call    error_emit
     
     ; 2. Emit notes for details
-    mov     rdi, [global_ctx]
+    mov     rdi, global_ctx
     lea     r8, [msg_note_field_name]
     call    error_note
     mov     rdi, STDERR_FILENO
@@ -1024,7 +1027,7 @@ error_struct_bounds:
     call    error_write_str
     call    .print_newline
     
-    mov     rdi, [global_ctx]
+    mov     rdi, global_ctx
     lea     r8, [msg_note_field_size]
     call    error_note
     mov     rdi, r12
@@ -1034,7 +1037,7 @@ error_struct_bounds:
     call    error_write_str
     call    .print_newline
     
-    mov     rdi, [global_ctx]
+    mov     rdi, global_ctx
     lea     r8, [msg_note_access_size]
     call    error_note
     mov     rdi, r13
@@ -1042,14 +1045,14 @@ error_struct_bounds:
     mov     rdi, STDERR_FILENO
     mov     rsi, rdx
     call    error_write_str
-    call    .print_newline
+    call    error_print_newline
     
     pop     r13
     pop     r12
     pop     rbx
     epilogue
 
-.print_newline:
+error_print_newline:
     mov     rdi, STDERR_FILENO
     lea     rsi, [msg_newline]
     mov     rdx, 1
