@@ -219,8 +219,7 @@ lexer_next:
     je      .emit_single_slash
     cmp     rcx, '&'
     je      .emit_single_amp
-    cmp     rcx, '
-    '
+    cmp     rcx, '|'
     je      .emit_single_pipe
     cmp     rcx, '^'
     je      .emit_single_caret
@@ -1513,28 +1512,13 @@ lexer_char_props:
     %rep 256
     %assign mask 0
     %if i >= '0' && i <= '9'
-    %assign mask mask
-    CHAR_IS_DIGIT
-    CHAR_IS_IDENT_PART
-    CHAR_IS_HEX
-    %elif (i >= 'a' && i <= 'f')
-    (i >= 'A' && i <= 'F')
-    %assign mask mask
-    CHAR_IS_IDENT_START
-    CHAR_IS_IDENT_PART
-    CHAR_IS_HEX
-    %elif (i >= 'g' && i <= 'z')
-    (i >= 'G' && i <= 'Z')
-    i == '_'
-    i == '.'
-    %assign mask mask
-    CHAR_IS_IDENT_START
-    CHAR_IS_IDENT_PART
-    %elif i == ' '
-    i == 9
-    i == 13
-    %assign mask mask
-    CHAR_IS_WHITESPACE
+    %assign mask mask | CHAR_IS_DIGIT | CHAR_IS_IDENT_PART | CHAR_IS_HEX
+    %elif (i >= 'a' && i <= 'f') || (i >= 'A' && i <= 'F')
+    %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART | CHAR_IS_HEX
+    %elif (i >= 'g' && i <= 'z') || (i >= 'G' && i <= 'Z') || i == '_' || i == '.'
+    %assign mask mask | CHAR_IS_IDENT_START | CHAR_IS_IDENT_PART
+    %elif i == ' ' || i == 9 || i == 13
+    %assign mask mask | CHAR_IS_WHITESPACE
     %endif
         db mask
     %assign i i+1

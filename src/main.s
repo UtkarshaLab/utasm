@@ -10,6 +10,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 extern arena_init
 extern arena_alloc
 extern cli_parse

@@ -11,6 +11,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 ; ============================================================================
 ; STRING UTILITIES
 ; ============================================================================
@@ -69,10 +71,10 @@ str_len:
 ; str_cmp
 ; Compares two null-terminated strings lexicographically.
 ; Input    : rdi = pointer to string A
-            rsi = pointer to string B
+;             rsi = pointer to string B
 ; Output   : rax = 0  if A == B
-             rax = -1 if A <  B
-             rax =  1 if A >  B
+;              rax = -1 if A <  B
+;              rax =  1 if A >  B
 ; Clobbers : rcx, rdx
 ;
 global str_cmp
@@ -122,7 +124,7 @@ str_cmp:
 ; str_cmp_n
 ; Compares at most n bytes of two strings.
 ; Input    : rdi = pointer to string A
-            rsi = pointer to string B
+;             rsi = pointer to string B
             rdx = maximum bytes to compare
 ; Output   : rax = 0 equal, -1 A < B, 1 A > B
 ; Clobbers : rcx, r8
@@ -179,9 +181,9 @@ str_cmp_n:
 ; Copies null-terminated string from src to dst.
 ; Destination must be large enough â€” no bounds check.
 ; Input    : rdi = destination buffer pointer
-            rsi = source string pointer
+;             rsi = source string pointer
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = pointer to destination (same as rdi)
+;              rdx = pointer to destination (same as rdi)
 ; Clobbers : rcx, r8
 ;
 global str_copy
@@ -217,10 +219,10 @@ str_copy:
 ; Copies at most n bytes from src to dst.
 ; Always null-terminates dst if n > 0.
 ; Input    : rdi = destination buffer pointer
-            rsi = source string pointer
-            rdx = maximum bytes to copy (not including null)
+;             rsi = source string pointer
+;             rdx = maximum bytes to copy (not including null)
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = pointer to destination
+;              rdx = pointer to destination
 ; Clobbers : rcx, r8, r9
 ;
 global str_copy_n
@@ -274,9 +276,9 @@ str_copy_n:
 ; Appends src to the end of dst.
 ; Destination must have enough space.
 ; Input    : rdi = destination buffer pointer
-            rsi = source string pointer
+;             rsi = source string pointer
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = pointer to destination
+;              rdx = pointer to destination
 ; Clobbers : rcx, r8
 ;
 global str_concat
@@ -323,10 +325,10 @@ str_concat:
 ; Copies n bytes from src to dst.
 ; Regions must not overlap â€” use mem_move for overlapping regions.
 ; Input    : rdi = destination pointer
-            rsi = source pointer
-            rdx = number of bytes to copy
+;             rsi = source pointer
+;             rdx = number of bytes to copy
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = destination pointer
+;              rdx = destination pointer
 ; Clobbers : rcx, r8
 ;
 global mem_copy
@@ -356,10 +358,10 @@ mem_copy:
 ; mem_move
 ; Copies n bytes from src to dst safely handling overlapping regions.
 ; Input    : rdi = destination pointer
-            rsi = source pointer
-            rdx = number of bytes to copy
+;             rsi = source pointer
+;             rdx = number of bytes to copy
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = destination pointer
+;              rdx = destination pointer
 ; Clobbers : rcx, r8
 ;
 global mem_move
@@ -413,10 +415,10 @@ mem_move:
 ; mem_set
 ; Fills n bytes at dst with the given byte value.
 ; Input    : rdi = destination pointer
-            rsi = byte value to fill (low byte used)
-            rdx = number of bytes to fill
+;             rsi = byte value to fill (low byte used)
+;             rdx = number of bytes to fill
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = destination pointer
+;              rdx = destination pointer
 ; Clobbers : rax, rcx, r8
 ;
 global mem_set
@@ -445,9 +447,9 @@ mem_set:
 ; mem_zero
 ; Fills n bytes at dst with zero.
 ; Input    : rdi = destination pointer
-            rsi = number of bytes to zero
+;             rsi = number of bytes to zero
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = destination pointer
+;              rdx = destination pointer
 ; Clobbers : rax, rcx
 ;
 global mem_zero
@@ -476,8 +478,8 @@ mem_zero:
 ; mem_cmp
 ; Compares n bytes of two memory regions.
 ; Input    : rdi = pointer to region A
-            rsi = pointer to region B
-            rdx = number of bytes to compare
+;             rsi = pointer to region B
+;             rdx = number of bytes to compare
 ; Output   : rax = 0 equal, -1 A < B, 1 A > B
 ; Clobbers : rcx, r8
 ;
@@ -531,7 +533,7 @@ mem_cmp:
 ; octal (0o prefix), and optional leading sign (+ or -).
 ; Input    : rdi = pointer to null-terminated string
 ; Output   : rax = EXIT_OK or EXIT_INVALID_IMM
-             rdx = parsed integer value (signed)
+;              rdx = parsed integer value (signed)
 ; Clobbers : rcx, r8, r9, r10
 ;
 global str_to_int
@@ -756,9 +758,9 @@ str_to_int:
 ; str_find_char
 ; Finds the first occurrence of a byte in a string.
 ; Input    : rdi = pointer to null-terminated string
-            rsi = byte to search for (low byte used)
+;             rsi = byte to search for (low byte used)
 ; Output   : rax = EXIT_OK if found, EXIT_ERROR if not found
-             rdx = pointer to first occurrence
+;              rdx = pointer to first occurrence
 ; Clobbers : rcx
 ;
 global str_find_char
@@ -962,10 +964,10 @@ str_is_hex_digit:
 ; Builds "A.B" from two strings into a caller-supplied buffer.
 ; Used by the struct field resolver to build "StructName.FieldName".
 ; Input    : rdi = destination buffer (must hold len(A)+len(B)+2 bytes)
-            rsi = pointer to string A (struct name)
-            rdx = pointer to string B (field name)
+;             rsi = pointer to string A (struct name)
+;             rdx = pointer to string B (target name)
 ; Output   : rax = EXIT_OK or EXIT_ERROR
-            rdx = destination pointer
+;              rdx = 0 if matches, non-zero otherwise
 ; Clobbers : rcx, r8, r9
 ;
 global str_concat_dot
@@ -1028,9 +1030,10 @@ str_concat_dot:
 ; str_int_to_str
 ; Converts an unsigned 64-bit integer to a decimal ASCII string.
 ; Input    : rdi = destination buffer (must hold at least 21 bytes)
-            rsi = unsigned 64-bit value to format
-; Output   : rax = EXIT_OK or EXIT_ERROR
-            rdx = pointer to destination (null-terminated)
+;             rsi = unsigned 64-bit value to format
+;             rdx = base (2, 8, 10, 16)
+; Output   : rax = EXIT_OK or EXIT_INVALID_IMM
+;              rdx = pointer to string in internal buffer (NOT thread-safe)
 ; Clobbers : rcx, r8, r9, r10
 ;
 global str_int_to_str
@@ -1215,9 +1218,9 @@ str_find_str:
 ; Follows RFC 3629 / Unicode 15.0 strict validation.
 ; 
 ; Input    : rdi = pointer to UTF-8 sequence
-            rsi = pointer to end of buffer (boundary check)
-; Output   : rax = number of bytes consumed (1-4) or 0 on error
-             rdx = decoded Unicode codepoint
+;             rsi = pointer to end of buffer (boundary check)
+; Output   : rax = EXIT_OK or EXIT_UNEXPECTED_EOF
+;              rdx = parsed UTF-8 codepoint (32-bit)
 ; Clobbers : rcx, r8, r9
 ;
 global str_utf8_decode
@@ -1425,10 +1428,10 @@ str_copy:
 ; str_concat
 ; Concatenates two null-terminated strings.
 ; Input    : rdi = destination buffer (must have enough space)
-            rsi = first string
-            rdx = second string
-; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = destination buffer
+;             rsi = first string
+;             rdx = second string
+; Output   : rax = EXIT_OK or EXIT_OOM
+;              rdx = pointer to new null-terminated string
 ; Clobbers : r8, r9, r10, r11
 ;
 global str_concat

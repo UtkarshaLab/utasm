@@ -11,6 +11,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 extern error_new_from_errno
 extern symbol_add
 extern symbol_find
@@ -34,9 +36,9 @@ extern str_cmp
 ; prep_init
 ; Initialises the preprocessor state.
 ; Input    : rdi = pointer to PrepState
-            rsi = pointer to initial LexerState
-            rdx = pointer to AsmCtx
-            rcx = pointer to Arena
+;             rsi = pointer to initial LexerState
+;             rdx = pointer to AsmCtx
+;             rcx = pointer to Arena
 ; Output   : rax = EXIT_OK
 ; Clobbers : none
 ;
@@ -256,7 +258,7 @@ prep_internal_next:
 ; prep_expand_start
 ; Starts expanding a macro.
 ; Input    : rdi = pointer to PrepState
-            rsi = pointer to MACRO struct
+;             rsi = pointer to MACRO struct
 ; Output   : rax = EXIT_OK or error code
 ;
 prep_expand_start:
@@ -450,7 +452,7 @@ prep_expand_start:
 ; Serves the next token from the current macro expansion.
 ; Handles parameter substitution.
 ; Input    : rdi = pointer to PrepState
-            rsi = pointer to Token (destination)
+;             rsi = pointer to Token (destination)
 ; Output   : rax = 0 (produced token) or non-zero (finished)
 ;
 prep_expand_next:
@@ -778,7 +780,7 @@ prep_expand_pop:
 ; prep_handle_directive
 ; Processes a directive starting with %.
 ; Input    : rdi = pointer to PrepState
-            rsi = pointer to % Token
+;             rsi = pointer to % Token
 ; Output   : rax = EXIT_OK or error code
 ; Clobbers : ...
 ;

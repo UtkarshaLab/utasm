@@ -12,6 +12,8 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+DEFAULT REL
+
 extern str_cmp
 
 [SECTION .text]
@@ -22,8 +24,8 @@ extern str_cmp
 ; cli_parse
 ; Parses argc and argv and populates AsmCtx.
 ; Input    : rdi = pointer to AsmCtx
-            rsi = argc
-            rdx = argv (pointer to array of pointers)
+;             rsi = argc
+;             rdx = argv (pointer to array of pointers)
 ; Output   : rax = EXIT_OK or EXIT_USAGE
 ; Clobbers : rcx, r8, r9, r10, r11
 ;
