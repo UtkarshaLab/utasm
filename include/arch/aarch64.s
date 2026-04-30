@@ -3,7 +3,7 @@
 ; File        : include/arch/aarch64.s
 ; Project     : utasm
 ; Description : AArch64 Architecture Constants and Register IDs.
-               Aligned with src/isa/aarch64.s IDs.
+;                Aligned with src/isa/aarch64.s IDs.
 ; ============================================================================
 ;
 

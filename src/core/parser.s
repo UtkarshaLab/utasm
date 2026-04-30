@@ -1983,7 +1983,6 @@ str_asr:       db "asr", 0
 str_ror:       db "ror", 0
 str_comdat:    db "comdat", 0
 str_org:       db "org", 0
-str_equ:       db "equ", 0
 str_text:      db ".text", 0
 str_data:      db ".data", 0
 str_bss:       db ".bss", 0
