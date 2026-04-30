@@ -796,9 +796,7 @@ lexer_next:
     inc     word  [rbx + LEXER_col]
     
     call    .hex_digit_to_val
-    IF rax, e, ERR
-        jmp .lex_string_loop
-    ENDIF
+    IF rax, e, ERR         jmp .lex_string_loop     ENDIF 
     shl     rax, 4
     mov     r14, rax
     
@@ -811,9 +809,7 @@ lexer_next:
     inc     word  [rbx + LEXER_col]
     
     call    .hex_digit_to_val
-    IF rax, e, ERR
-        jmp .lex_string_loop
-    ENDIF
+    IF rax, e, ERR         jmp .lex_string_loop     ENDIF 
     or      r14, rax
     
     mov     byte [r13 + r10], r14b

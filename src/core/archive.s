@@ -146,9 +146,7 @@ archive_get_member_size:
     mov     rcx, 10
 .copy:
     mov     al, [rdi]
-    IF al, e, ' '
-        mov al, 0
-    ENDIF
+    IF al, e, ' '         mov al, 0     ENDIF 
     mov     [r12], al
     inc     rdi
     inc     r12
