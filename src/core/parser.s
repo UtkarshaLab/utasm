@@ -20,6 +20,7 @@ extern str_to_int
 extern symbol_add
 extern symbol_find
 extern str_compare
+extern asm_ctx_align
 extern str_concat
 extern error_emit
 extern asm_ctx_create_section
@@ -480,6 +481,10 @@ parser_evaluate_term:
     pop     rbx
     epilogue
 
+.error:
+    pop     rbx
+    epilogue
+
 .overflow:
     mov     rax, EXIT_IMM_RANGE
     pop     rbx
@@ -565,12 +570,17 @@ parser_evaluate_factor:
         epilogue
     ELSEIF al, e, TOK_COLON
         call    parser_handle_reloc_modifier
-        check_err
-        ; parser_handle_reloc_modifier should have parsed the symbol too
+        check_err_to .error
+        IF rax, ne, OK
+            jmp .error
+        ENDIF
         epilogue
         ENDIF
     
     mov     rax, EXIT_INVALID_EXPR
+    epilogue
+
+.error:
     epilogue
 
 ;*
@@ -582,7 +592,7 @@ parser_handle_reloc_modifier:
     push    r12
     
     call    preprocessor_next_token
-    check_err
+    check_err_to .error
     mov     r12, rdx
     IF byte [r12 + TOKEN_kind], ne, TOK_IDENT
         mov rax, EXIT_UNEXPECTED_TOKEN
@@ -607,8 +617,9 @@ parser_handle_reloc_modifier:
         ENDIF
     
     call    parser_evaluate_factor
-    check_err
+    check_err_to .error
     
+    call    asm_ctx_align
     mov     rcx, r14
     xor     rax, rax
     jmp     .done
@@ -688,7 +699,7 @@ parser_parse_mem_operand:
 
 .loop:
     call    preprocessor_next_token
-    check_err
+    check_err_to .error
     mov     r13, rdx
     mov     al, [r13 + TOKEN_kind]
 
@@ -717,7 +728,8 @@ parser_parse_mem_operand:
             cmp     byte [r12 + OPERAND_base], 0xFF
             jne     .set_index
             mov     [r12 + OPERAND_base], al
-            jmp     .check_scale
+        .check_scale:
+            jmp     .loop
         .set_index:
             mov     [r12 + OPERAND_index], al
             ; Check for scale [base + index * scale]
@@ -725,7 +737,7 @@ parser_parse_mem_operand:
             IF byte [rdx + TOKEN_kind], e, TOK_STAR
                 call    preprocessor_next_token ; consume '*'
                 call    parser_evaluate_expression
-                check_err
+                check_err_to .error
                 mov     rax, rdx               ; evaluated scale value
                 
                 ; Validate Scale: 1, 2, 4, 8
@@ -747,7 +759,7 @@ parser_parse_mem_operand:
             .scale_ok:
                 mov     [r12 + OPERAND_scale], al
                 ENDIF
-            jmp     .done
+            jmp     .loop
             ENDIF
         ; Not a register, must be a symbol/expression
         call    preprocessor_putback_token
@@ -755,7 +767,7 @@ parser_parse_mem_operand:
 
     ; 2. Parse as expression (Displacement)
     call    parser_evaluate_expression
-    check_err
+    check_err_to .error
     ; result in rdx, symbol metadata in r11 (A78)
     add     [r12 + OPERAND_imm], rdx
     IF r11, ne, 0
@@ -798,6 +810,7 @@ parser_parse_mem_operand:
 
 .bounds_ok:
     mov     rax, OK
+.done:
     epilogue
 
 .error:
@@ -938,7 +951,7 @@ parser_parse_struc:
 .field_loop:
     ; Read next meaningful token (skip newlines)
     call    preprocessor_next_token
-    check_err
+    check_err_to .error
     mov     r12, rdx
     
     mov     al, [r12 + TOKEN_kind]
@@ -978,7 +991,7 @@ parser_parse_struc:
     ; Parse: field <name>, <size>
     ; 1. Field name
     call    preprocessor_next_token
-    check_err
+    check_err_to .error
     IF byte [rdx + TOKEN_kind], ne, TOK_IDENT
         mov     rax, EXIT_UNEXPECTED_TOKEN
         jmp     .error
@@ -987,7 +1000,7 @@ parser_parse_struc:
     
     ; Consume comma
     call    preprocessor_next_token
-    check_err
+    check_err_to .error
     IF byte [rdx + TOKEN_kind], ne, TOK_COMMA
         mov     rax, EXIT_UNEXPECTED_TOKEN
         jmp     .error
@@ -995,7 +1008,7 @@ parser_parse_struc:
     
     ; 2. Field byte size (integer literal)
     call    preprocessor_next_token
-    check_err
+    check_err_to .error
     IF byte [rdx + TOKEN_kind], ne, TOK_NUMBER
         mov     rax, EXIT_UNEXPECTED_TOKEN
         jmp     .error
@@ -1121,9 +1134,15 @@ parser_define_label:
     mov     rsi, rsp
     extern  symbol_add
     call    symbol_add
-    check_err
+    check_err_to .error
     mov     [rbx + ASMCTX_last_symbol], rdx    ; Store for potential equ override
     
+    add     rsp, SYMBOL_SIZE
+    pop     rsi
+    pop     rbx
+    epilogue
+
+.error:
     add     rsp, SYMBOL_SIZE
     pop     rsi
     pop     rbx
@@ -1152,7 +1171,7 @@ parser_concat_local_name:
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, MAX_TOKEN
     call    arena_alloc
-    check_err
+    check_err_to .error
     mov     r10, rdx               ; R10 = temp buffer
     
     mov     rdi, r10
@@ -1163,6 +1182,12 @@ parser_concat_local_name:
     
     mov     rdx, r10
     xor     rax, rax
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
+.error:
     pop     r13
     pop     r12
     pop     rbx
@@ -1788,6 +1813,11 @@ parser_handle_section_directive:
     pop     rbx
     epilogue
 
+.error:
+    pop     r12
+    pop     rbx
+    epilogue
+
 ;*
 ; * [parser_handle_visibility]
 ; * RSI = Target visibility (SYM_GLOBAL, SYM_WEAK)
@@ -1845,6 +1875,11 @@ parser_handle_visibility:
     
     mov     rax, OK
 .done:
+    pop     r12
+    pop     rbx
+    epilogue
+
+.error:
     pop     r12
     pop     rbx
     epilogue
@@ -1960,6 +1995,13 @@ parser_handle_comm:
     jmp     .done
 
 .done:
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
+.error:
     pop     r14
     pop     r13
     pop     r12

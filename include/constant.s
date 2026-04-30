@@ -42,6 +42,8 @@
 %define EXIT_UNEXPECTED_TOKEN  25  ; token encountered where none was expected
 %define EXIT_UNEXPECTED_EOF    26  ; end of input reached before construct completed
 %define EXIT_EXPR_TOO_DEEP     27  ; expression recursion depth exceeded limit
+%define EXIT_INVALID_EXPR       28  ; expression syntax or evaluation error
+%define EXIT_INVALID_SECTION_FLAGS 29 ; section flags are invalid or incompatible
 
 %define EXIT_ENCODE_FAIL       30  ; instruction encoding could not be generated
 %define EXIT_IMM_RANGE         31  ; immediate value exceeds allowed bit width
