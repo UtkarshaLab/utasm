@@ -13,6 +13,15 @@
 
 DEFAULT REL
 
+extern arena_alloc
+extern arena_alloc_string
+extern error_emit
+extern mem_copy
+extern mem_zero
+extern str_is_hex_digit
+extern str_is_ident_char
+extern str_utf8_decode
+
 ; ============================================================================
 ; LEXER
 ; ============================================================================
@@ -409,6 +418,11 @@ lexer_next:
 .emit_single_at:
     call    .token_begin
     mov     byte [r12 + TOKEN_kind], TOK_AT
+    jmp     .advance_single
+
+.emit_single_dollar:
+    call    .token_begin
+    mov     byte [r12 + TOKEN_kind], TOK_DOLLAR
     jmp     .advance_single
 
 .advance_single:
