@@ -12,6 +12,9 @@
 ;
 
 
+%unmacro struc 1
+%unmacro endstruc 0
+
 ; ============================================================================
 ; 1. SYSTEM & CONTEXT MANAGEMENT
 ; ============================================================================
@@ -563,7 +566,6 @@
 ; * [struc] / [field] / [endstruc]
 ; * Purpose: Automatic calculation of structure offsets and total size.
 ; ;
-%unmacro struc 1
 %macro struc 1
     %push   struc
     %define %$struc_name %1
@@ -576,7 +578,6 @@
     %assign %$offset %$offset + %2
 %endmacro
 
-%unmacro endstruc 0
 %macro endstruc 0
     %define %%sname %$struc_name %+ _SIZE
     %%sname equ %$offset
