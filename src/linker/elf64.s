@@ -3,8 +3,8 @@
 ; File        : src/linker/elf64.s
 ; Project     : utasm
 ; Description : ELF64 relocatable object file emitter (-f elf64).
-               Writes a standards-compliant ELF64 .o file consumable by
-               ld, lld, and any POSIX linker.
+;                Writes a standards-compliant ELF64 .o file consumable by
+;                ld, lld, and any POSIX linker.
 ; ============================================================================
 ;
 
@@ -26,8 +26,8 @@
 ; Layout written to disk:
 ;   [0]   ELF64 File Header         (64 bytes)
 ;   [64]  .text section data        (variable)
-         .data section data        (variable)
-         .bss  section data        (0 bytes in file)
+;          .data section data        (variable)
+;          .bss  section data        (0 bytes in file)
 ;   [...]  .symtab entries          (24 bytes each)
 ;   [...]  .strtab null-term strings
 ;   [...]  .shstrtab section names
@@ -341,7 +341,7 @@ elf64_write_ehdr:
     movzx   eax, word [r12 + ASMCTX_seccount]
     add     eax, [r12 + ASMCTX_group_count]
     add     eax, 4                 ; NULL + symtab + strtab + shstrtab
-    IF dword [r12 + ASMCTX_reloccount], ne, 0
+    IF dword [r12 + ASMCTX_nrelocs], ne, 0
         inc     eax                ; .rela.text
         ENDIF
     mov     word  [r14 + EHDR_SHNUM], ax
@@ -523,7 +523,9 @@ elf64_prepare_strtab:
     cmp     r14d, [r12 + ASMCTX_symcount]
     jge     .done
     
-    lea     r13, [rbx + r14 * SYMBOL_SIZE]
+    mov     r13, r14
+    imul    r13, SYMBOL_SIZE
+    add     r13, rbx                       ; r13 = SYMBOL*
     mov     rsi, [r13 + SYMBOL_name]
     test    rsi, rsi
     jz      .next_outer
@@ -534,7 +536,9 @@ elf64_prepare_strtab:
     cmp     ecx, r14d
     jge     .is_unique
     
-    lea     rdi, [rbx + rcx * SYMBOL_SIZE]
+    mov     rdi, rcx
+    imul    rdi, SYMBOL_SIZE
+    add     rdi, rbx                       ; rdi = SYMBOL*
     mov     rax, [rdi + SYMBOL_name]
     test    rax, rax
     jz      .next_inner
@@ -636,7 +640,9 @@ elf64_write_symtab:
     cmp     r14d, ebx
     jge     .global_pass
     
-    lea     r10, [r15 + r14 * SYMBOL_SIZE]
+    mov     r10, r14
+    imul    r10, SYMBOL_SIZE
+    add     r10, r15                       ; r10 = SYMBOL*
     IF byte [r10 + SYMBOL_vis], e, VIS_LOCAL
         mov     [r10 + SYMBOL_elf_idx], r11d
         call    .write_one_sym
@@ -653,7 +659,9 @@ elf64_write_symtab:
     cmp     r14d, ebx
     jge     .done
     
-    lea     r10, [r15 + r14 * SYMBOL_SIZE]
+    mov     r10, r14
+    imul    r10, SYMBOL_SIZE
+    add     r10, r15                       ; r10 = SYMBOL*
     IF byte [r10 + SYMBOL_vis], ne, VIS_LOCAL
         mov     [r10 + SYMBOL_elf_idx], r11d
         call    .write_one_sym
@@ -768,7 +776,9 @@ elf64_write_strtab:
     cmp     ecx, r14d
     jge     .done
 
-    lea     rdi, [rbx + rcx * SYMBOL_SIZE]
+    mov     rdi, rcx
+    imul    rdi, SYMBOL_SIZE
+    add     rdi, rbx                       ; rdi = SYMBOL*
     mov     eax, [rdi + SYMBOL_name_idx]
     
     ; Only write if this is the first occurrence (idx == r15)
@@ -948,15 +958,17 @@ elf64_write_rela:
 
     sub     rsp, ELF64_RELA_SIZE   ; scratch Rela64 on stack
 
-    mov     rbx, [r12 + ASMCTX_reloctab]
-    mov     r14d, [r12 + ASMCTX_reloccount]
+    mov     rbx, [r12 + ASMCTX_relocs]
+    mov     r14d, [r12 + ASMCTX_nrelocs]
     xor     rcx, rcx
 
 .loop:
     cmp     ecx, r14d
     jge     .done
 
-    lea     rdi, [rbx + rcx * RELOC_SIZE]
+    mov     rdi, rcx
+    imul    rdi, RELOC_SIZE
+    add     rdi, rbx                       ; rdi = RELOC*
 
     ; r_offset
     mov     rax, [rdi + RELOC_offset]

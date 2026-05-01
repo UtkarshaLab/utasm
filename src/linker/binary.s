@@ -3,8 +3,8 @@
 ; File        : src/linker/binary.s
 ; Project     : utasm
 ; Description : Flat binary emitter (-f bin).
-               Writes raw machine bytes with no ELF container.
-               Essential for OS bootloaders and bare-metal images.
+;                Writes raw machine bytes with no ELF container.
+;                Essential for OS bootloaders and bare-metal images.
 ; ============================================================================
 ;
 
@@ -120,15 +120,17 @@ binary_patch_relocs:
     mov     r13, [rdx + SECTION_data]  ; r13 = .text buffer
 
     ; Walk reloc table
-    mov     r14, [rbx + ASMCTX_reloctab]
-    mov     ecx, [rbx + ASMCTX_reloccount]
+    mov     r14, [rbx + ASMCTX_relocs]
+    mov     ecx, [rbx + ASMCTX_nrelocs]
     xor     r15d, r15d             ; index
 
 .loop:
     cmp     r15d, ecx
     jge     .done
 
-    lea     rdi, [r14 + r15 * RELOC_SIZE]
+    mov     rdi, r15
+    imul    rdi, RELOC_SIZE
+    add     rdi, r14                       ; rdi = RELOC*
 
     ; resolve symbol value
     mov     rsi, [rdi + RELOC_sym]     ; symbol name ptr

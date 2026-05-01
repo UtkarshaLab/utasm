@@ -3,8 +3,8 @@
 ; File        : src/linker/reloc.s
 ; Project     : utasm
 ; Description : Relocation engine for the utasm linker.
-               Records, resolves, and applies x86_64 relocations across
-               all output formats (ELF64 .o and flat binary).
+;                Records, resolves, and applies x86_64 relocations across
+;                all output formats (ELF64 .o and flat binary).
 ; ============================================================================
 ;
 
@@ -25,10 +25,10 @@
 ; be resolved at encode time (forward references, extern labels).
 
 ; Input  : rdi = AsmCtx*
-           rsi = byte offset within .text of the patch site
-           rdx = pointer to symbol name string (null-terminated)
-           rcx = addend (signed 64-bit, usually -4 for PC32)
-           r8  = relocation type (R_X86_64_* constant)
+;            rsi = byte offset within .text of the patch site
+;            rdx = pointer to symbol name string (null-terminated)
+;            rcx = addend (signed 64-bit, usually -4 for PC32)
+;            r8  = relocation type (R_X86_64_* constant)
 ; Output : rax = EXIT_OK or EXIT_OOM
 ;
 global reloc_record
@@ -46,14 +46,14 @@ reloc_record:
     ; r8 = reloc type (held in r8 throughout)
 
     ; Check capacity
-    mov     eax, [rbx + ASMCTX_reloccount]
+    mov     eax, [rbx + ASMCTX_nrelocs]
     cmp     eax, MAX_RELOC
     jge     .oom
 
     ; Get slot pointer: reloctab + count * RELOC_SIZE
     mov     rcx, rax
     imul    rcx, RELOC_SIZE
-    mov     rdx, [rbx + ASMCTX_reloctab]
+    mov     rdx, [rbx + ASMCTX_relocs]
     add     rdx, rcx               ; rdx = pointer to new slot
 
     ; Zero the slot
@@ -70,7 +70,7 @@ reloc_record:
     mov     [rdx + RELOC_type],   r8d
 
     ; Increment count
-    inc     dword [rbx + ASMCTX_reloccount]
+    inc     dword [rbx + ASMCTX_nrelocs]
 
     xor     rax, rax
     jmp     .done
@@ -102,8 +102,8 @@ reloc_record:
 ;   R_X86_64_PLT32   â€” Same as PC32 for direct call resolution
 
 ; Input  : rdi = AsmCtx*
-           rsi = pointer to output buffer base (virtual address 0 = file offset 0)
-           rdx = base virtual address (load address / ORG)
+;            rsi = pointer to output buffer base (virtual address 0 = file offset 0)
+;            rdx = base virtual address (load address / ORG)
 ; Output : rax = EXIT_OK or EXIT_UNDEF_REF / EXIT_OFFSET_RANGE
 ;
 global reloc_resolve_all
@@ -119,15 +119,17 @@ reloc_resolve_all:
     mov     r12, rsi               ; output buffer base
     mov     r13, rdx               ; base_addr (ORG / load VA)
 
-    mov     r14, [rbx + ASMCTX_reloctab]
-    mov     r15d, [rbx + ASMCTX_reloccount]
+    mov     r14, [rbx + ASMCTX_relocs]
+    mov     r15d, [rbx + ASMCTX_nrelocs]
     xor     ecx, ecx               ; index
 
 .loop:
     cmp     ecx, r15d
     jge     .done
 
-    lea     r11, [r14 + rcx * RELOC_SIZE]  ; r11 = RELOC*
+    mov     r11, rcx
+    imul    r11, RELOC_SIZE
+    add     r11, r14                       ; r11 = RELOC*
 
     ; Resolve symbol
     mov     rdi, rbx
@@ -442,8 +444,8 @@ reloc_init:
     call    arena_alloc
     check_err
 
-    mov     [rbx + ASMCTX_reloctab],   rdx
-    mov     dword [rbx + ASMCTX_reloccount], 0
+    mov     [rbx + ASMCTX_relocs],   rdx
+    mov     dword [rbx + ASMCTX_nrelocs], 0
     xor     rax, rax
 
     pop     rbx
