@@ -38,9 +38,7 @@ mapfile_generate:
     mov     rdi, [rbx + ASMCTX_output] ; base name
     ; (In production we'd append .map here)
     lea     rdi, [str_map_name]
-    mov     rsi, AMD64_O_WRONLY
-    AMD64_O_CREAT
-    AMD64_O_TRUNC
+    mov     rsi, AMD64_O_WRONLY | AMD64_O_CREAT | AMD64_O_TRUNC
     mov     rdx, 0o644
     call    io_open
     check_err
@@ -85,6 +83,8 @@ mapfile_generate:
     dec     r14
     jmp     .sym_loop
 
+.error:
+    mov     rax, EXIT_FILE_WRITE
 .done:
     mov     rdi, r12
     call    io_close
