@@ -12,6 +12,11 @@
 %include "include/type.s"
 %include "include/macro.s"
 
+extern asmctx_get_section
+extern reloc_apply_one
+extern io_write
+extern symbol_find
+
 [SECTION .text]
 
 ; ============================================================================
@@ -54,12 +59,11 @@ binary_emit:
     check_err
     mov     r15, rdx               ; r15 = SECTION* for .text
 
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, [r15 + SECTION_data]
     mov     rdx, [r15 + SECTION_size]
     test    rdx, rdx
     jz      .write_data
-    extern  io_write
     call    io_write
     check_err
 
@@ -71,7 +75,7 @@ binary_emit:
     check_err
     mov     r15, rdx
 
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, [r15 + SECTION_data]
     mov     rdx, [r15 + SECTION_size]
     test    rdx, rdx
@@ -136,7 +140,6 @@ binary_patch_relocs:
     ; resolve symbol value
     mov     rsi, [rdi + RELOC_sym]     ; symbol name ptr
     mov     rdi, rbx
-    extern  symbol_find
     call    symbol_find
     test    rax, rax
     jnz     .undef                     ; symbol not found
@@ -218,10 +221,9 @@ binary_emit_bootloader:
     test    r10, r10
     jz      .write_sig
     mov     byte [rsp], 0
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 1
-    extern  io_write
     call    io_write
     check_err
     dec     r10
@@ -231,7 +233,7 @@ binary_emit_bootloader:
     add     rsp, 512
     ; Write 0xAA55 boot signature (little-endian: 0x55 then 0xAA)
     mov     word [rsp - 2], 0xAA55
-    mov     rdi, r13d
+    mov     edi, r13d
     lea     rsi, [rsp - 2]
     mov     rdx, 2
     call    io_write
