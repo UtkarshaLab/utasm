@@ -347,6 +347,7 @@
 %define AMD64_SYS_MMAP         9           ; map file or memory into address space
 %define AMD64_SYS_MUNMAP       11          ; unmap memory region
 %define AMD64_SYS_BRK          12          ; adjust program break (heap end)
+%define AMD64_SYS_FTRUNCATE    77          ; change file size
 %define AMD64_SYS_EXIT         60          ; terminate current process
 %define AMD64_SYS_EXIT_GROUP   231         ; terminate all threads in process group
 
