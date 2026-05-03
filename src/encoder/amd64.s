@@ -57,8 +57,9 @@ amd64_encode_instruction:
                     ENDIF
                     ENDIF
                     ENDIF
-                    ENDIF
-                    ENDIF
+                ENDIF
+            ENDIF
+    ENDIF
 .no_size_check:
     
     ; 0.1 VALIDATION: REX vs Legacy 8-bit (AH, CH, DH, BH)
@@ -1641,8 +1642,10 @@ amd64_encode_instruction:
         mov rdi, r10
         call amd64_emit_modrm_sib
         ELSE
-        mov     rax, EXIT_ENCODE_FAIL
         ENDIF
+    
+.error:
+    mov     rax, EXIT_ENCODE_FAIL
     
     pop     r13
     pop     r12
@@ -1791,9 +1794,9 @@ amd64_encode_mov:
                         IF rax, le, 0xFFFFFFFF
                             mov dl, 32
                             ENDIF
-                            ENDIF
-                            ENDIF
-                            ENDIF
+                        ENDIF
+                    ENDIF
+                ENDIF
 
             ; 64-bit MOV REG, IMM64 / SYMBOL
             IF dl, e, 64
@@ -3577,8 +3580,8 @@ amd64_emit_prefixes:
                 mov al, 0x67
                 call amd64_emit_byte
                 ENDIF
-                ENDIF
-                ENDIF
+            ENDIF
+        ENDIF
 
     ; 3. REX Calculation
     xor     r11, r11
@@ -3768,8 +3771,8 @@ amd64_emit_modrm_sib:
     
     ; Emit SIB
     ; Scale (2 bits)
-    Index (3 bits)
-    Base (3 bits)
+    ; Index (3 bits)
+    ; Base (3 bits)
     mov     al, [r13 + OPERAND_scale]
     ; Map scale 1,2,4,8 to 0,1,2,3
     xor     cl, cl
