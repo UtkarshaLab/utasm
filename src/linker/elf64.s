@@ -89,7 +89,9 @@ elf64_emit:
     mov     rsi, SEC_DATA
     call    asmctx_get_section
     mov     rsi, [rdx + SECTION_align]
-    IF rsi, e, 0         mov rsi, 8     ENDIF ; Default 8-byte
+    IF rsi, e, 0
+        mov rsi, 8
+    ENDIF ; Default 8-byte
     mov     rdi, r13d
     call    elf64_align_file
     check_err

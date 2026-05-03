@@ -669,7 +669,9 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1091             ; CRC32
         mov     r13, 0xF1
         lea     r10, [r12 + INST_op1]
-        IF byte [r10 + OPERAND_size], e, 8             mov r13, 0xF0         ENDIF 
+        IF byte [r10 + OPERAND_size], e, 8
+            mov r13, 0xF0
+        ENDIF
         mov     r14, 2
         mov r15, 0xF2
         call amd64_encode_sse_crypto
@@ -681,7 +683,9 @@ amd64_encode_instruction:
     ELSEIF ax, e, 1394             ; MOVBE
         mov     r13, 0xF0
         lea     r10, [r12 + INST_op0]
-        IF byte [r10 + OPERAND_kind], e, OP_MEM             mov r13, 0xF1         ENDIF 
+        IF byte [r10 + OPERAND_kind], e, OP_MEM
+            mov r13, 0xF1
+        ENDIF
         mov     r14, 2
         xor r15, r15
         call amd64_encode_sse_crypto
@@ -1763,8 +1767,12 @@ amd64_encode_mov:
         
         ; Case 2: MOV REG, IMM / SYMBOL
         mov     al, [r14 + OPERAND_kind]
-        IF al, e, OP_IMM             jmp .do_imm         ENDIF 
-        IF al, e, OP_SYMBOL             jmp .do_imm         ENDIF 
+        IF al, e, OP_IMM
+            jmp .do_imm
+        ENDIF
+        IF al, e, OP_SYMBOL
+            jmp .do_imm
+        ENDIF
         jmp .not_imm
         
     .do_imm:
@@ -2840,9 +2848,15 @@ amd64_encode_sse_crypto:
     
     ; REX if using R8-R15 or XMM8-XMM31
     xor     rax, rax
-    IF byte [r10 + OPERAND_reg], ge, 8         or al, 0x44     ENDIF 
-    IF byte [r11 + OPERAND_reg], ge, 8         or al, 0x41     ENDIF 
-    IF al, ne, 0         call amd64_emit_byte     ENDIF 
+    IF byte [r10 + OPERAND_reg], ge, 8
+        or al, 0x44
+    ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8
+        or al, 0x41
+    ENDIF
+    IF al, ne, 0
+        call amd64_emit_byte
+    ENDIF
     
     ; Opcode Escape
     mov     al, 0x0F
@@ -2890,7 +2904,9 @@ amd64_encode_vex:
     
     ; R bit (from Dest reg)
     mov     al, [r10 + OPERAND_reg]
-    IF al, ge, 8         or dl, 0x04     ENDIF 
+    IF al, ge, 8
+        or dl, 0x04
+    ENDIF
     
     ; X, B bits (from Src2)
     IF byte [rdx + OPERAND_kind], e, OP_MEM

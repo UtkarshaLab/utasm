@@ -735,12 +735,24 @@ riscv64_encode_csr:
     movzx   ecx, word [r12 + INST_op_id]
     
     ; Funct3 mapping
-    IF ecx, e, ID_RV_CSRRW         or eax, 0x00001000     ENDIF 
-    IF ecx, e, ID_RV_CSRRS         or eax, 0x00002000     ENDIF 
-    IF ecx, e, ID_RV_CSRRC         or eax, 0x00003000     ENDIF 
-    IF ecx, e, ID_RV_CSRRWI         or eax, 0x00005000     ENDIF 
-    IF ecx, e, ID_RV_CSRRSI         or eax, 0x00006000     ENDIF 
-    IF ecx, e, ID_RV_CSRRCI         or eax, 0x00007000     ENDIF 
+    IF ecx, e, ID_RV_CSRRW
+        or eax, 0x00001000
+    ENDIF
+    IF ecx, e, ID_RV_CSRRS
+        or eax, 0x00002000
+    ENDIF
+    IF ecx, e, ID_RV_CSRRC
+        or eax, 0x00003000
+    ENDIF
+    IF ecx, e, ID_RV_CSRRWI
+        or eax, 0x00005000
+    ENDIF
+    IF ecx, e, ID_RV_CSRRSI
+        or eax, 0x00006000
+    ENDIF
+    IF ecx, e, ID_RV_CSRRCI
+        or eax, 0x00007000
+    ENDIF
     
     movzx   edi, byte [r10 + OPERAND_reg]
     shl     edi, 7
@@ -997,15 +1009,33 @@ riscv64_encode_atomic:
     shr     eax, 1                 ; index (0=ADD, 1=SWAP, 2=AND, 3=OR, 4=XOR, 5=MAX, 6=MIN, 7=LR, 8=SC)
     
     ; Jump table or nested IFs for funct5
-    IF eax, e, 0         or r13d, (0x00 << 27)     ENDIF ; ADD
-    IF eax, e, 1         or r13d, (0x01 << 27)     ENDIF ; SWAP
-    IF eax, e, 2         or r13d, (0x0C << 27)     ENDIF ; AND
-    IF eax, e, 3         or r13d, (0x08 << 27)     ENDIF ; OR
-    IF eax, e, 4         or r13d, (0x04 << 27)     ENDIF ; XOR
-    IF eax, e, 5         or r13d, (0x14 << 27)     ENDIF ; MAX
-    IF eax, e, 6         or r13d, (0x10 << 27)     ENDIF ; MIN
-    IF eax, e, 7         or r13d, (0x02 << 27)     ENDIF ; LR
-    IF eax, e, 8         or r13d, (0x03 << 27)     ENDIF ; SC
+    IF eax, e, 0
+        or r13d, (0x00 << 27)
+    ENDIF ; ADD
+    IF eax, e, 1
+        or r13d, (0x01 << 27)
+    ENDIF ; SWAP
+    IF eax, e, 2
+        or r13d, (0x0C << 27)
+    ENDIF ; AND
+    IF eax, e, 3
+        or r13d, (0x08 << 27)
+    ENDIF ; OR
+    IF eax, e, 4
+        or r13d, (0x04 << 27)
+    ENDIF ; XOR
+    IF eax, e, 5
+        or r13d, (0x14 << 27)
+    ENDIF ; MAX
+    IF eax, e, 6
+        or r13d, (0x10 << 27)
+    ENDIF ; MIN
+    IF eax, e, 7
+        or r13d, (0x02 << 27)
+    ENDIF ; LR
+    IF eax, e, 8
+        or r13d, (0x03 << 27)
+    ENDIF ; SC
     
     mov     edi, r13d
     call    riscv64_emit_word

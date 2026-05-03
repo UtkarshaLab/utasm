@@ -13,7 +13,9 @@
 
 
 %unmacro struc 1
+%unmacro struc 1-2
 %unimacro struc 1
+%unimacro struc 1-2
 %unmacro endstruc 0
 %unimacro endstruc 0
 
