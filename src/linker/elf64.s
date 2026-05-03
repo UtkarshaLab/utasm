@@ -173,7 +173,7 @@ elf64_write_debug_line:
 .error:
     add     rsp, 16
     pop     rbx
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     epilogue
 
@@ -371,6 +371,11 @@ elf64_write_ehdr:
     mov     word  [r14 + EHDR_SHSTRNDX], cx
 
     xor     rax, rax
+    jmp     .done
+
+.error:
+    mov     rax, EXIT_FILE_WRITE
+.done:
     epilogue
 
 ;*
@@ -475,7 +480,7 @@ elf64_write_phdrs:
     pop     r13
     pop     r12
     pop     rbx
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     epilogue
 
@@ -506,7 +511,7 @@ elf64_write_text_section:
     xor     rax, rax
     jmp     .done
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     epilogue
 
@@ -531,7 +536,7 @@ elf64_write_data_section:
     xor     rax, rax
     jmp     .done
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     epilogue
 
@@ -708,7 +713,7 @@ elf64_write_symtab:
     jmp     .global_loop
 
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     add     rsp, ELF64_SYM_SIZE
     pop     r15
@@ -839,7 +844,7 @@ elf64_write_strtab:
     jmp     .loop
 
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     pop     r15
     pop     r14
@@ -910,7 +915,7 @@ elf64_write_groups:
     sub     rsp, 4
     mov     eax, [r10 + SECTION_group_flags]
     mov     [rsp], eax
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 4
     call    io_write
@@ -933,7 +938,7 @@ elf64_write_groups:
     sub     rsp, 4
     lea     eax, [ecx + 1]
     mov     [rsp], eax
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 4
     call    io_write
@@ -975,14 +980,14 @@ elf64_write_shstrtab:
 
     ; Write the whole shstrtab as one blob
     lea     rsi, [shstrtab_data]
-    mov     rdx, shstrtab_size
+    mov     rdx, shstrtab_end - shstrtab_data
     call    io_write
     check_err
 
     xor     rax, rax
     jmp     .done
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     epilogue
 
@@ -997,6 +1002,7 @@ elf64_write_rela:
     prologue
     push    rbx
     push    r14
+    push    r15
 
     sub     rsp, ELF64_RELA_SIZE   ; scratch Rela64 on stack
 
@@ -1016,29 +1022,28 @@ elf64_write_rela:
     mov     rax, [rdi + RELOC_offset]
     mov     qword [rsp + RELA_OFFSET], rax
 
+    mov     r15, rdi               ; r15 = RELOC*
+    
     ; r_info: (sym_index << 32)
-    mov     rsi, [rdi + RELOC_sym] ; symbol name ptr
+    mov     rsi, [r15 + RELOC_sym]
     mov     rdi, [r12 + ASMCTX_symtab]
-    extern  symbol_find
     call    symbol_find
     IF rax, e, EXIT_OK
         mov     eax, [rdx + SYMBOL_elf_idx]
-        ELSE
-        ; If symbol is truly missing, this should have been caught in Pass 2.
-        ; For now, use 0 (Null symbol) as fallback.
+    ELSE
         xor     eax, eax
-        ENDIF
+    ENDIF
     
     mov     r11, rax
     shl     r11, 32
     
     ; ---- FIX: ARCH-SPECIFIC RELOC TYPE ----
-    movzx   edx, dword [rdi + RELOC_type]
+    movzx   edx, dword [r15 + RELOC_type]
     or      r11, rdx
     mov     qword [rsp + RELA_INFO], r11
 
     ; r_addend
-    mov     rax, [rdi + RELOC_addend]
+    mov     rax, [r15 + RELOC_addend]
     mov     qword [rsp + RELA_ADDEND], rax
 
     mov     edi, r13d
@@ -1051,9 +1056,10 @@ elf64_write_rela:
     jmp     .loop
 
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     add     rsp, ELF64_RELA_SIZE
+    pop     r15
     pop     r14
     pop     rbx
     epilogue
@@ -1305,7 +1311,7 @@ elf64_write_shdrs:
     jmp     .done
 
 .error:
-    mov     rax, EXIT_IO_FAIL
+    mov     rax, EXIT_FILE_WRITE
 .done:
     pop     r15
     pop     r14
@@ -1331,7 +1337,7 @@ elf64_align_file:
     mov     r12, rsi               ; alignment
     
     ; 1. Get current offset
-    mov     edi, rbx
+    mov     edi, ebx
     xor     rsi, rsi
     mov     rdx, 1                 ; SEEK_CUR
     extern  io_lseek
@@ -1356,7 +1362,7 @@ elf64_align_file:
     test    r12, r12
     jz      .done
     
-    mov     edi, rbx
+    mov     edi, ebx
     xor     esi, esi
     call    io_write_byte
     check_err
