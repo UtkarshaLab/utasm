@@ -953,6 +953,8 @@ elf64_write_groups:
     inc     rbx
     jmp     .outer_loop
 
+.error:
+    mov     rax, EXIT_FILE_WRITE
 .done:
     movzx   eax, word [r12 + ASMCTX_seccount]
     shl     rax, 3
@@ -963,7 +965,6 @@ elf64_write_groups:
     pop     r13
     pop     r12
     pop     rbx
-    xor     rax, rax
     epilogue
 
 ; ============================================================================
@@ -1038,7 +1039,7 @@ elf64_write_rela:
     shl     r11, 32
     
     ; ---- FIX: ARCH-SPECIFIC RELOC TYPE ----
-    movzx   edx, dword [r15 + RELOC_type]
+    mov     edx, [r15 + RELOC_type]
     or      r11, rdx
     mov     qword [rsp + RELA_INFO], r11
 
@@ -1370,11 +1371,12 @@ elf64_align_file:
     dec     r12
     jmp     .loop
     
+.error:
+    mov     rax, EXIT_FILE_WRITE
 .done:
     pop     r13
     pop     r12
     pop     rbx
-    xor     rax, rax
     epilogue
 
 ; ============================================================================
