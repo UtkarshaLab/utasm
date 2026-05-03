@@ -560,7 +560,9 @@ elf64_prepare_strtab:
     jnz     .next_inner
     
     ; Found duplicate! Reuse index
-    mov     eax, [rbx + rcx * SYMBOL_SIZE + SYMBOL_name_idx]
+    mov     rax, rcx
+    imul    rax, SYMBOL_SIZE
+    mov     eax, [rbx + rax + SYMBOL_name_idx]
     mov     [r13 + SYMBOL_name_idx], eax
     jmp     .next_outer
 
@@ -701,7 +703,7 @@ elf64_write_symtab:
     mov     [rsp + 24 + SYM64_NAME], eax
     
     ; st_info: (bind << 4)
-    (kind == LABEL ? FUNC : OBJECT)
+    ; (kind == LABEL ? FUNC : OBJECT)
     movzx   eax, byte [r10 + SYMBOL_vis]   ; VIS_LOCAL=0, VIS_GLOBAL=1, VIS_WEAK=2
     shl     al, 4
     mov     cl, [r10 + SYMBOL_kind]
@@ -979,7 +981,6 @@ elf64_write_rela:
     mov     qword [rsp + RELA_OFFSET], rax
 
     ; r_info: (sym_index << 32)
-    reloc_type
     mov     rsi, [rdi + RELOC_sym] ; symbol name ptr
     mov     rdi, [r12 + ASMCTX_symtab]
     extern  symbol_find
@@ -1026,7 +1027,7 @@ elf64_write_rela:
 ;
 ; Writes the section header table (8 entries for a minimal object).
 ; Sections: [0] NULL, [1] .text, [2] .data, [3] .bss,
-           [4] .symtab, [5] .strtab, [6] .shstrtab, [7] .rela.text
+;            [4] .symtab, [5] .strtab, [6] .shstrtab, [7] .rela.text
 ;
 elf64_write_shdrs:
     prologue
