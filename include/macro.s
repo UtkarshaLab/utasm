@@ -13,7 +13,9 @@
 
 
 %unmacro struc 1
+%unimacro struc 1
 %unmacro endstruc 0
+%unimacro endstruc 0
 
 ; ============================================================================
 ; 1. SYSTEM & CONTEXT MANAGEMENT

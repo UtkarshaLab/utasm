@@ -62,7 +62,8 @@
 %define EXIT_SECTION_OVERLAP   52  ; two or more output sections occupy same address
 %define EXIT_RELOC_ERROR       53  ; relocation could not be applied
 %define EXIT_UNDEF_REF         54  ; symbol referenced but never defined
-%define EXIT_MULTI_DEF         55  ; symbol defined in multiple input objects
+%define EXIT_MULTI_DEF         55          ; symbol defined in multiple input objects
+%define EXIT_INVALID_SECTION   56          ; section index is out of bounds or invalid
 
 %define EXIT_OUT_CREATE        60  ; failed to create output file
 %define EXIT_ELF_WRITE         61  ; error writing ELF format output
@@ -107,6 +108,7 @@
 %define MAX_REP_COUNT          65536       ; maximum iterations per %rep block
 %define MAX_ERRORS             50          ; fatal stop threshold for error count
 %define MAX_WARNINGS           100         ; threshold for warning count
+%define MAX_RELOC              8192        ; maximum relocation entries per object
 
 ; ============================================================================
 ; BUFFER SIZES
@@ -234,6 +236,8 @@
 %define CTX_FLAG_LISTING       0x10
 %define CTX_FLAG_MAPFILE       0x20
 %define CTX_FLAG_STRIP         0x40
+%define CTX_FLAG_FORMAT_BIN    0x80
+%define CTX_FLAG_FORMAT_ELF    0x100
 ; 
 ; ; ============================================================================
 ; ; CPU FEATURE BITS (AMD64)
@@ -582,9 +586,12 @@
 %define R_AARCH64_ADR_PREL_LO21 274
 %define R_AARCH64_ADR_PREL_PG_HI21 275
 %define R_AARCH64_ADD_ABS_LO12_NC 277
-%define R_AARCH64_LDST64_ABS_LO12_NC 286
 %define R_AARCH64_CALL26        283
 %define R_AARCH64_JUMP26        282
+%define R_AARCH64_LDST64_ABS_LO12_NC 286
+%define R_AARCH64_LDST32_ABS_LO12_NC 285
+%define R_AARCH64_LDST16_ABS_LO12_NC 284
+%define R_AARCH64_LDST8_ABS_LO12_NC  278
 
 %define R_RISCV_64             2
 %define R_RISCV_HI20           26

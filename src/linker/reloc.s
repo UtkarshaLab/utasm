@@ -13,6 +13,11 @@
 %include "include/macro.s"
 %include "include/elf.s"
 
+; --- External Symbols ---
+extern  mem_zero
+extern  symbol_find
+extern  arena_alloc
+
 [SECTION .text]
 
 ; ============================================================================
@@ -134,7 +139,6 @@ reloc_resolve_all:
     ; Resolve symbol
     mov     rdi, rbx
     mov     rdx, [r11 + RELOC_sym]         ; sym name ptr
-    extern  symbol_find
     call    symbol_find
     test    rax, rax
     jnz     .check_undef
@@ -213,6 +217,7 @@ reloc_resolve_all:
 .range_err:
     mov     rax, EXIT_OFFSET_RANGE
 
+.error:
 .ret:
     pop     r15
     pop     r14
@@ -440,7 +445,6 @@ reloc_init:
     mov     rdi, [rbx + ASMCTX_arena]
     mov     rsi, RELOC_SIZE
     imul    rsi, MAX_RELOC
-    extern  arena_alloc
     call    arena_alloc
     check_err
 
@@ -448,5 +452,6 @@ reloc_init:
     mov     dword [rbx + ASMCTX_nrelocs], 0
     xor     rax, rax
 
+.error:
     pop     rbx
     epilogue

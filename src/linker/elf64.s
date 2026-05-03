@@ -14,6 +14,7 @@
 %include "include/elf.s"
 
 [SECTION .text]
+    extern  mem_zero
 
 ; ============================================================================
 ; elf64_emit
@@ -123,6 +124,7 @@ elf64_emit:
     check_err
 
     xor     rax, rax
+.error:
 .done:
     pop     r15
     pop     r14

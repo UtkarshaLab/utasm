@@ -63,6 +63,7 @@ linker_run:
     call    elf64_emit
     jmp     .done
 
+.error:
 .done:
     pop     rbx
     epilogue
@@ -145,6 +146,7 @@ linker_check_overlaps:
     jmp     .outer
 
 .done:
+.error:
     xor     rax, rax
 .ret:
     pop     r15

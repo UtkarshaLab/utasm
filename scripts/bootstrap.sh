@@ -25,7 +25,7 @@ obj_files=""
 for src_file in $src_files; do
     # Skip main.s if we want to handle it specifically, or just include it in the loop
     obj_file="build/gen0/$(basename "${src_file%.s}.o")"
-    nasm -f elf64 "$src_file" -o "$obj_file"
+    nasm -I./ -f elf64 "$src_file" -o "$obj_file"
     obj_files="$obj_files $obj_file"
 done
 

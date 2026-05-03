@@ -79,6 +79,7 @@ binary_emit:
     call    io_write
     check_err
 
+.error:
 .done:
     xor     rax, rax
     pop     r15
@@ -157,6 +158,7 @@ binary_patch_relocs:
     inc     r15d
     jmp     .loop
 
+.error:
 .done:
     xor     rax, rax
     jmp     .ret
@@ -235,6 +237,7 @@ binary_emit_bootloader:
     call    io_write
     check_err
 
+.error:
     xor     rax, rax
     pop     r13
     pop     r12
