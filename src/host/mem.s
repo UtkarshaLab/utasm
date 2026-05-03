@@ -3,9 +3,9 @@
 ; File        : src/host/mem.s
 ; Project     : utasm
 ; Description : Host memory management interface.
-               Thin syscall wrappers for mmap/munmap with a simple
-               bump allocator on top, used by the arena subsystem
-               during bootstrapping when no libc is available.
+;                Thin syscall wrappers for mmap/munmap with a simple
+;                bump allocator on top, used by the arena subsystem
+;                during bootstrapping when no libc is available.
 ; ============================================================================
 ;
 
@@ -24,13 +24,13 @@
 ; mem_map
 ; Maps a private anonymous region of memory (equivalent to mmap with
 ; MAP_PRIVATE
-MAP_ANONYMOUS
-MAP_POPULATE).
+; MAP_ANONYMOUS
+; MAP_POPULATE).
 ; The returned pointer is page-aligned.
 
 ; Input  : rdi = requested size in bytes
 ; Output : rax = EXIT_OK or EXIT_OOM
-           rdx = pointer to mapped region
+;            rdx = pointer to mapped region
 ; Clobbers: rcx, r8, r9, r10, r11
 ;
 global mem_map
@@ -46,14 +46,14 @@ mem_map:
     mov     rbx, rax               ; rbx = page-aligned size
 
     ; mmap(NULL, size, PROT_READ
-    PROT_WRITE, MAP_PRIVATE
-    MAP_ANONYMOUS, -1, 0)
+    ; PROT_WRITE, MAP_PRIVATE
+    ; MAP_ANONYMOUS, -1, 0)
     xor     rdi, rdi               ; addr = NULL
     mov     rsi, rbx               ; length
     mov     rdx, 3                 ; PROT_READ
-    PROT_WRITE
+    ; PROT_WRITE
     mov     r10, 0x22              ; MAP_PRIVATE
-    MAP_ANONYMOUS
+    ; MAP_ANONYMOUS
     mov     r8, -1                 ; fd = -1
     xor     r9, r9                 ; offset = 0
     mov     rax, SYS_MMAP
@@ -83,7 +83,7 @@ mem_map:
 ; Unmaps a previously mapped memory region.
 
 ; Input  : rdi = pointer to region
-           rsi = size in bytes (must match the size used in mem_map)
+;            rsi = size in bytes (must match the size used in mem_map)
 ; Output : rax = EXIT_OK or EXIT_ERROR
 ;
 global mem_unmap
@@ -118,8 +118,8 @@ mem_unmap:
 ; Useful for marking generated code as executable after encoding.
 
 ; Input  : rdi = pointer to region (page-aligned)
-           rsi = size in bytes
-           rdx = protection flags (PROT_* values)
+;            rsi = size in bytes
+;            rdx = protection flags (PROT_* values)
 ; Output : rax = EXIT_OK or EXIT_ERROR
 
 ; Common prot values:
@@ -167,12 +167,12 @@ mem_protect:
 ; mem_alloc_exec
 ; Allocates a memory region suitable for JIT-compiled or assembled machine
 ; code: maps as PROT_READ
-PROT_WRITE first (for encoding), then caller
+; PROT_WRITE first (for encoding), then caller
 ; must call mem_protect with PROT_RX to make it executable.
 
 ; Input  : rdi = size in bytes
 ; Output : rax = EXIT_OK or EXIT_OOM
-           rdx = pointer to allocated region
+;            rdx = pointer to allocated region
 ;
 global mem_alloc_exec
 mem_alloc_exec:
@@ -189,7 +189,7 @@ mem_alloc_exec:
 ; being swapped. Critical for latency-sensitive OS kernel components.
 
 ; Input  : rdi = pointer to region
-           rsi = size in bytes
+;            rsi = size in bytes
 ; Output : rax = EXIT_OK or EXIT_ERROR
 ;
 global mem_lock
@@ -213,7 +213,7 @@ mem_lock:
 ; Unlocks a previously locked memory region.
 
 ; Input  : rdi = pointer to region
-           rsi = size in bytes
+;            rsi = size in bytes
 ; Output : rax = EXIT_OK or EXIT_ERROR
 ;
 global mem_unlock
@@ -236,8 +236,8 @@ mem_unlock:
 ; mem_advise
 ; Provides the kernel with a hint about expected memory usage patterns.
 ; Input  : rdi = pointer to region
-           rsi = size in bytes
-           rdx = advice flag (MADV_* constant)
+;            rsi = size in bytes
+;            rdx = advice flag (MADV_* constant)
 ; Output : rax = EXIT_OK or EXIT_ERROR
 
 ; Common advice values:
