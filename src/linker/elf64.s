@@ -15,6 +15,13 @@
 
 [SECTION .text]
     extern  mem_zero
+    extern  arena_alloc
+    extern  io_write
+    extern  io_write_byte
+    extern  io_lseek
+    extern  asmctx_get_section
+    extern  str_cmp
+    extern  str_len
 
 ; ============================================================================
 ; elf64_emit
@@ -67,7 +74,7 @@ elf64_emit:
     call    elf64_write_ehdr
     check_err
 
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, r14
     mov     rdx, ELF64_EHDR_SIZE
     call    io_write
@@ -92,7 +99,7 @@ elf64_emit:
     IF rsi, e, 0
         mov rsi, 8
     ENDIF ; Default 8-byte
-    mov     rdi, r13d
+    mov     edi, r13d
     call    elf64_align_file
     check_err
     
@@ -127,6 +134,7 @@ elf64_emit:
 
     xor     rax, rax
 .error:
+    mov rax, EXIT_ENCODE_FAIL
 .done:
     pop     r15
     pop     r14
@@ -146,7 +154,7 @@ elf64_write_debug_line:
     ; 2 (version) + 1 (type) + 1 (addr_size) + 4 (abbrev) = 8
     ; Note: Line info stub here is even simpler.
     mov     dword [rsp], 0
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 4
     call    io_write
@@ -161,6 +169,12 @@ elf64_write_debug_line:
     add     rsp, 16
     pop     rbx
     xor     rax, rax
+    jmp     .done
+.error:
+    add     rsp, 16
+    pop     rbx
+    mov     rax, EXIT_IO_FAIL
+.done:
     epilogue
 
 ;*
@@ -174,7 +188,7 @@ elf64_write_debug_info:
     
     ; 1. Unit Length (Version + Type + AddrSize + AbbrevOffset = 8)
     mov     dword [rsp], 8
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 4
     call    io_write
@@ -213,7 +227,7 @@ elf64_write_debug_abbrev:
     ; Write a single 0 byte (Empty abbrev table)
     sub     rsp, 16
     mov     byte [rsp], 0
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 1
     call    io_write
@@ -444,7 +458,7 @@ elf64_write_phdrs:
     
     ; Write buffer
     sub     r14, 56
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, r14
     mov     rdx, 112
     call    io_write
@@ -455,6 +469,14 @@ elf64_write_phdrs:
     pop     r12
     pop     rbx
     xor     rax, rax
+    jmp     .done
+.error:
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    mov     rax, EXIT_IO_FAIL
+.done:
     epilogue
 
 ; ============================================================================
@@ -475,13 +497,17 @@ elf64_write_text_section:
     check_err
     mov     r10, rdx               ; r10 = SECTION*
 
-    mov     rdi, r13d              ; fd
+    mov     edi, r13d              ; fd
     mov     rsi, [r10 + SECTION_data]
     mov     rdx, [r10 + SECTION_size]
     call    io_write
     check_err
 
     xor     rax, rax
+    jmp     .done
+.error:
+    mov     rax, EXIT_IO_FAIL
+.done:
     epilogue
 
 ; ============================================================================
@@ -496,13 +522,17 @@ elf64_write_data_section:
     check_err
     mov     r10, rdx
 
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, [r10 + SECTION_data]
     mov     rdx, [r10 + SECTION_size]
     call    io_write
     check_err
 
     xor     rax, rax
+    jmp     .done
+.error:
+    mov     rax, EXIT_IO_FAIL
+.done:
     epilogue
 
 ; ============================================================================
@@ -581,9 +611,9 @@ elf64_prepare_strtab:
     add     r15, rax
     inc     r15
     
-    ; A98: ELF 32-bit String Table Limit Validation
-    IF r15, g, 0xFFFFFFFF
-        mov rax, EXIT_ENCODE_FAIL ; Reusing ENCODE_FAIL for simplicity or specific string overflow
+    mov     rax, 0xFFFFFFFF
+    IF r15, g, rax
+        mov rax, EXIT_ENCODE_FAIL
         jmp .error_bounds
         ENDIF
     
@@ -631,7 +661,7 @@ elf64_write_symtab:
     mov     rdi, rsp
     mov     rsi, ELF64_SYM_SIZE
     call    mem_zero
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, ELF64_SYM_SIZE
     call    io_write
@@ -677,6 +707,8 @@ elf64_write_symtab:
     inc     r14
     jmp     .global_loop
 
+.error:
+    mov     rax, EXIT_IO_FAIL
 .done:
     add     rsp, ELF64_SYM_SIZE
     pop     r15
@@ -684,7 +716,6 @@ elf64_write_symtab:
     pop     r13
     pop     r12
     pop     rbx
-    xor     rax, rax
     epilogue
 
 ; Helper: writes SYMBOL at R10 to FD R13D using scratch RSP
@@ -729,7 +760,7 @@ elf64_write_symtab:
     mov     rax, [r10 + SYMBOL_size]
     mov     [rsp + 24 + SYM64_SIZE], rax
     
-    mov     rdi, r13d
+    mov     edi, r13d
     lea     rsi, [rsp + 24]
     mov     rdx, ELF64_SYM_SIZE
     call    io_write
@@ -766,7 +797,7 @@ elf64_write_strtab:
     ; Write leading null byte
     sub     rsp, 8
     mov     byte [rsp], 0
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, 1
     call    io_write
@@ -796,7 +827,7 @@ elf64_write_strtab:
         mov     rdx, rax
         inc     rdx
         
-        mov     rdi, r13d
+        mov     edi, r13d
         call    io_write
         check_err
         pop     rax
@@ -804,12 +835,13 @@ elf64_write_strtab:
         add     r15, rdx
         ENDIF
 
-.next:
     inc     ecx
     jmp     .loop
 
+.error:
+    mov     rax, EXIT_IO_FAIL
 .done:
-    xor     rax, rax
+    pop     r15
     pop     r14
     pop     rbx
     epilogue
@@ -939,7 +971,7 @@ elf64_write_groups:
 elf64_write_shstrtab:
     prologue
 
-    mov     rdi, r13d
+    mov     edi, r13d
 
     ; Write the whole shstrtab as one blob
     lea     rsi, [shstrtab_data]
@@ -948,6 +980,10 @@ elf64_write_shstrtab:
     check_err
 
     xor     rax, rax
+    jmp     .done
+.error:
+    mov     rax, EXIT_IO_FAIL
+.done:
     epilogue
 
 ; ============================================================================
@@ -1005,7 +1041,7 @@ elf64_write_rela:
     mov     rax, [rdi + RELOC_addend]
     mov     qword [rsp + RELA_ADDEND], rax
 
-    mov     rdi, r13d
+    mov     edi, r13d
     mov     rsi, rsp
     mov     rdx, ELF64_RELA_SIZE
     call    io_write
@@ -1014,9 +1050,10 @@ elf64_write_rela:
     inc     ecx
     jmp     .loop
 
+.error:
+    mov     rax, EXIT_IO_FAIL
 .done:
     add     rsp, ELF64_RELA_SIZE
-    xor     rax, rax
     pop     r14
     pop     rbx
     epilogue
@@ -1046,10 +1083,11 @@ elf64_write_shdrs:
     mov     rdi, rsp
     mov rsi, ELF64_SHDR_SIZE
     call mem_zero
-    mov     rdi, r12
-    mov rsi, rsp
-    mov rdx, ELF64_SHDR_SIZE
-    call io_write
+    mov     edi, r12d
+    mov     rsi, rsp
+    mov     rdx, ELF64_SHDR_SIZE
+    call    io_write
+    check_err
     
     ; 2. Iterate User Sections
     mov     r14, [rbx + ASMCTX_sections]
@@ -1116,10 +1154,11 @@ elf64_write_shdrs:
     mov     qword [rsp + SHDR_ADDRALIGN], 1
     
 .emit:
-    mov     rdi, r12
-    mov rsi, rsp
-    mov rdx, ELF64_SHDR_SIZE
-    call io_write
+    mov     edi, r12d
+    mov     rsi, rsp
+    mov     rdx, ELF64_SHDR_SIZE
+    call    io_write
+    check_err
     
     inc     ecx
     jmp     .sec_loop
@@ -1204,10 +1243,11 @@ elf64_write_shdrs:
 .emit_group_shdr:
     mov     qword [rsp + SHDR_SIZE], r9
     add     r11, r9                ; Advance offset for next group
-    mov     rdi, r12
-    mov rsi, rsp
-    mov rdx, ELF64_SHDR_SIZE
-    call io_write
+    mov     edi, r12d
+    mov     rsi, rsp
+    mov     rdx, ELF64_SHDR_SIZE
+    call    io_write
+    check_err
     
 .next_group_header:
     inc     rcx
@@ -1231,10 +1271,11 @@ elf64_write_shdrs:
     add     eax, 2                 ; NULL + User + Groups + SYMTAB + STRTAB
     mov     dword [rsp + SHDR_LINK], eax
     ; ... remaining shdr fields ...
-    mov     rdi, r12
-    mov rsi, rsp
-    mov rdx, ELF64_SHDR_SIZE
-    call io_write
+    mov     edi, r12d
+    mov     rsi, rsp
+    mov     rdx, ELF64_SHDR_SIZE
+    call    io_write
+    check_err
 
     ; 4. .strtab
     mov     rdi, rsp
@@ -1242,10 +1283,11 @@ elf64_write_shdrs:
     call mem_zero
     mov     dword [rsp + SHDR_NAME], 26    ; ".strtab"
     mov     dword [rsp + SHDR_TYPE], 3     ; SHT_STRTAB
-    mov     rdi, r12
-    mov rsi, rsp
-    mov rdx, ELF64_SHDR_SIZE
-    call io_write
+    mov     edi, r12d
+    mov     rsi, rsp
+    mov     rdx, ELF64_SHDR_SIZE
+    call    io_write
+    check_err
 
     ; 5. .shstrtab
     mov     rdi, rsp
@@ -1253,11 +1295,18 @@ elf64_write_shdrs:
     call mem_zero
     mov     dword [rsp + SHDR_NAME], 34    ; ".shstrtab"
     mov     dword [rsp + SHDR_TYPE], 3     ; SHT_STRTAB
-    mov     rdi, r12
-    mov rsi, rsp
-    mov rdx, ELF64_SHDR_SIZE
-    call io_write
+    mov     edi, r12d
+    mov     rsi, rsp
+    mov     rdx, ELF64_SHDR_SIZE
+    call    io_write
+    check_err
     
+    xor     rax, rax
+    jmp     .done
+
+.error:
+    mov     rax, EXIT_IO_FAIL
+.done:
     pop     r15
     pop     r14
     pop     r13
@@ -1282,7 +1331,7 @@ elf64_align_file:
     mov     r12, rsi               ; alignment
     
     ; 1. Get current offset
-    mov     rdi, rbx
+    mov     edi, rbx
     xor     rsi, rsi
     mov     rdx, 1                 ; SEEK_CUR
     extern  io_lseek
@@ -1307,10 +1356,10 @@ elf64_align_file:
     test    r12, r12
     jz      .done
     
-    mov     rdi, rbx
-    xor     rsi, rsi
-    extern  io_write_byte
+    mov     edi, rbx
+    xor     esi, esi
     call    io_write_byte
+    check_err
     
     dec     r12
     jmp     .loop
