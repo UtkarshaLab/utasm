@@ -10,8 +10,6 @@
 ; ============================================================================
 ;
 
-%ifndef ARCHIVE_S
-%define ARCHIVE_S
 
 ; ---- Archive Magic -----------------------
 %define AR_MAG             "!<arch>\n"
@@ -34,7 +32,5 @@ endstruc
 ; ---- Special Member Names ----------------
 %define AR_SYM_TABLE       "/"     ; System V symbol table
 %define AR_LONG_NAMES      ";"    ; Long filename table
-
-%endif
 
 %endif

@@ -127,8 +127,15 @@ archive_write_member:
     add     rax, r14
     test    r14, 1
     JZ      .done
+    mov     byte [rdi], 0x0A       ; Add newline padding
+    inc     rax
     
-;*
+.done:
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
 ; * [archive_gen_index]
 ; * Purpose: Generates the SysV-style symbol index member ('/').
 ; * Input:
