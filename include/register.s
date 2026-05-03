@@ -6,8 +6,8 @@
 ; File        : include/register.s
 ; Project     : utasm
 ; Description : AMD64 register semantic aliases for kernel and OS development.
-               Provides ABI calling convention aliases, system register
-               constants, and MSR identifiers usable in utasm source files.
+;                Provides ABI calling convention aliases, system register
+;                constants, and MSR identifiers usable in utasm source files.
 ; ============================================================================
 ;
 
