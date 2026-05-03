@@ -36,7 +36,7 @@
 ;   [end]  Section Header Table     (64 bytes each)
 
 ; Input  : rdi = pointer to AsmCtx
-           rsi = output file descriptor (i32)
+;            rsi = output file descriptor (i32)
 ; Output : rax = EXIT_OK or error code
 ;
 global elf64_emit

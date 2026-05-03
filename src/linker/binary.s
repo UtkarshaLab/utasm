@@ -25,8 +25,8 @@
 ; it as base_addr; this only affects relocation patching, not the output.
 
 ; Input  : rdi = pointer to AsmCtx
-           rsi = output file descriptor (i32, already opened for write)
-           rdx = base address (ORG value, 0x7C00 for bootloaders etc.)
+;            rsi = output file descriptor (i32, already opened for write)
+;            rdx = base address (ORG value, 0x7C00 for bootloaders etc.)
 ; Output : rax = EXIT_OK or error code
 ;
 global binary_emit
