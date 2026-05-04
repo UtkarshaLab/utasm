@@ -1616,9 +1616,10 @@ parser_handle_extern:
     prologue
     push    rbx
     push    r12
+    mov     rbx, rdi               ; rdi = PrepState
 .loop:
     call    preprocessor_next_token
-    check_err
+    check_err_to .done
     mov     r12, rdx               ; r12 = token (name)
     
     IF byte [r12 + TOKEN_kind], ne, TOK_IDENT
@@ -1633,7 +1634,7 @@ parser_handle_extern:
     mov     rcx, (SYMBOL_SIZE / 8)
     rep stosq
     
-    mov     rdi, [rbx + PREP_ctx]
+    mov     r11, [rbx + PREP_ctx]
     mov     rsi, rsp
     mov     byte [rsi + SYMBOL_tag], TAG_SYMBOL
     mov     byte [rsi + SYMBOL_kind], SYM_EXTERN
@@ -1641,9 +1642,11 @@ parser_handle_extern:
     mov     rax, [r12 + TOKEN_value]
     mov     [rsi + SYMBOL_name], rax
     
+    mov     rdi, r11               ; rdi = AsmCtx
     extern  symbol_add
     call    symbol_add
     add     rsp, SYMBOL_SIZE
+    check_err
     
     ; Check for comma (extern name1, name2)
     call    preprocessor_peek_token
@@ -1656,6 +1659,9 @@ parser_handle_extern:
     pop     r12
     pop     rbx
     epilogue
+
+.error:
+    jmp     .done
 
 ;*
 ; * [parser_handle_default]
