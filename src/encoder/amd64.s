@@ -2379,13 +2379,8 @@ amd64_encode_jcc:
         mov     rsi, [r10 + OPERAND_sym]
         call    amd64_emit_reloc
         ENDIF
-    jmp     .done
-.done:
-    epilogue
-    
     xor     rax, rax
     call    amd64_emit_dword
-    jmp     .done
 .done:
     epilogue
 

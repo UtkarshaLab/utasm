@@ -62,14 +62,14 @@ str_len:
 .done:
     ret
 
-; Aliases for backward compatibility
-global string_length
-string_length:
-    jmp str_len
-
 .null_ptr:
     xor     rax, rax               ; NULL = length 0
     ret
+
+; Aliases for backward compatibility
+global string_length
+string_length:
+    jmp     str_len
 
 ; ---- str_cmp ----------------------------
 ;
@@ -113,10 +113,6 @@ str_cmp:
 .a_greater:
     mov     rax, 1
     ret
-
-global string_compare
-string_compare:
-    jmp str_cmp
 
 .a_null:
     test    rsi, rsi
@@ -217,14 +213,14 @@ str_copy:
     xor     rax, rax               ; rax = EXIT_OK
     ret
 
-global string_copy
-string_copy:
-    jmp str_copy
-
 .null_ptr:
     mov     rax, EXIT_ERROR
     xor     rdx, rdx
     ret
+
+global string_copy
+string_copy:
+    jmp     str_copy
 
 ; ---- str_copy_n -------------------------
 ;
@@ -327,14 +323,14 @@ str_concat:
     pop     rbx
     ret
 
-global string_concat
-string_concat:
-    jmp str_concat
-
 .null_ptr:
     mov     rax, EXIT_ERROR
     xor     rdx, rdx
     ret
+
+global string_concat
+string_concat:
+    jmp     str_concat
 
 ; ---- mem_copy ---------------------------
 ;
@@ -804,6 +800,12 @@ str_find_char:
     xor     rdx, rdx
     ret
 
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+    ret
+
 ; ---- str_find_str -----------------------
 ;
 ; str_find_str
@@ -1037,7 +1039,7 @@ str_trim:
 ; str_dup
 ; Duplicates a string using heap allocation.
 ; Input    : rdi = string pointer
-; Output   : rax = EXIT_OK or EXIT_ERROR/EXIT_OUT_OF_MEM
+; Output   : rax = EXIT_OK or EXIT_ERROR/EXIT_OOM
 ;              rdx = pointer to new string
 ; Clobbers : rcx, rsi
 ;
@@ -1076,7 +1078,7 @@ str_dup:
     ret
 
 .no_mem:
-    mov     rax, EXIT_OUT_OF_MEM
+    mov     rax, EXIT_OOM
     xor     rdx, rdx
     pop     rbx
     leave

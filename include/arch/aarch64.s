@@ -91,6 +91,24 @@
 %define ID_AARCH64_DSB_V       2812
 %define ID_AARCH64_ISB_V       2813
 
+; ---- String Operations (Pseudo-Mnemonics) ----
+%define ID_AARCH64_MOVSB       3000
+%define ID_AARCH64_MOVSW       3001
+%define ID_AARCH64_MOVSD       3002
+%define ID_AARCH64_MOVSQ       3003
+%define ID_AARCH64_STOSB       3010
+%define ID_AARCH64_STOSW       3011
+%define ID_AARCH64_STOSD       3012
+%define ID_AARCH64_STOSQ       3013
+%define ID_AARCH64_SCASB       3020
+%define ID_AARCH64_SCASW       3021
+%define ID_AARCH64_SCASD       3022
+%define ID_AARCH64_SCASQ       3023
+%define ID_AARCH64_CMPSB       3030
+%define ID_AARCH64_CMPSW       3031
+%define ID_AARCH64_CMPSD       3032
+%define ID_AARCH64_CMPSQ       3033
+
 ;*
 ; * [def_mnc]
 ; * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
