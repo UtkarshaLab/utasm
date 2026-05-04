@@ -569,6 +569,19 @@
 %define RELOC_REL32            R_X86_64_PC32
 %define RELOC_REL64            1           ; Legacy map
 %define RELOC_GOT              R_X86_64_GOT32
+%define RELOC_REL8             R_X86_64_PC8
+
+; RISC-V Relocations
+%define R_RISCV_BRANCH         16
+%define R_RISCV_JAL            17
+%define R_RISCV_CALL_HI20      18
+%define R_RISCV_CALL_LO12      19
+%define R_RISCV_PCREL_HI20     23
+%define R_RISCV_PCREL_LO12_I   24
+%define R_RISCV_PCREL_LO12_S   25
+%define R_RISCV_HI20           26
+%define R_RISCV_LO12_I         27
+%define R_RISCV_LO12_S         28
 
 ; ============================================================================
 ; REGISTER IDENTIFIERS

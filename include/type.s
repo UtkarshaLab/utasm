@@ -291,6 +291,8 @@ struc INST
     field op1,       OPERAND_SIZE
     field op2,       OPERAND_SIZE
     field op3,       OPERAND_SIZE
+    field offset,    8       ; offset in section
+    field section,   8       ; pointer to SECTION
 endstruc
 
 ; ============================================================================

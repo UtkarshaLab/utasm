@@ -109,10 +109,30 @@
 %define ID_AARCH64_CMPSD       3032
 %define ID_AARCH64_CMPSQ       3033
 
+; ---- Conditional Branches (B.cond) ----
+%define ID_AARCH64_BEQ         3100
+%define ID_AARCH64_BNE         3101
+%define ID_AARCH64_BCS         3102
+%define ID_AARCH64_BHS         3102
+%define ID_AARCH64_BCC         3103
+%define ID_AARCH64_BLO         3103
+%define ID_AARCH64_BMI         3104
+%define ID_AARCH64_BPL         3105
+%define ID_AARCH64_BVS         3106
+%define ID_AARCH64_BVC         3107
+%define ID_AARCH64_BHI         3108
+%define ID_AARCH64_BLS         3109
+%define ID_AARCH64_BGE         3110
+%define ID_AARCH64_BLT         3111
+%define ID_AARCH64_BGT         3112
+%define ID_AARCH64_BLE         3113
+%define ID_AARCH64_BAL         3114
+%define ID_AARCH64_BNV         3115
+
 ;*
 ; * [def_mnc]
 ; * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
 ; ;
 %macro def_mnc 3
-    mnemonic_entry %1, %2, %3
+    mnc_ent %1, %2, %3
 %endmacro

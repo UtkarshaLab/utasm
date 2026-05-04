@@ -3,7 +3,7 @@
 ; File        : include/arch/riscv64.s
 ; Project     : utasm
 ; Description : RISC-V 64-bit Architecture Constants and Register IDs.
-               Aligned with src/isa/riscv64.s IDs.
+;                Aligned with src/isa/riscv64.s IDs.
 ; ============================================================================
 ;
 
@@ -135,6 +135,21 @@
 %define ID_RVC_ADDI            3038
 %define ID_RVC_MV              3065
 %define ID_RVC_NOP             3066
+
+; ---- String Operations (AMD64 Parity) ----
+%define ID_RV_MOVSB            4000
+%define ID_RV_MOVSW            4001
+%define ID_RV_MOVSD            4002
+%define ID_RV_MOVSQ            4003
+%define ID_RV_STOSB            4010
+%define ID_RV_STOSW            4011
+%define ID_RV_STOSD            4012
+%define ID_RV_STOSQ            4013
+
+; ---- Bit Manipulation & Extensions ----
+%define ID_RV_SEXTB            4100
+%define ID_RV_SEXTH            4101
+%define ID_RV_REV8             4102
 
 ;*
 ; * [def_mnc]
