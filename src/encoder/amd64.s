@@ -1795,11 +1795,11 @@ amd64_encode_mov:
             ; can use 32-bit MOV (zero-extension)
             IF dl, e, 64
                 IF byte [r14 + OPERAND_kind], e, OP_IMM
-                    IF rax, ge, 0
-                        IF rax, b, 0x100000000
-                            mov dl, 32
-                            ENDIF
-                        ENDIF
+                    mov     r11, rax
+                    shr     r11, 32
+                    IF r11, e, 0
+                        mov dl, 32
+                    ENDIF
                     ENDIF
                 ENDIF
 
