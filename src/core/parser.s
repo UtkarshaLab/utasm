@@ -802,7 +802,7 @@ parser_parse_mem_operand:
     jle     .bounds_ok                     ; write size <= field size -> OK
     
     ; FATAL: write exceeds field width
-    ; extern error_struct_bounds (Defined locally)
+    extern error_struct_bounds
     mov     rdi, [r13 + SYMBOL_name]       ; field name for error message
     mov     rsi, r14                       ; declared field size
     mov     rdx, rcx                       ; attempted access size
@@ -1195,22 +1195,6 @@ parser_concat_local_name:
     pop     rbx
     epilogue
 
-;*
-; * [error_struct_bounds]
-; * Purpose: Print a diagnostic for a struct bounds violation and abort.
-; * Input:
-; *   RDI = pointer to field name string
-; *   RSI = declared field byte size
-; *   RDX = attempted access byte size
-; ;
-global error_struct_bounds
-error_struct_bounds:
-    prologue
-    extern  error_emit            ; error.s generic message emitter
-    ; Passes all three args straight through; error_emit formats the message
-    call    error_emit
-    mov     rax, EXIT_STRUCT_BOUNDS
-    epilogue
 
 ;*
 ; * [parser_handle_pseudo_op]

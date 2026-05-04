@@ -479,3 +479,21 @@ io_write_full:
     pop     r12
     pop     rbx
     ret
+
+; ---- io_write_byte ----------------------------
+;
+; io_write_byte
+; Writes a single byte to a file descriptor.
+; Input    : rdi = file descriptor (i32)
+;            rsi = byte value (SIL)
+; Output   : rax = EXIT_OK or EXIT_FILE_WRITE
+; Clobbers : rcx, r11
+;
+global io_write_byte
+io_write_byte:
+    push    rsi                    ; put byte on stack
+    mov     rsi, rsp               ; point rsi to it
+    mov     rdx, 1                 ; size = 1
+    call    io_write
+    pop     rsi                    ; restore stack
+    ret

@@ -29,6 +29,8 @@ extern str_cmp
 ; *   RDI: Pointer to AsmCtx
 ; *   RSI: Byte to emit (SIL)
 ; ;
+global asmctx_emit_byte
+asmctx_emit_byte:
 global asm_ctx_emit_byte
 asm_ctx_emit_byte:
     prologue
@@ -136,6 +138,8 @@ asm_ctx_emit_byte:
 ; *   RAX: EXIT_OK or error
 ; *   RDX: Pointer to new SECTION
 ; ;
+global asmctx_create_section
+asmctx_create_section:
 global asm_ctx_create_section
 asm_ctx_create_section:
     prologue
@@ -206,6 +210,8 @@ asm_ctx_create_section:
 ; * [asm_ctx_emit_dword]
 ; * Purpose: Appends 4 bytes to the active section's buffer.
 ; ;
+global asmctx_emit_dword
+asmctx_emit_dword:
 global asm_ctx_emit_dword
 asm_ctx_emit_dword:
     prologue
@@ -240,6 +246,8 @@ asm_ctx_emit_dword:
 ; * [asm_ctx_emit_word]
 ; * Purpose: Appends 2 bytes (16-bit) to the active section.
 ; ;
+global asmctx_emit_word
+asmctx_emit_word:
 global asm_ctx_emit_word
 asm_ctx_emit_word:
     prologue
@@ -264,6 +272,8 @@ asm_ctx_emit_word:
 ; * [asm_ctx_emit_qword]
 ; * Purpose: Appends 8 bytes (64-bit) to the active section.
 ; ;
+global asmctx_emit_qword
+asmctx_emit_qword:
 global asm_ctx_emit_qword
 asm_ctx_emit_qword:
     prologue
@@ -291,6 +301,8 @@ asm_ctx_emit_qword:
 ; *   RDI: Pointer to AsmCtx
 ; *   RSI: Pointer to null-terminated string
 ; ;
+global asmctx_emit_string
+asmctx_emit_string:
 global asm_ctx_emit_string
 asm_ctx_emit_string:
     prologue
@@ -456,6 +468,56 @@ asm_ctx_align:
 
 .done:
     pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    epilogue
+
+;*
+; * [asmctx_get_section]
+; * Purpose: Returns the SECTION pointer for a given type (SEC_TEXT, SEC_DATA, etc).
+; * Input:
+; *   RDI: AsmCtx*
+; *   RSI: Section Type (SEC_*)
+; * Output:
+; *   RAX: EXIT_OK or EXIT_ERROR
+; *   RDX: SECTION*
+; ;
+global asmctx_get_section
+asmctx_get_section:
+    prologue
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi
+    mov     r12, rsi               ; requested type
+    
+    mov     r13, [rbx + ASMCTX_sections]
+    movzx   ecx, word [rbx + ASMCTX_seccount]
+    xor     rax, rax               ; index
+    
+.loop:
+    test    ecx, ecx
+    jz      .not_found
+    
+    mov     rdx, [r13 + rax*8]     ; rdx = SECTION*
+    cmp     byte [rdx + SECTION_type], r12b
+    je      .found
+    
+    inc     rax
+    dec     ecx
+    jmp     .loop
+    
+.found:
+    xor     rax, rax               ; EXIT_OK
+    jmp     .done
+    
+.not_found:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    
+.done:
     pop     r13
     pop     r12
     pop     rbx

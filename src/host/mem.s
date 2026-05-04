@@ -267,3 +267,26 @@ mem_advise:
 .error:
     mov     rax, EXIT_ERROR
     epilogue
+
+; ============================================================================
+; HEAP BRIDGE
+; ============================================================================
+
+extern global_arena
+extern arena_alloc
+
+; ---- heap_alloc --------------------------
+; Input: RDI = size
+; Output: RAX = status, RDX = pointer
+global heap_alloc
+heap_alloc:
+    mov     rsi, rdi
+    mov     rdi, global_arena
+    jmp     arena_alloc
+
+; ---- heap_free ---------------------------
+; Input: RDI = pointer
+global heap_free
+heap_free:
+    ; Arena doesn't support individual frees
+    ret

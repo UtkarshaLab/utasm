@@ -134,5 +134,5 @@
 ; * Purpose: AArch64-specific wrapper for the global mnemonic_entry macro.
 ; ;
 %macro def_mnc 3
-    mnc_ent %1, %2, %3
+    mnc_ent %1, %3, %2
 %endmacro

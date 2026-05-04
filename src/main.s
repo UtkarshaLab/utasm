@@ -51,6 +51,7 @@ extern error_report
 
 [SECTION .bss]
     align 8
+    global global_arena
     global_arena: resb 268435456 ; ARENA_SIZE (256 MiB)
     global global_ctx
     global_ctx:   resb 1024      ; ASMCTX_SIZE
@@ -241,6 +242,7 @@ _start:
     mov     rdi, 1
     syscall
 
+global print_str
 print_str:
     push    rbx
     push    rdi

@@ -82,6 +82,8 @@ string_length:
 ;              rax =  1 if A >  B
 ; Clobbers : rcx, rdx
 ;
+global str_compare
+str_compare:
 global str_cmp
 str_cmp:
     ; guard against NULL
@@ -496,6 +498,8 @@ mem_zero:
 ; Output   : rax = 0 equal, -1 A < B, 1 A > B
 ; Clobbers : rcx, r8
 ;
+global mem_compare
+mem_compare:
 global mem_cmp
 mem_cmp:
     test    rdx, rdx
@@ -1433,4 +1437,65 @@ str_free:
     extern  heap_free
     jmp     heap_free
 .done:
+    ret
+
+; ---- str_is_hex_digit -------------------
+global str_is_hex_digit
+str_is_hex_digit:
+    movzx   eax, dil
+    cmp     al, '0'
+    jl      .no
+    cmp     al, '9'
+    jle     .yes
+    cmp     al, 'a'
+    jl      .check_upper
+    cmp     al, 'f'
+    jle     .yes
+.check_upper:
+    cmp     al, 'A'
+    jl      .no
+    cmp     al, 'F'
+    jle     .yes
+.no:
+    xor     rax, rax
+    ret
+.yes:
+    mov     rax, 1
+    ret
+
+; ---- str_is_ident_char ------------------
+global str_is_ident_char
+str_is_ident_char:
+    push    rdi
+    call    str_is_alnum
+    test    rax, rax
+    jnz     .yes_pop
+    pop     rdi
+    cmp     dil, '_'
+    je      .yes
+    cmp     dil, '.'
+    je      .yes
+    xor     rax, rax
+    ret
+.yes_pop:
+    pop     rdi
+.yes:
+    mov     rax, 1
+    ret
+
+; ---- str_int_to_str ---------------------
+; Wrapper for int_to_str with base 10.
+global str_int_to_str
+str_int_to_str:
+    mov     rdx, 10
+    jmp     int_to_str
+
+; ---- str_utf8_decode --------------------
+; Decodes a UTF-8 character at [RDI].
+; Returns code point in RAX, length in RDX.
+global str_utf8_decode
+str_utf8_decode:
+    movzx   eax, byte [rdi]
+    mov     rdx, 1
+    ; Very basic: only 1-byte support for now
     ret
