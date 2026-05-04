@@ -6,8 +6,9 @@
 ; ============================================================================
 ;
 
-%include "core/macro.s"
-%include "arch/aarch64.s"
+%include "include/macro.s"
+%include "include/constant.s"
+%include "include/arch/aarch64.s"
 
 section .data
 global mnc_tb_arm64
@@ -972,68 +973,56 @@ aarch64_register_table:
     ; ---- 64-bit GPRs (X0-X30) ----
     %assign i 0
     %rep 31
-        compile_time_hash "x%[i]", H_X%[i]
-        dq H_X%[i], (8 << 8)
-        i
+        compile_time_hash "x%+i", H_X%+i
+        dq H_X%+i, (8 << 8), i
     %assign i i+1
     %endrep
 
     ; ---- Special Registers ----
     compile_time_hash "xzr", H_XZR
-    dq H_XZR, (8 << 8)
-    31
+    dq H_XZR, (8 << 8), 31
     compile_time_hash "sp", H_SP
-    dq H_SP, (8 << 8)
-    32
+    dq H_SP, (8 << 8), 32
 
     ; ---- 32-bit GPRs (W0-W30) ----
     %assign i 0
     %rep 31
-        compile_time_hash "w%[i]", H_W%[i]
-        dq H_W%[i], (4 << 8)
-        i
+        compile_time_hash "w%+i", H_W%+i
+        dq H_W%+i, (4 << 8), i
     %assign i i+1
     %endrep
 
     ; ---- SIMD/FP Vector Registers (V0-V31) ----
     %assign i 0
     %rep 32
-        compile_time_hash "v%[i]", H_V%[i]
-        dq H_V%[i], (16 << 8)
-        i
-        compile_time_hash "q%[i]", H_Q%[i]
-        dq H_Q%[i], (16 << 8)
-        i
-        compile_time_hash "d%[i]", H_D%[i]
-        dq H_D%[i], (8 << 8)
-        i
-        compile_time_hash "s%[i]", H_S%[i]
-        dq H_S%[i], (4 << 8)
-        i
-        compile_time_hash "h%[i]", H_H%[i]
-        dq H_H%[i], (2 << 8)
-        i
-        compile_time_hash "b%[i]", H_B%[i]
-        dq H_B%[i], (1 << 8)
-        i
+        compile_time_hash "v%+i", H_V%+i
+        dq H_V%+i, (16 << 8), i
+        compile_time_hash "q%+i", H_Q%+i
+        dq H_Q%+i, (16 << 8), i
+        compile_time_hash "d%+i", H_D%+i
+        dq H_D%+i, (8 << 8), i
+        compile_time_hash "s%+i", H_S%+i
+        dq H_S%+i, (4 << 8), i
+        compile_time_hash "h%+i", H_H%+i
+        dq H_H%+i, (2 << 8), i
+        compile_time_hash "b%+i", H_B%+i
+        dq H_B%+i, (1 << 8), i
     %assign i i+1
     %endrep
 
     ; ---- SVE Scalable Vector Registers (Z0-Z31) ----
     %assign i 0
     %rep 32
-        compile_time_hash "z%[i]", H_Z%[i]
-        dq H_Z%[i], (64 << 8)
-        i
+        compile_time_hash "z%+i", H_Z%+i
+        dq H_Z%+i, (64 << 8), i
     %assign i i+1
     %endrep
 
     ; ---- SVE Predicate Registers (P0-P15) ----
     %assign i 0
     %rep 16
-        compile_time_hash "p%[i]", H_P%[i]
-        dq H_P%[i], (8 << 8)
-        i
+        compile_time_hash "p%+i", H_P%+i
+        dq H_P%+i, (8 << 8), i
     %assign i i+1
     %endrep
 

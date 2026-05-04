@@ -25,6 +25,9 @@ aarch64_encode_instruction:
     push    r12
     push    r13
     
+    mov     rbx, rdi               ; RBX = AsmCtx
+    mov     r12, rsi               ; R12 = INST struct
+    
     movzx   eax, word [r12 + INST_op_id]
     
     ; ---- Data Processing (Register) ----
@@ -212,7 +215,7 @@ aarch64_encode_mov:
     lea     r10, [r12 + INST_op0]
     lea     r11, [r12 + INST_op1]
     
-    IF byte [r11 + OPERAND_type], e, OPERAND_TYPE_REG
+    IF byte [r11 + OPERAND_kind], e, OP_REG
         ; MOV Rd, Rn -> ORR Rd, ZR, Rn
         mov     r13d, 0x2A0003E0
         call    aarch64_encode_dp_reg
@@ -579,5 +582,8 @@ aarch64_encode_tst:
 aarch64_emit_word:
     prologue
     ; EDI contains the 32-bit instruction
-    call    emit_u32
+    mov     rsi, rdi
+    mov     rdi, rbx               ; Pass AsmCtx
+    extern  asm_ctx_emit_dword
+    call    asm_ctx_emit_dword
     epilogue
