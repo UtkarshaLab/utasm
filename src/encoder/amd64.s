@@ -2360,7 +2360,7 @@ amd64_encode_ret:
 ; ;
 amd64_encode_jcc:
     prologue
-    mov     ax, [r12 + INST_id]
+    mov     ax, [r12 + INST_op_id]
     
     ; Extract condition code from ID (3000-3031)
     sub     ax, 3000
@@ -2411,7 +2411,7 @@ amd64_encode_branch_short:
 ; ;
 amd64_encode_jcc_short:
     prologue
-    mov     ax, [r12 + INST_id]
+    mov     ax, [r12 + INST_op_id]
     sub     ax, 3000
     and     rax, 0x0F
     add     al, 0x70           ; 0x70 = JO short, 0x74 = JE short
@@ -2451,6 +2451,8 @@ amd64_encode_lea:
     mov     rdi, r11
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_test]
@@ -2481,6 +2483,8 @@ amd64_encode_test:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_unary]
@@ -2550,6 +2554,8 @@ amd64_encode_shift:
         call    amd64_emit_modrm_sib
         ENDIF
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_imul]
@@ -2649,7 +2655,7 @@ amd64_encode_unary_math:
 ; ;
 amd64_encode_cmovcc:
     prologue
-    mov     ax, [r12 + INST_id]
+    mov     ax, [r12 + INST_op_id]
     sub     ax, 4000
     and     rax, 0x0F
     mov     r14, rax           ; Condition Code
@@ -2677,13 +2683,15 @@ amd64_encode_cmovcc:
     mov     rdi, r11
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_setcc]
 ; ;
 amd64_encode_setcc:
     prologue
-    mov     ax, [r12 + INST_id]
+    mov     ax, [r12 + INST_op_id]
     sub     ax, 4016
     and     rax, 0x0F
     mov     r14, rax
@@ -2706,6 +2714,8 @@ amd64_encode_setcc:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_enter]
@@ -2725,6 +2735,8 @@ amd64_encode_enter:
     mov     al, [r11 + OPERAND_imm]
     call    amd64_emit_byte
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_emit_branch_rel8]
@@ -2750,6 +2762,8 @@ amd64_encode_int:
     mov     rax, [r10 + OPERAND_imm]
     call    amd64_emit_byte
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_system_m]
@@ -2767,6 +2781,8 @@ amd64_encode_system_m:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_system_00]
@@ -2783,6 +2799,8 @@ amd64_encode_system_00:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_in]
@@ -2810,6 +2828,8 @@ amd64_encode_in:
         call    amd64_emit_byte
         ENDIF
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_out]
@@ -2835,10 +2855,8 @@ amd64_encode_out:
         call    amd64_emit_byte
         ENDIF
     jmp     .done
-
-    mov     rax, [r10 + OPERAND_imm]
-    call    amd64_emit_byte
-    jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_fpu]
@@ -2857,6 +2875,8 @@ amd64_encode_fpu:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
     mov     al, r14b           ; Digit
     mov     rdi, r10
@@ -2924,6 +2944,8 @@ amd64_encode_sse_crypto:
             ENDIF
             ENDIF
     jmp     .done
+.done:
+    epilogue
 
 amd64_encode_vex:
     prologue
@@ -3015,6 +3037,8 @@ amd64_encode_vex:
     pop     r13
     pop     rbx
     jmp     .done
+.done:
+    epilogue
     
     IF bl, e, 0xC5
         mov al, 0xC5
@@ -3155,8 +3179,8 @@ amd64_encode_evex:
     call    amd64_emit_byte
     
     ; Byte 2: W vvvv 1 pp
-    ; pp (Prefix from INST_prefix)
-    mov     cl, [r12 + INST_prefix]
+    ; pp (Prefix from INST_prefixes)
+    mov     cl, [r12 + INST_prefixes]
     xor     al, al
     IF cl, e, 0x66
     mov al, 1
@@ -3234,6 +3258,8 @@ amd64_encode_evex:
         ENDIF
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_string]
@@ -3241,7 +3267,7 @@ amd64_encode_evex:
 ; ;
 amd64_encode_string:
     prologue
-    mov     ax, [r12 + INST_id]
+    mov     ax, [r12 + INST_op_id]
     
     ; Determine size (8, 16, 32, 64)
     ; 1. Check if fixed-size mnemonic (e.g. MOVSB = 8)
@@ -3309,6 +3335,8 @@ amd64_encode_string:
         ENDIF
     call    amd64_emit_byte
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_bin0f]
@@ -3336,6 +3364,8 @@ amd64_encode_bin0f:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_cmpxchg_nb]
@@ -3363,6 +3393,8 @@ amd64_encode_cmpxchg_nb:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_sec_r]
@@ -3391,6 +3423,8 @@ amd64_encode_sec_r:
     or      al, cl
     call    amd64_emit_byte
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_vm_m]
@@ -3415,6 +3449,8 @@ amd64_encode_vm_m:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_vm_rm_r]
@@ -3434,9 +3470,8 @@ amd64_encode_vm_rm_r:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
-
-    call    amd64_emit_modrm_sib
-    jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_bt]
@@ -3478,6 +3513,8 @@ amd64_encode_bt:
         call amd64_emit_byte
         ENDIF
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_mem_sync]
@@ -3496,6 +3533,8 @@ amd64_encode_mem_sync:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_rm_r]
@@ -3529,6 +3568,8 @@ amd64_encode_rm_r:
     mov     rdi, r11
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_emit_reloc]
@@ -3548,6 +3589,13 @@ amd64_emit_reloc:
     mov     rsi, RELOC_SIZE
     call    arena_alloc
     check_err
+    jmp     .ok
+.error:
+    pop     rdx
+    pop     rsi
+    pop     rax
+    epilogue
+.ok:
     mov     r13, rdx
     
     pop     rdx                    ; rdx = pc_adjust
