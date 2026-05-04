@@ -43,8 +43,6 @@ extern global_ctx
 ;   return: rax = error code, rdx = result
 ;   callee saved: rbx, r12-r15, rbp
 
-[SECTION .bss]
-    uint_str_buf: resb 32
 
 [SECTION .text]
 
@@ -712,7 +710,7 @@ error_write_str:
 ; Output   : rax = EXIT_OK
 ;              rdx = pointer to null-terminated decimal string
 ; Clobbers : rcx, r8, r9, r10
-;
+global error_uint_to_str
 error_uint_to_str:
     lea     r8, [uint_buf + 20]     ; build from end
     mov     byte [r8], 0            ; null terminator
@@ -1004,16 +1002,7 @@ error_new_from_errno:
 ; *   RSI = field size (bytes)
 ; *   RDX = access size (bytes)
 ; ;
-global error_uint_to_str
-error_uint_to_str:
-    mov     rsi, rdi
-    lea     rdi, [uint_str_buf]
-    mov     rdx, 10
-    extern  int_to_str
-    call    int_to_str
-    ret
-
-global error_struct_bounds
+ global error_struct_bounds
 error_struct_bounds:
     prologue
     push    rbx

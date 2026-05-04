@@ -1796,7 +1796,7 @@ amd64_encode_mov:
             IF dl, e, 64
                 IF byte [r14 + OPERAND_kind], e, OP_IMM
                     IF rax, ge, 0
-                        IF rax, le, 4294967295
+                        IF rax, b, 0x100000000
                             mov dl, 32
                             ENDIF
                         ENDIF
