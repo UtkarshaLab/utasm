@@ -81,6 +81,15 @@
 %define ID_AARCH64_AND_V       2802
 %define ID_AARCH64_ORR_V       2803
 %define ID_AARCH64_EOR_V       2804
+%define ID_AARCH64_SXTB        2805
+%define ID_AARCH64_SXTH        2806
+%define ID_AARCH64_SXTW        2807
+%define ID_AARCH64_REV         2808
+%define ID_AARCH64_WFI_V       2809
+%define ID_AARCH64_MRS_V       2810
+%define ID_AARCH64_MSR_V       2811
+%define ID_AARCH64_DSB_V       2812
+%define ID_AARCH64_ISB_V       2813
 
 ;*
 ; * [def_mnc]

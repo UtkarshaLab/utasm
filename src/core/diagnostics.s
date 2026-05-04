@@ -53,7 +53,7 @@ diag_error_at:
     lea     rsi, [msg_colon]
     call    .print_str
     
-    movzx   rdi, dword [r12 + TOKEN_line]
+    mov     edi, [r12 + TOKEN_line]
     call    .print_int
     
     lea     rsi, [msg_colon]

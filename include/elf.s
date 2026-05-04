@@ -332,15 +332,25 @@
 %define R_X86_64_REX_GOTPCRELX 42          ; Relaxable GOTPCREL (REX)
 
 ; ---- AArch64 Relocation Types -----------
+%define R_AARCH64_NONE         0
 %define R_AARCH64_ABS64        257
 %define R_AARCH64_COPY         258
 %define R_AARCH64_GLOB_DAT     259
 %define R_AARCH64_JUMP_SLOT    260
 %define R_AARCH64_RELATIVE     261
+%define R_AARCH64_ADR_PREL_LO21 274
 %define R_AARCH64_ADR_PREL_PG_HI21 275
+%define R_AARCH64_ADR_PREL_PG_HI21_NC 276
 %define R_AARCH64_ADD_ABS_LO12_NC 277
-%define R_AARCH64_CALL26       283
+%define R_AARCH64_LDST8_ABS_LO12_NC 278
+%define R_AARCH64_TSTBR_14     279
+%define R_AARCH64_CONDBR19     280
 %define R_AARCH64_JMP26        282
+%define R_AARCH64_CALL26       283
+%define R_AARCH64_LDST16_ABS_LO12_NC 284
+%define R_AARCH64_LDST32_ABS_LO12_NC 285
+%define R_AARCH64_LDST64_ABS_LO12_NC 286
+%define R_AARCH64_LDST128_ABS_LO12_NC 299
 
 ; ---- RISC-V Relocation Types -----------
 %define R_RISCV_64             2

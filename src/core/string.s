@@ -1,4 +1,4 @@
-;
+; ;
 ; ============================================
 ; File     : src/core/string.s
 ; Project  : utasm
@@ -40,7 +40,7 @@ DEFAULT REL
 ; str_len
 ; Returns the length of a null-terminated string.
 ; Does not count the null terminator.
-; Cannot fail â€” returns length directly in rax.
+; Cannot fail — returns length directly in rax.
 ; Input    : rdi = pointer to null-terminated string
 ; Output   : rax = length in bytes
 ; Clobbers : rcx
@@ -61,6 +61,11 @@ str_len:
 
 .done:
     ret
+
+; Aliases for backward compatibility
+global string_length
+string_length:
+    jmp str_len
 
 .null_ptr:
     xor     rax, rax               ; NULL = length 0
@@ -91,7 +96,7 @@ str_cmp:
     cmp     cl, dl
     jl      .a_less
     jg      .a_greater
-    test    cl, cl                 ; both equal â€” check null
+    test    cl, cl                 ; both equal — check null
     jz      .equal                 ; both null = strings equal
     inc     rdi
     inc     rsi
@@ -108,6 +113,10 @@ str_cmp:
 .a_greater:
     mov     rax, 1
     ret
+
+global string_compare
+string_compare:
+    jmp str_cmp
 
 .a_null:
     test    rsi, rsi
@@ -179,7 +188,7 @@ str_cmp_n:
 ;
 ; str_copy
 ; Copies null-terminated string from src to dst.
-; Destination must be large enough â€” no bounds check.
+; Destination must be large enough — no bounds check.
 ; Input    : rdi = destination buffer pointer
 ;             rsi = source string pointer
 ; Output   : rax = EXIT_OK or EXIT_ERROR
@@ -207,6 +216,10 @@ str_copy:
 .done:
     xor     rax, rax               ; rax = EXIT_OK
     ret
+
+global string_copy
+string_copy:
+    jmp str_copy
 
 .null_ptr:
     mov     rax, EXIT_ERROR
@@ -314,6 +327,10 @@ str_concat:
     pop     rbx
     ret
 
+global string_concat
+string_concat:
+    jmp str_concat
+
 .null_ptr:
     mov     rax, EXIT_ERROR
     xor     rdx, rdx
@@ -323,7 +340,7 @@ str_concat:
 ;
 ; mem_copy
 ; Copies n bytes from src to dst.
-; Regions must not overlap â€” use mem_move for overlapping regions.
+; Regions must not overlap — use mem_move for overlapping regions.
 ; Input    : rdi = destination pointer
 ;             rsi = source pointer
 ;             rdx = number of bytes to copy
@@ -787,685 +804,631 @@ str_find_char:
     xor     rdx, rdx
     ret
 
+; ---- str_find_str -----------------------
+;
+; str_find_str
+; Finds the first occurrence of needle in haystack.
+; Input    : rdi = haystack string pointer
+;             rsi = needle string pointer
+; Output   : rax = EXIT_OK if found, EXIT_ERROR if not found
+;              rdx = pointer to start of occurrence
+; Clobbers : rcx, r8, r9
+;
+global str_find_str
+str_find_str:
+    test    rdi, rdi
+    jz      .null_ptr
+    test    rsi, rsi
+    jz      .null_ptr
+
+    ; empty needle matches start of haystack
+    cmp     byte [rsi], 0
+    je      .found_empty
+
+.loop_haystack:
+    mov     al, byte [rdi]
+    test    al, al
+    jz      .not_found
+
+    ; check if needle starts here
+    xor     rcx, rcx
+.loop_needle:
+    mov     r8b, byte [rsi + rcx]
+    test    r8b, r8b
+    jz      .found                 ; reached end of needle = match
+    mov     r9b, byte [rdi + rcx]
+    cmp     r8b, r9b
+    jne     .next_haystack
+    inc     rcx
+    jmp     .loop_needle
+
+.next_haystack:
+    inc     rdi
+    jmp     .loop_haystack
+
+.found_empty:
+    xor     rax, rax
+    mov     rdx, rdi
+    ret
+
+.found:
+    xor     rax, rax
+    mov     rdx, rdi
+    ret
+
+.not_found:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
 .null_ptr:
     mov     rax, EXIT_ERROR
     xor     rdx, rdx
     ret
 
-; ---- str_is_digit -----------------------
+; ---- str_to_upper -----------------------
 ;
-; str_is_digit
-; Checks if a single character is a decimal digit.
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
+; str_to_upper
+; Converts a null-terminated string to uppercase in-place.
+; Input    : rdi = string pointer
+; Output   : rax = EXIT_OK or EXIT_ERROR
+;              rdx = string pointer
+; Clobbers : rcx
 ;
-global str_is_digit
-str_is_digit:
-    cmp     dil, '0'
-    jl      .false
-    cmp     dil, '9'
-    jg      .false
-    mov     rax, TRUE
+global str_to_upper
+str_to_upper:
+    test    rdi, rdi
+    jz      .null_ptr
+
+    push    rbx
+    mov     rbx, rdi
+
+.loop:
+    mov     al, byte [rdi]
+    test    al, al
+    jz      .done
+    cmp     al, 'a'
+    jl      .next
+    cmp     al, 'z'
+    jg      .next
+    sub     al, 32                 ; 'a' - 'A' = 32
+    mov     byte [rdi], al
+
+.next:
+    inc     rdi
+    jmp     .loop
+
+.done:
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     rbx
     ret
-.false:
-    mov     rax, FALSE
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+; ---- str_to_lower -----------------------
+;
+; str_to_lower
+; Converts a null-terminated string to lowercase in-place.
+; Input    : rdi = string pointer
+; Output   : rax = EXIT_OK or EXIT_ERROR
+;              rdx = string pointer
+; Clobbers : rcx
+;
+global str_to_lower
+str_to_lower:
+    test    rdi, rdi
+    jz      .null_ptr
+
+    push    rbx
+    mov     rbx, rdi
+
+.loop:
+    mov     al, byte [rdi]
+    test    al, al
+    jz      .done
+    cmp     al, 'A'
+    jl      .next
+    cmp     al, 'Z'
+    jg      .next
+    add     al, 32
+    mov     byte [rdi], al
+
+.next:
+    inc     rdi
+    jmp     .loop
+
+.done:
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     rbx
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+; ---- str_trim ---------------------------
+;
+; str_trim
+; Trims leading and trailing whitespace from a string in-place.
+; Input    : rdi = string pointer
+; Output   : rax = EXIT_OK or EXIT_ERROR
+;              rdx = pointer to new start of string
+; Clobbers : rcx, r8
+;
+global str_trim
+str_trim:
+    test    rdi, rdi
+    jz      .null_ptr
+
+    push    rbx
+    mov     rbx, rdi
+
+    ; trim leading
+.trim_leading:
+    mov     al, byte [rbx]
+    test    al, al
+    jz      .done_leading
+    ; check for space, tab, cr, lf
+    cmp     al, ' '
+    je      .skip_leading
+    cmp     al, 9                  ; tab
+    je      .skip_leading
+    cmp     al, 10                 ; lf
+    je      .skip_leading
+    cmp     al, 13                 ; cr
+    je      .skip_leading
+    jmp     .done_leading
+
+.skip_leading:
+    inc     rbx
+    jmp     .trim_leading
+
+.done_leading:
+    ; trim trailing
+    push    rdi
+    push    rsi
+    mov     rdi, rbx
+    extern  str_len
+    call    str_len
+    pop     rsi
+    pop     rdi
+    test    rax, rax
+    jz      .done
+
+    lea     rcx, [rbx + rax - 1]   ; end of string
+.trim_trailing:
+    cmp     rcx, rbx
+    jl      .done
+    mov     al, byte [rcx]
+    cmp     al, ' '
+    je      .skip_trailing
+    cmp     al, 9
+    je      .skip_trailing
+    cmp     al, 10
+    je      .skip_trailing
+    cmp     al, 13
+    je      .skip_trailing
+    jmp     .done
+
+.skip_trailing:
+    mov     byte [rcx], 0
+    dec     rcx
+    jmp     .trim_trailing
+
+.done:
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     rbx
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+; ---- str_dup ----------------------------
+;
+; str_dup
+; Duplicates a string using heap allocation.
+; Input    : rdi = string pointer
+; Output   : rax = EXIT_OK or EXIT_ERROR/EXIT_OUT_OF_MEM
+;              rdx = pointer to new string
+; Clobbers : rcx, rsi
+;
+global str_dup
+str_dup:
+    test    rdi, rdi
+    jz      .null_ptr
+
+    push    rbp
+    mov     rbp, rsp
+    push    rbx
+    mov     rbx, rdi               ; save src
+
+    ; get length
+    call    str_len
+    inc     rax                    ; +1 for null
+    
+    ; allocate
+    push    rax
+    mov     rdi, rax
+    extern  heap_alloc
+    call    heap_alloc
+    pop     rcx                    ; rcx = size
+    test    rax, rax
+    jz      .no_mem
+
+    ; copy
+    mov     rdi, rdx               ; dst = allocated ptr
+    mov     rsi, rbx               ; src = original
+    rep movsb
+
+    xor     rax, rax
+    ; rdx already contains allocated pointer from heap_alloc
+    pop     rbx
+    leave
+    ret
+
+.no_mem:
+    mov     rax, EXIT_OUT_OF_MEM
+    xor     rdx, rdx
+    pop     rbx
+    leave
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+; ---- str_split_char ---------------------
+;
+; str_split_char
+; Splits a string by a delimiter character.
+; Replaces the first occurrence of delimiter with null.
+; Input    : rdi = string pointer
+;             rsi = delimiter character
+; Output   : rax = EXIT_OK or EXIT_ERROR
+;              rdx = pointer to second part (or NULL if no split)
+; Clobbers : rcx
+;
+global str_split_char
+str_split_char:
+    test    rdi, rdi
+    jz      .null_ptr
+
+.loop:
+    mov     al, byte [rdi]
+    test    al, al
+    jz      .not_found
+    cmp     al, sil
+    je      .found
+    inc     rdi
+    jmp     .loop
+
+.found:
+    mov     byte [rdi], 0          ; split
+    inc     rdi
+    xor     rax, rax
+    mov     rdx, rdi
+    ret
+
+.not_found:
+    xor     rax, rax
+    xor     rdx, rdx
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+; ---- int_to_str -------------------------
+;
+; int_to_str
+; Converts a 64-bit integer to a string.
+; Input    : rdi = destination buffer
+;             rsi = integer value
+;             rdx = base (2, 8, 10, 16)
+; Output   : rax = EXIT_OK or EXIT_ERROR
+;              rdx = destination buffer
+; Clobbers : rax, rcx, r8, r9
+;
+global int_to_str
+int_to_str:
+    test    rdi, rdi
+    jz      .null_ptr
+    cmp     rdx, 2
+    jl      .invalid_base
+    cmp     rdx, 36
+    jg      .invalid_base
+
+    push    rbx
+    push    r12
+    push    r13
+    
+    mov     rbx, rdi               ; save start
+    mov     rax, rsi               ; value
+    mov     r12, rdx               ; base
+    
+    ; check for negative (only if base 10)
+    cmp     r12, 10
+    jne     .unsigned
+    test    rax, rax
+    jns     .unsigned
+    mov     byte [rdi], '-'
+    inc     rdi
+    neg     rax
+
+.unsigned:
+    mov     r13, rdi               ; start of digits
+    
+.convert_loop:
+    xor     rdx, rdx
+    div     r12
+    
+    ; convert remainder to char
+    cmp     dl, 10
+    jl      .digit
+    add     dl, 'A' - 10
+    jmp     .store
+.digit:
+    add     dl, '0'
+.store:
+    mov     byte [rdi], dl
+    inc     rdi
+    test    rax, rax
+    jnz     .convert_loop
+    
+    mov     byte [rdi], 0          ; null terminate
+    
+    ; reverse digits
+    mov     rsi, rdi
+    dec     rsi                    ; rsi = end of string
+    mov     rdi, r13               ; rdi = start of digits
+    
+.reverse_loop:
+    cmp     rdi, rsi
+    jge     .done
+    mov     al, byte [rdi]
+    mov     ah, byte [rsi]
+    mov     byte [rdi], ah
+    mov     byte [rsi], al
+    inc     rdi
+    dec     rsi
+    jmp     .reverse_loop
+
+.done:
+    xor     rax, rax
+    mov     rdx, rbx
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.invalid_base:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+.null_ptr:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
     ret
 
 ; ---- str_is_alpha -----------------------
-;
-; str_is_alpha
-; Checks if a single character is an ASCII letter.
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
-;
 global str_is_alpha
 str_is_alpha:
-    cmp     dil, 'a'
+    movzx   eax, dil
+    cmp     al, 'a'
     jl      .check_upper
-    cmp     dil, 'z'
-    jle     .true
+    cmp     al, 'z'
+    jle     .yes
 .check_upper:
-    cmp     dil, 'A'
-    jl      .false
-    cmp     dil, 'Z'
-    jle     .true
-.false:
-    mov     rax, FALSE
+    cmp     al, 'A'
+    jl      .no
+    cmp     al, 'Z'
+    jle     .yes
+.no:
+    xor     rax, rax
     ret
-.true:
-    mov     rax, TRUE
+.yes:
+    mov     rax, 1
+    ret
+
+; ---- str_is_digit -----------------------
+global str_is_digit
+str_is_digit:
+    movzx   eax, dil
+    cmp     al, '0'
+    jl      .no
+    cmp     al, '9'
+    jle     .yes
+.no:
+    xor     rax, rax
+    ret
+.yes:
+    mov     rax, 1
     ret
 
 ; ---- str_is_alnum -----------------------
-;
-; str_is_alnum
-; Checks if a character is alphanumeric (letter or digit).
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
-;
 global str_is_alnum
 str_is_alnum:
     push    rdi
     call    str_is_alpha
+    test    rax, rax
+    jnz     .yes
     pop     rdi
-    cmp     rax, TRUE
-    je      .true
     call    str_is_digit
     ret
-.true:
-    mov     rax, TRUE
+.yes:
+    pop     rdx
     ret
 
-; ---- str_is_space -----------------------
-;
-; str_is_space
-; Checks if a character is whitespace (space, tab, CR).
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
-;
-global str_is_space
-str_is_space:
-    cmp     dil, ' '
-    je      .true
-    cmp     dil, 0x09              ; tab
-    je      .true
-    cmp     dil, 0x0D              ; carriage return
-    je      .true
-    mov     rax, FALSE
-    ret
-.true:
-    mov     rax, TRUE
-    ret
-
-; ---- str_is_ident_start -----------------
-;
-; str_is_ident_start
-; Checks if a character can start an identifier.
-; Valid: letter, underscore, dot (for local labels).
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
-;
-global str_is_ident_start
-str_is_ident_start:
-    cmp     dil, '_'
-    je      .true
-    cmp     dil, '.'
-    je      .true
-    push    rdi
-    call    str_is_alpha
-    pop     rdi
-    ret
-.true:
-    mov     rax, TRUE
-    ret
-
-; ---- str_is_ident_char ------------------
-;
-; str_is_ident_char
-; Checks if a character can appear inside an identifier.
-; Valid: letter, digit, underscore, dot.
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
-;
-global str_is_ident_char
-str_is_ident_char:
-    cmp     dil, '_'
-    je      .true
-    cmp     dil, '.'
-    je      .true
-    push    rdi
-    call    str_is_alnum
-    pop     rdi
-    ret
-.true:
-    mov     rax, TRUE
-    ret
-
-; ---- str_is_hex_digit -------------------
-;
-; str_is_hex_digit
-; Checks if a character is a valid hexadecimal digit.
-; Input    : rdi = character value (low byte used)
-; Output   : rax = TRUE or FALSE
-; Clobbers : none
-;
-global str_is_hex_digit
-str_is_hex_digit:
-    push    rdi
-    call    str_is_digit
-    pop     rdi
-    cmp     rax, TRUE
-    je      .true
-    cmp     dil, 'a'
-    jl      .check_upper
-    cmp     dil, 'f'
-    jle     .true
-.check_upper:
-    cmp     dil, 'A'
-    jl      .false
-    cmp     dil, 'F'
-    jle     .true
-.false:
-    mov     rax, FALSE
-    ret
-.true:
-    mov     rax, TRUE
-    ret
-
-; ---- str_concat_dot ----------------------
-;
-; str_concat_dot
-; Builds "A.B" from two strings into a caller-supplied buffer.
-; Used by the struct field resolver to build "StructName.FieldName".
-; Input    : rdi = destination buffer (must hold len(A)+len(B)+2 bytes)
-;             rsi = pointer to string A (struct name)
-;             rdx = pointer to string B (target name)
-; Output   : rax = EXIT_OK or EXIT_ERROR
-;              rdx = 0 if matches, non-zero otherwise
-; Clobbers : rcx, r8, r9
-;
-global str_concat_dot
-str_concat_dot:
-    test    rdi, rdi
-    jz      .null_ptr
-    test    rsi, rsi
-    jz      .null_ptr
-    test    rdx, rdx
-    jz      .null_ptr
-
-    push    rbx
-    push    r12
-    push    r13
-    mov     rbx, rdi               ; save dst start
-    mov     r12, rsi               ; save A ptr
-    mov     r13, rdx               ; save B ptr
-
-    ; copy A into dst
-    mov     rsi, r12
-    call    str_copy
-    test    rax, rax
-    jnz     .error
-
-    ; append '.'
-    mov     rdi, rbx
-    call    str_len                ; rax = len(A)
-    add     rdi, rax
-    mov     byte [rdi], '.'
-    inc     rdi
-
-    ; append B
-    mov     rsi, r13
-    call    str_copy
-    test    rax, rax
-    jnz     .error
-
-    xor     rax, rax
-    mov     rdx, rbx
-    pop     r13
-    pop     r12
-    pop     rbx
-    ret
-
-.error:
-    pop     r13
-    pop     r12
-    pop     rbx
-    mov     rax, EXIT_ERROR
-    xor     rdx, rdx
-    ret
-
-.null_ptr:
-    mov     rax, EXIT_ERROR
-    xor     rdx, rdx
-    ret
-
-; ---- str_int_to_str ----------------------
-;
-; str_int_to_str
-; Converts an unsigned 64-bit integer to a decimal ASCII string.
-; Input    : rdi = destination buffer (must hold at least 21 bytes)
-;             rsi = unsigned 64-bit value to format
-;             rdx = base (2, 8, 10, 16)
-; Output   : rax = EXIT_OK or EXIT_INVALID_IMM
-;              rdx = pointer to string in internal buffer (NOT thread-safe)
-; Clobbers : rcx, r8, r9, r10
-;
-global str_int_to_str
-str_int_to_str:
-    test    rdi, rdi
-    jz      .null_ptr
-
-    push    rbx
-    push    r12
-    push    r13
-    mov     rbx, rdi               ; save dst
-    mov     r12, rsi               ; value to convert
-    
-    ; handle zero specially
-    test    r12, r12
-    jnz     .nonzero
-    mov     byte [rdi], '0'
-    mov     byte [rdi + 1], 0
-    xor     rax, rax
-    mov     rdx, rbx
-    pop     r13
-    pop     r12
-    pop     rbx
-    ret
-
-.nonzero:
-    ; build digits in reverse into a 21-byte temp buffer on stack
-    sub     rsp, 24
-    mov     r13, rsp               ; temp buffer
-    xor     rcx, rcx               ; digit count
-
-    mov     rax, r12
-    mov     r8, 10
-
-.div_loop:
-    test    rax, rax
-    jz      .reverse
-    xor     rdx, rdx
-    div     r8
-    add     dl, '0'
-    mov     byte [r13 + rcx], dl
-    inc     rcx
-    jmp     .div_loop
-
-.reverse:
-    ; copy reversed digits into dst
-    mov     r9, 0                  ; dst index
-.rev_loop:
-    test    rcx, rcx
-    jz      .terminate
-    dec     rcx
-    mov     al, byte [r13 + rcx]
-    mov     byte [rbx + r9], al
-    inc     r9
-    jmp     .rev_loop
-
-.terminate:
-    mov     byte [rbx + r9], 0    ; null terminate
-    add     rsp, 24
-    xor     rax, rax
-    mov     rdx, rbx
-    pop     r13
-    pop     r12
-    pop     rbx
-    ret
-
-.null_ptr:
-    mov     rax, EXIT_ERROR
-    xor     rdx, rdx
-    ret
-
-;*
-; * [str_concat]
-; * Purpose: Concatenates two null-terminated strings into a destination.
-; * Input:
-; *   RDI: Destination buffer
-; *   RSI: String A
-; *   RDX: String B
-; ;
-global str_concat
-str_concat:
-    prologue
-    push    rbx
-    push    r12
-    push    r13
-    
-    mov     rbx, rdi               ; RBX = Dest
-    mov     r12, rsi               ; R12 = A
-    mov     r13, rdx               ; R13 = B
-    
-    ; Copy String A
-    mov     rdi, rbx
-    mov     rsi, r12
-    call    str_copy
-    
-    ; Find end of Dest
-    mov     rdi, rbx
-    call    str_len
-    add     rdi, rax               ; RDI points to null terminator of A
-    
-    ; Copy String B
-    mov     rsi, r13
-    call    str_copy
-    
-    pop     r13
-    pop     r12
-    pop     rbx
-    xor     rax, rax
-    epilogue
-;*
-; * [str_find_str]
-; * Purpose: Finds a substring within a string.
-; * Input:
-; *   RDI: Haystack (null-terminated)
-; *   RSI: Needle (null-terminated)
-; * Output:
-; *   RAX: EXIT_OK if found, EXIT_ERROR if not
-; *   RDX: Pointer to start of needle in haystack
-; ;
-global str_find_str
-str_find_str:
-    prologue
-    push    rbx
-    push    r12
-    push    r13
-    
-    mov     rbx, rdi               ; Haystack
-    mov     r12, rsi               ; Needle
-    
-    ; handle empty needle
-    movzx   rax, byte [r12]
-    test    al, al
-    jz      .found_empty
-    
-.outer:
-    movzx   rax, byte [rbx]
-    test    al, al
-    jz      .not_found
-    
-    ; check match at current position
-    mov     rdi, rbx
-    mov     rsi, r12
-.inner:
-    movzx   rax, byte [rdi]
-    movzx   rcx, byte [rsi]
+; ---- str_hash ---------------------------
+; DJB2 Hash
+global str_hash
+str_hash:
+    mov     rax, 5381
+.loop:
+    movzx   rcx, byte [rdi]
     test    cl, cl
-    jz      .found                 ; reached end of needle
-    cmp     al, cl
-    jne     .next_outer
+    jz      .done
+    ; hash = ((hash << 5) + hash) + c
+    mov     rdx, rax
+    shl     rax, 5
+    add     rax, rdx
+    add     rax, rcx
     inc     rdi
-    inc     rsi
-    jmp     .inner
+    jmp     .loop
+.done:
+    ret
 
-.next_outer:
-    inc     rbx
-    jmp     .outer
+; ============================================================================
+; Path Utilities
+; ============================================================================
 
-.found_empty:
-    mov     rdx, rbx
-    xor     rax, rax
-    jmp     .done
+; ---- path_get_filename ------------------
+; Returns pointer to the filename part of a path.
+global path_get_filename
+path_get_filename:
+    test    rdi, rdi
+    jz      .null
+    
+    push    rbx
+    mov     rbx, rdi
+    
+    ; find last / or \
+    push    rdi
+    call    str_len
+    pop     rdi
+    
+    lea     rcx, [rdi + rax - 1]
+.loop:
+    cmp     rcx, rdi
+    jl      .done                  ; not found, return original
+    mov     al, byte [rcx]
+    cmp     al, '/'
+    je      .found
+    cmp     al, '\'
+    je      .found
+    dec     rcx
+    jmp     .loop
 
 .found:
-    mov     rdx, rbx
-    xor     rax, rax
-    jmp     .done
-
-.not_found:
-    mov     rax, EXIT_ERROR
-    ; fall through to .done
+    lea     rbx, [rcx + 1]
 
 .done:
-    pop     r13
-    pop     r12
+    mov     rdx, rbx
+    xor     rax, rax
     pop     rbx
-    epilogue
+    ret
 
-; ---- str_utf8_decode --------------------
-;
-; str_utf8_decode
-; Decodes a single UTF-8 character sequence and validates it.
-; Follows RFC 3629 / Unicode 15.0 strict validation.
-; 
-; Input    : rdi = pointer to UTF-8 sequence
-;             rsi = pointer to end of buffer (boundary check)
-; Output   : rax = EXIT_OK or EXIT_UNEXPECTED_EOF
-;              rdx = parsed UTF-8 codepoint (32-bit)
-; Clobbers : rcx, r8, r9
-;
-global str_utf8_decode
-str_utf8_decode:
-    ; check boundary
-    cmp     rdi, rsi
-    jge     .error
+.null:
+    mov     rax, EXIT_ERROR
+    xor     rdx, rdx
+    ret
+
+; ---- path_get_extension -----------------
+; Returns pointer to the extension (including .) or NULL.
+global path_get_extension
+path_get_extension:
+    test    rdi, rdi
+    jz      .null
     
+    push    rdi
+    call    str_len
+    pop     rdi
+    
+    lea     rcx, [rdi + rax - 1]
+.loop:
+    cmp     rcx, rdi
+    jl      .not_found
+    mov     al, byte [rcx]
+    cmp     al, '.'
+    je      .found
+    cmp     al, '/'
+    je      .not_found
+    cmp     al, '\'
+    je      .not_found
+    dec     rcx
+    jmp     .loop
+
+.found:
+    mov     rdx, rcx
+    xor     rax, rax
+    ret
+
+.not_found:
+    xor     rax, rax
+    xor     rdx, rdx
+    ret
+
+.null:
+    mov     rax, EXIT_ERROR
+    ret
+
+; ============================================================================
+; Hex Helpers
+; ============================================================================
+
+; ---- hex_to_byte ------------------------
+; Converts two hex chars to a byte.
+global hex_to_byte
+hex_to_byte:
+    ; first nibble
     movzx   eax, byte [rdi]
-    
-    ; 1-byte (ASCII)
-    test    al, 0x80
-    jz      .one_byte
-    
-    ; 2-byte: 110xxxxx
+    call    .nibble
+    shl     al, 4
     mov     cl, al
-    and     cl, 0xE0
-    cmp     cl, 0xC0
-    je      .two_bytes
     
-    ; 3-byte: 1110xxxx
-    mov     cl, al
-    and     cl, 0xF0
-    cmp     cl, 0xE0
-    je      .three_bytes
-    
-    ; 4-byte: 11110xxx
-    mov     cl, al
-    and     cl, 0xF8
-    cmp     cl, 0xF0
-    je      .four_bytes
-    
-.error:
-    xor     rax, rax
+    ; second nibble
+    movzx   eax, byte [rdi + 1]
+    call    .nibble
+    or      al, cl
     ret
 
-.one_byte:
-    mov     rdx, rax
-    mov     rax, 1
+.nibble:
+    cmp     al, '0'
+    jl      .err
+    cmp     al, '9'
+    jle     .n_digit
+    cmp     al, 'a'
+    jl      .n_upper
+    cmp     al, 'f'
+    jg      .err
+    sub     al, 'a' - 10
+    ret
+.n_upper:
+    cmp     al, 'A'
+    jl      .err
+    cmp     al, 'F'
+    jg      .err
+    sub     al, 'A' - 10
+    ret
+.n_digit:
+    sub     al, '0'
+    ret
+.err:
+    xor     al, al
     ret
 
-.two_bytes:
-    ; next byte?
-    lea     rcx, [rdi + 1]
-    cmp     rcx, rsi
-    jge     .error
-    
-    ; validate 10xxxxxx
-    movzx   r8d, byte [rcx]
-    mov     r9d, r8d
-    and     r9d, 0xC0
-    cmp     r9d, 0x80
-    jne     .error
-    
-    ; Decode: ((al & 0x1F) << 6)
-    (r8 & 0x3F)
-    and     eax, 0x1F
-    shl     eax, 6
-    and     r8d, 0x3F
-    or      eax, r8d
-    
-    ; Overlong check: must be > 0x7F
-    cmp     eax, 0x7F
-    jle     .error
-    
-    mov     rdx, rax
-    mov     rax, 2
-    ret
+; ============================================================================
+; Memory Management Bridge
+; ============================================================================
 
-.three_bytes:
-    ; next 2 bytes?
-    lea     rcx, [rdi + 2]
-    cmp     rcx, rsi
-    jge     .error
-    
-    ; Byte 2: 10xxxxxx
-    movzx   r8d, byte [rdi + 1]
-    mov     r9d, r8d
-    and     r9d, 0xC0
-    cmp     r9d, 0x80
-    jne     .error
-    
-    ; Byte 3: 10xxxxxx
-    movzx   ecx, byte [rdi + 2]
-    mov     r9d, ecx
-    and     r9d, 0xC0
-    cmp     r9d, 0x80
-    jne     .error
-    
-    ; Decode: ((al & 0x0F) << 12)
-    ((r8 & 0x3F) << 6)
-    (rc)
-    and     eax, 0x0F
-    shl     eax, 12
-    and     r8d, 0x3F
-    shl     r8d, 6
-    or      eax, r8d
-    and     ecx, 0x3F
-    or      eax, ecx
-    
-    ; Overlong check: must be > 0x7FF
-    cmp     eax, 0x7FF
-    jle     .error
-    
-    ; Surrogate check: must not be in U+D800 - U+DFFF
-    cmp     eax, 0xD800
-    jl      .3_ok
-    cmp     eax, 0xDFFF
-    jle     .error
-    
-.3_ok:
-    mov     rdx, rax
-    mov     rax, 3
-    ret
-
-.four_bytes:
-    ; next 3 bytes?
-    lea     rcx, [rdi + 3]
-    cmp     rcx, rsi
-    jge     .error
-    
-    ; Byte 2
-    movzx   r8d, byte [rdi + 1]
-    mov     r9d, r8d
-    and     r9d, 0xC0
-    cmp     r9d, 0x80
-    jne     .error
-    
-    ; Byte 3
-    movzx   ecx, byte [rdi + 2]
-    mov     r9d, ecx
-    and     r9d, 0xC0
-    cmp     r9d, 0x80
-    jne     .error
-    
-    ; Byte 4
-    movzx   r9d, byte [rdi + 3]
-    mov     r10d, r9d
-    and     r10d, 0xC0
-    cmp     r10d, 0x80
-    jne     .error
-    
-    ; Decode
-    and     eax, 0x07
-    shl     eax, 18
-    and     r8d, 0x3F
-    shl     r8d, 12
-    or      eax, r8d
-    and     ecx, 0x3F
-    shl     ecx, 6
-    or      eax, ecx
-    and     r9d, 0x3F
-    or      eax, r9d
-    
-    ; Overlong check: > 0xFFFF
-    cmp     eax, 0xFFFF
-    jle     .error
-    
-    ; Out of range: <= 0x10FFFF
-    cmp     eax, 0x10FFFF
-    jg      .error
-    
-    mov     rdx, rax
-    mov     rax, 4
-    ret
-; ---- str_copy ---------------------------
-;
-; str_copy
-; Copies a null-terminated string to destination.
-; Input    : rdi = destination pointer
-;             rsi = source pointer
-; Output   : rax = EXIT_OK or EXIT_ERROR
-             rdx = destination pointer
-; Clobbers : rcx, r8
-;
-global str_copy
-str_copy:
+; ---- str_free ---------------------------
+global str_free
+str_free:
     test    rdi, rdi
-    jz      .null_ptr_copy
-    test    rsi, rsi
-    jz      .null_ptr_copy
-
-    push    rdi
-.loop_copy:
-    mov     al, [rsi]
-    mov     [rdi], al
-    test    al, al
-    jz      .done_copy
-    inc     rdi
-    inc     rsi
-    jmp     .loop_copy
-
-.done_copy:
-    pop     rdx
-    xor     rax, rax
-    ret
-
-.null_ptr_copy:
-    mov     rax, 1
-    xor     rdx, rdx
-    ret
-
-; ---- str_concat -------------------------
-;
-; str_concat
-; Concatenates two null-terminated strings.
-; Input    : rdi = destination buffer (must have enough space)
-;             rsi = first string
-;             rdx = second string
-; Output   : rax = EXIT_OK or EXIT_OOM
-;              rdx = pointer to new null-terminated string
-; Clobbers : r8, r9, r10, r11
-;
-global str_concat
-str_concat:
-    test    rdi, rdi
-    jz      .null_ptr_concat
-    test    rsi, rsi
-    jz      .null_ptr_concat
-    test    rdx, rdx
-    jz      .null_ptr_concat
-
-    push    rdi
-    push    rdx
-
-    ; 1. Copy first string
-    call    str_copy
-    
-    ; 2. Find end of first string in dst
-    mov     rdi, rdx
-.find_end_concat:
-    cmp     byte [rdi], 0
-    je      .copy_second_concat
-    inc     rdi
-    jmp     .find_end_concat
-
-.copy_second_concat:
-    pop     rsi
-    call    str_copy
-
-    pop     rdx
-    xor     rax, rax
-    ret
-
-.null_ptr_concat:
-    mov     rax, 1
-    xor     rdx, rdx
+    jz      .done
+    extern  heap_free
+    jmp     heap_free
+.done:
     ret

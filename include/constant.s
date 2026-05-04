@@ -27,12 +27,14 @@
 %define EXIT_FILE_PERM         4   ; insufficient permissions to access file
 %define EXIT_FILE_READ         5   ; error occurred during file read operation
 %define EXIT_FILE_WRITE        6   ; error occurred during file write operation
+%define EXIT_INVALID_FORMAT    7   ; file format is invalid or unrecognized
 
 %define EXIT_INC_NOT_FOUND     10  ; included file specified by source not found
 %define EXIT_MACRO_DEF         11  ; malformed or illegal macro definition
 %define EXIT_MACRO_EXP         12  ; failure during macro expansion phase
 %define EXIT_MACRO_RECURSION   13  ; nested macro depth exceeded limit
-%define EXIT_DEFINE            14  ; invalid or malformed %define directive
+%define EXIT_MACRO_ARITY_FAIL   14  ; wrong number of macro arguments
+%define EXIT_DEFINE            15  ; invalid or malformed %define directive
 
 %define EXIT_UNKNOWN_INSTR     20  ; mnemonic does not match any known instruction
 %define EXIT_INVALID_OPERAND   21  ; operand syntax is not valid for instruction
@@ -142,6 +144,7 @@
 %define TAG_PREPROCESSOR       0x0B
 %define TAG_OPERAND            0x0C
 %define TAG_INSTRUCTION        0x0D
+%define TAG_ARCHIVE            0x0E
 ; 
 ; ; ============================================================================
 ; ; TOKEN TYPES

@@ -23,8 +23,9 @@ src_files=$(find src -name "*.s")
 obj_files=""
 
 for src_file in $src_files; do
-    # Skip main.s if we want to handle it specifically, or just include it in the loop
-    obj_file="build/gen0/$(basename "${src_file%.s}.o")"
+    # Preserve directory structure in build/gen0
+    obj_file="build/gen0/${src_file%.s}.o"
+    mkdir -p "$(dirname "$obj_file")"
     nasm -I./ -f elf64 "$src_file" -o "$obj_file"
     obj_files="$obj_files $obj_file"
 done
@@ -42,7 +43,8 @@ echo "[+] PHASE 2: Initiating Self-Hosting Ascent (Gen1)..."
 
 obj_files_gen1=""
 for src_file in $src_files; do
-    obj_file="build/gen1/$(basename "${src_file%.s}.o")"
+    obj_file="build/gen1/${src_file%.s}.o"
+    mkdir -p "$(dirname "$obj_file")"
     # Use the Gen0 binary to compile the source
     ./build/gen0/utasm -f elf64 "$src_file" -o "$obj_file"
     obj_files_gen1="$obj_files_gen1 $obj_file"

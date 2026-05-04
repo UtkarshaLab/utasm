@@ -15,9 +15,18 @@ DEFAULT REL
 
 extern error_new_from_errno
 extern symbol_add
-extern symbol_find
-extern str_to_int
+extern str_len
+extern arena_alloc
+extern lexer_next
+extern lexer_peek
+extern lexer_init
+extern io_open
+extern io_file_size
+extern io_mmap
+extern io_close
 extern str_cmp
+extern str_to_int
+extern symbol_find
 
 ; ============================================================================
 ; PREPROCESSOR
@@ -90,6 +99,12 @@ preprocessor_next_token:
     
     mov     rdx, r12
     xor     rax, rax
+    pop     r12
+    pop     rbx
+    ret
+
+.error:
+    xor     rdx, rdx
     pop     r12
     pop     rbx
     ret
@@ -488,7 +503,8 @@ prep_expand_next:
     inc     qword [r13 + MACROEXP_body]
 
     ; 2.5 Handle Stringification (#) (A67)
-    IF byte [r12 + TOKEN_kind], e, TOK_HASH
+    cmp     byte [r12 + TOKEN_kind], TOK_HASH
+    jne     .not_hash
         ; Peek at NEXT token in macro body
         mov     rax, [r13 + MACROEXP_body]
         mov     r9, [r13 + MACROEXP_macro]
@@ -499,13 +515,16 @@ prep_expand_next:
         imul    rax, TOKEN_SIZE
         add     r10, rax               ; r10 = potential parameter ref
         
-        IF byte [r10 + TOKEN_kind], e, TOK_DIRECTIVE
+        cmp     byte [r10 + TOKEN_kind], TOK_DIRECTIVE
+        jne     .not_hash
             ; Check if it's %1-%9
             mov     rdi, [r10 + TOKEN_value]
             movzx   rax, byte [rdi]
             sub     al, '0'
-            IF al, ge, 1
-            IF al, le, 9
+            cmp     al, 1
+            jl      .not_hash
+            cmp     al, 9
+            jg      .not_hash
                 ; Yes, it's stringification!
                 ; 1. Consume the directive token
                 inc     qword [r13 + MACROEXP_body]
@@ -526,9 +545,7 @@ prep_expand_next:
                 mov     [r12 + TOKEN_value], rax
                 
                 jmp     .produced
-                ENDIF
-                ENDIF
-                ENDIF
+.not_hash:
 
     ; 3. Handle parameter substitution
     ; Macro parameters are TOK_DIRECTIVE with value like "0", "1", "2"...
@@ -539,7 +556,8 @@ prep_expand_next:
     movzx   rax, byte [rdi]
     
     ; CASE 1: %0 (Parameter Count)
-    IF al, e, '0'
+    cmp     al, '0'
+    jne     .not_case1
         ; Allocate space for the number string
         mov     rdi, [rbx + PREP_arena]
         mov     rsi, 32
@@ -555,12 +573,14 @@ prep_expand_next:
         mov     byte [r12 + TOKEN_kind], TOK_NUMBER
         mov     [r12 + TOKEN_value], rdx ; pointer to formatted string
         jmp     .produced
-        ENDIF
+.not_case1:
 
     ; CASE 2: %1-%9 (Parameter Reference)
     sub     al, '0'
-    IF al, ge, 1
-    IF al, le, 9
+    cmp     al, 1
+    jl      .not_case2
+    cmp     al, 9
+    jg      .not_case2
         ; it's a param ref! (1-9)
         ; check if it is within nparams
         movzx   rcx, byte [r13 + MACROEXP_nparams]
@@ -577,24 +597,29 @@ prep_expand_next:
         mov     rcx, (TOKEN_SIZE / 8)
         rep movsq
         jmp     .produced
-        ENDIF
+.not_case2:
 
     ; CASE 3: Variadic Expansion %{n..} (A69)
-    IF byte [rdi], e, '{'
+    cmp     byte [rdi], '{'
+    jne     .not_case3
         ; parse braced parameter ref like "{1..}"
         inc     rdi                    ; skip {
         
         ; simple parser for digit
         movzx   rax, byte [rdi]
         sub     al, '0'
-        IF al, ge, 1
-        IF al, le, 9
+        cmp     al, 1
+        jl      .not_case3
+        cmp     al, 9
+        jg      .not_case3
             ; r14 = starting index (1-based)
             movzx   r14, al
             
             ; check for ".." suffix
-            IF byte [rdi + 1], e, '.'
-            IF byte [rdi + 2], e, '.'
+            cmp     byte [rdi + 1], '.'
+            jne     .not_case3
+            cmp     byte [rdi + 2], '.'
+            jne     .not_case3
                 ; It's %{n..}!
                 ; We need to expand all params from r14 to nparams.
                 ; This is complex for a single prep_expand_next call 
@@ -624,15 +649,14 @@ prep_expand_next:
                 mov     rcx, (TOKEN_SIZE / 8)
                 rep movsq
                 jmp     .produced
-                ENDIF
-                ENDIF
-                ENDIF
+.not_case3:
 
     ; CASE 4: Macro Local Label %% (A70)
-    IF byte [r12 + TOKEN_kind], e, TOK_MACRO_LOCAL
+    cmp     byte [r12 + TOKEN_kind], TOK_MACRO_LOCAL
+    jne     .not_case4
         ; Expand to ..@ID_label
         mov     r8, [rbx + PREP_ctx]
-        movzx   r14, dword [r8 + ASMCTX_mac_exp_id]
+        mov     r14d, dword [r8 + ASMCTX_mac_exp_id]
         
         ; 1. Allocate buffer for ID string
         mov     rdi, [rbx + PREP_arena]
@@ -671,7 +695,7 @@ prep_expand_next:
         mov     byte [r12 + TOKEN_kind], TOK_IDENT
         mov     [r12 + TOKEN_value], r14
         jmp     .produced
-        ENDIF
+.not_case4:
 
 .produced:
     ; ---- A68: Token Concatenation (##) ----
@@ -870,6 +894,11 @@ prep_handle_directive:
     jz      .do_endrep
 
     xor     rax, rax
+    jmp     .done
+
+.do_struc:
+    ; TODO: implement %struc
+    ; call prep_handle_struc
     jmp     .done
 
 .do_inc:
@@ -1144,7 +1173,8 @@ msg_include_too_deep: db "maximum include nesting depth exceeded", 0
 
 ; ---- prep_handle_struc ------------------
 ;
-; prep_handle_struc
+[SECTION .text]
+prep_handle_struc:
 ; Handles the %struc directive.
 ; Input    : rdi = pointer to PrepState
 ; Output   : rax = EXIT_OK or error code
@@ -1308,9 +1338,18 @@ prep_capture_greedy:
     ; 5. Store in macro params
     mov     rax, [rbx + PREP_ctx]
     mov     rax, [rax + ASMCTX_mac_exp]
+    test    rax, rax
+    jz      .error
+    
     mov     rcx, [rax + MACROEXP_params]
     mov     [rcx + r15 * 8], rdx
     
+    jmp     .done
+
+.error:
+    mov     rax, EXIT_ERROR
+    
+.done:
     pop     r14
     pop     r13
     pop     r12
@@ -1318,54 +1357,6 @@ prep_capture_greedy:
     xor     rax, rax
     epilogue
 
-    jmp     prep_handle_if ; jump over the junk
-    
-.loop:
-    sub     rsp, TOKEN_SIZE
-    mov     rdi, [rbx + PREP_lexer]
-    mov     rsi, rsp
-    call    lexer_next
-    
-    mov     r10, rsp
-    cmp     byte [r10 + TOKEN_kind], TOK_NEWLINE
-    je      .done
-    cmp     byte [r10 + TOKEN_kind], TOK_EOF
-    je      .done
-    
-    mov     rsi, [r10 + TOKEN_value]
-    IF rsi, ne, 0
-        mov     rdi, rsi
-        call    str_len
-        mov     rcx, rax
-        mov     rdi, r12
-        add     rdi, r13
-        rep movsb
-        add     r13, rax
-        mov     byte [r12 + r13], ' '
-        inc     r13
-        ENDIF
-    add     rsp, TOKEN_SIZE
-    jmp     .loop
-
-.done:
-    add     rsp, TOKEN_SIZE
-    mov     byte [r12 + r13], 0
-    mov     rdi, [rbx + PREP_arena]
-    mov     rsi, TOKEN_SIZE
-    call    arena_alloc
-    mov     byte [rdx + TOKEN_kind], TOK_STRING
-    mov     [rdx + TOKEN_value], r12
-    
-    mov     rax, [rbx + PREP_ctx]
-    mov     rax, [rax + ASMCTX_mac_exp]
-    mov     rcx, [rax + MACROEXP_params]
-    mov     [rcx + r15 * 8], rdx
-    
-    pop     r13
-    pop     r12
-    pop     rbx
-    xor     rax, rax
-    epilogue
 
 ; ---- prep_handle_if ---------------------
 ;
@@ -1634,9 +1625,8 @@ macro_handle_def:
             mov     rdi, [rsp + TOKEN_value]
             call    str_to_int
             mov     r15, rax
-        ELSEIF byte [rsp + TOKEN_kind], e, TOK_ASTERISK
+        ELSEIF byte [rsp + TOKEN_kind], e, TOK_STAR
             mov     r15, 0xFF      ; Variadic
-            ENDIF
             ENDIF
             ENDIF
     add     rsp, TOKEN_SIZE
@@ -1773,6 +1763,22 @@ macro_handle_def:
 
 .error:
     add     rsp, TOKEN_SIZE * 2
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
+    ret
+
+.error_expected_ident:
+    mov     rax, EXIT_ERROR
+    jmp     .error
+
+.error_eof:
+    mov     rax, EXIT_ERROR
+    jmp     .error
+
+.done:
+    pop     r15
     pop     r14
     pop     r13
     pop     r12

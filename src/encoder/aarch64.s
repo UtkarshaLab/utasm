@@ -3,8 +3,8 @@
 ; File        : src/encoder/aarch64.s
 ; Project     : utasm
 ; Description : AArch64 instruction encoder. Encodes parsed INST structs
-               into 32-bit fixed-width AArch64 machine code words.
-               Implementation mirrors the scale and robustness of amd64.s.
+;                into 32-bit fixed-width AArch64 machine code words.
+;                Implementation mirrors the scale and robustness of amd64.s.
 ; ============================================================================
 ;
 
@@ -15,82 +15,6 @@
 
 [SECTION .text]
 
-; ============================================================================
-; aarch64_encode_instruction
-; ============================================================================
-;
-; aarch64_encode_instruction
-; Top-level dispatcher for AArch64 instruction encoding.
-
-; Input  : rdi = AsmCtx*
-           rsi = INST*
-; Output : rax = EXIT_OK or EXIT_ENCODE_FAIL
-;
-global aarch64_encode_instruction
-aarch64_encode_instruction:
-    prologue
-    push    rbx
-    push    r12
-    push    r13
-
-    mov     rbx, rdi               ; RBX = AsmCtx
-    mov     r12, rsi               ; R12 = INST*
-
-    ; A96: Dispatch Integrity - Validate operand count
-    IF byte [r12 + INST_nops], g, 4
-        mov rax, EXIT_ENCODE_FAIL
-        jmp .done
-        ENDIF
-
-    ; Reset length counter (AArch64 is always 4 bytes per instruction)
-    mov     dword [rbx + ASMCTX_inst_len], 4
-
-    ; 0. VALIDATION: Check operand size consistency (A87: Hardened)
-    movzx   ecx, byte [r12 + INST_nops]
-    IF ecx, ge, 2
-        lea     r10, [r12 + INST_op0]
-        lea     r11, [r12 + INST_op1]
-        mov     al, [r10 + OPERAND_size]
-        mov     ah, [r11 + OPERAND_size]
-        IF al, ne, 0
-        IF ah, ne, 0
-            IF al, ne, ah
-                ; Exceptions: Immediate/Symbol can vary
-                IF byte [r11 + OPERAND_kind], ne, OP_IMM
-                IF byte [r11 + OPERAND_kind], ne, OP_SYMBOL
-                    mov rax, EXIT_INVALID_OPERAND
-                    jmp .done
-                    ENDIF
-                    ENDIF
-                    ENDIF
-                    ENDIF
-                    ENDIF
-
-    movzx   eax, word [r12 + INST_op_id]
-
-    IF eax, e, ID_AARCH64_ADD
-        mov     r13d, 0x8B000000
-        call aarch64_encode_dp_reg
-    ELSEIF eax, e, ID_AARCH64_SUB
-        mov     r13d, 0xCB000000
-        call aarch64_encode_dp_reg
-    ELSEIF eax, e, ID_AARCH64_ADR
-        mov     r13d, 0x10000000
-        call aarch64_encode_adr
-    ELSEIF eax, e, ID_AARCH64_ADRP
-        mov     r13d, 0x90000000
-        call aarch64_encode_adr
-    ELSEIF eax, e, ID_AARCH64_AND
-        mov     r13d, 0x8A000000
-        call aarch64_encode_dp_reg
-    ELSEIF eax, e, ID_AARCH64_ORR
-        mov     r13d, 0xAA000000
-        call aarch64_encode_dp_reg
-    ELSEIF eax, e, ID_AARCH64_EOR
-        mov     r13d, 0xCA000000
-        call aarch64_encode_dp_reg
-    ELSEIF eax, e, ID_AARCH64_ANDS
-        mov     r13d, 0xEA000000
         call aarch64_encode_dp_reg
     ELSEIF eax, e, ID_AARCH64_BIC
         mov     r13d, 0x8A200000
@@ -345,15 +269,7 @@ aarch64_emit_word:
 
 ; ---- aarch64_encode_dp_reg ----
 ; Covers ADD, SUB, AND, ORR, EOR, etc. (Shifted register)
-; Format: sf
-op
-0
-shift
-0
-Rm
-imm6
-Rn
-Rd
+    ; Format: sf, op, 0, shift, 0, Rm, imm6, Rn, Rd
 aarch64_encode_dp_reg:
     prologue
     lea     r10, [r12 + INST_op0]  ; Rd
@@ -404,13 +320,7 @@ aarch64_encode_dp_reg:
         shl     edi, 10            ; imm6 bits [15:10]
         or      eax, edi
     ELSEIF byte [r9 + OPERAND_kind], e, OP_IMM
-        ; ADD/SUB (immediate) uses different format: sf
-        op
-        1
-        sh
-        imm12
-        Rn
-        Rd
+        ; Format: sf, op, 1, sh, imm12, Rn, Rd
         ; We detect this and adjust the opcode base
         and     eax, 0x7FFFFFFF ; clear high bit temporarily
         IF eax, e, 0x0B000000  ; ADD
@@ -486,12 +396,7 @@ aarch64_encode_mov:
         mov     r13d, 0xAA000000
         ; We simulate ORR Rd, XZR, Rn by forcing Rn to be XZR (31) or something
         ; Actually ORR Rd, XZR, Rm is: sf
-        0101010
-        00
-        Rm
-        000000
-        11111
-        Rd
+        ; Rd
         ; Let's just call dp_reg with special setup?
         ; Simpler: hardcode it
         lea     r10, [r12 + INST_op0]
@@ -541,7 +446,7 @@ aarch64_encode_branch:
     prologue
     lea     r10, [r12 + INST_op0]
     ; B label => 0x14000000
-    (imm26 >> 2)
+    ; (imm26 >> 2)
     mov     eax, 0x14000000
     mov     edi, [r10 + OPERAND_imm]
     sar     edi, 2
@@ -630,7 +535,7 @@ aarch64_encode_comp_branch:
 aarch64_encode_ret:
     prologue
     ; RET {Xn} => 0xD65F0000
-    (Rn << 5)
+    ; (Rn << 5)
     mov     eax, 0xD65F0000
     IF byte [r12 + INST_nops], e, 0
         or      eax, (30 << 5) ; default to X30 (LR)
@@ -730,14 +635,7 @@ aarch64_encode_ldst:
 aarch64_encode_ldst_pair:
     prologue
     ; LDP/STP Xt1, Xt2, [Xn, #imm]
-    ; Format: opc
-    101
-    V
-    L
-    imm7
-    Rt2
-    Rn
-    Rt1
+    ; Format: opc, 101, V, L, imm7, Rt2, Rn, Rt1
     lea     r10, [r12 + INST_op0] ; Rt1
     lea     r11, [r12 + INST_op1] ; Rt2
     lea     r9,  [r12 + INST_op2] ; [Rn, #imm]
@@ -1011,8 +909,12 @@ aarch64_encode_extend:
     lea     r11, [r12 + INST_op1]
     mov     eax, 0x13001C00        ; SXTB base (SBFM)
     movzx   ecx, word [r12 + INST_op_id]
-    IF ecx, e, ID_AARCH64_SXTH         or eax, 0x00002000     ENDIF 
-    IF ecx, e, ID_AARCH64_SXTW         or eax, 0x00007C00     ENDIF 
+    IF ecx, e, ID_AARCH64_SXTH
+        or eax, 0x00002000
+    ENDIF 
+    IF ecx, e, ID_AARCH64_SXTW
+        or eax, 0x00007C00
+    ENDIF 
     
     IF byte [r10 + OPERAND_size], e, 8
         or eax, 0x80000000
@@ -1025,44 +927,36 @@ aarch64_encode_extend:
     or      eax, edi
     mov     rdi, rax
     call    aarch64_emit_word
-    epilogue
-
 ; ---- aarch64_encode_vector_bin ----
+global aarch64_encode_vector_bin
 aarch64_encode_vector_bin:
     prologue
-    push    rbx
-    lea     r10, [r12 + INST_op0]
-    lea     r11, [r12 + INST_op1]
-    lea     r9,  [r12 + INST_op2]
-    
-    ; Base patterns (Arithmetic vs Logical)
-    movzx   ecx, word [r12 + INST_op_id]
-    IF ecx, ge, ID_AARCH64_AND_V
-        mov     eax, 0x0E201C00        ; Logical base (AND)
-        IF ecx, e, ID_AARCH64_ORR_V
-            or      eax, 0x00400000    ; ORR (size bits used as op modifier)
-        ELSEIF ecx, e, ID_AARCH64_EOR_V
-            or      eax, 0x20000000    ; EOR (U bit used as op modifier)
-            ENDIF
-            ELSE
-        mov     eax, 0x0E208400        ; Arithmetic base (ADD)
-        IF ecx, e, ID_AARCH64_SUB_V
-            or      eax, 0x20000000    ; SUB (U bit)
-            ENDIF
-            ENDIF
+.vector_bin_is_eor:
+    or      eax, 0x20000000
+    jmp     .vector_bin_base_done
+
+.vector_bin_arith_base:
+    mov     eax, 0x0E208400        ; Arithmetic base (ADD)
+    cmp     ecx, ID_AARCH64_SUB_V
+    jne     .vector_bin_base_done
+    or      eax, 0x20000000
+
+.vector_bin_base_done:
     
     ; Q bit (bit 30)
     movzx   ecx, byte [r10 + OPERAND_size]
-    IF ecx, e, 16
-        or      eax, 0x40000000
-        ENDIF
+    cmp     ecx, 16
+    jne     .vector_bin_no_q
+    or      eax, 0x40000000
+.vector_bin_no_q:
     
     ; Size (bits 23-22) - only for arithmetic
     movzx   ecx, word [r12 + INST_op_id]
-    IF ecx, lt, ID_AARCH64_AND_V
-        ; Assuming 32-bit elements (10) for now
-        or      eax, 0x00800000
-        ENDIF
+    cmp     ecx, ID_AARCH64_AND_V
+    jge     .vector_bin_no_size
+    ; Assuming 32-bit elements (10) for now
+    or      eax, 0x00800000
+.vector_bin_no_size:
     
     ; Registers: Rd=bits 4-0, Rn=bits 9-5, Rm=bits 20-16
     movzx   edi, byte [r10 + OPERAND_reg]

@@ -9,6 +9,11 @@
 %include "include/constant.s"
 %include "include/type.s"
 %include "include/macro.s"
+%include "include/arch/amd64.s"
+%include "include/elf.s"
+
+extern  reloc_record
+extern  arena_alloc
 
 [SECTION .text]
 
@@ -1812,9 +1817,10 @@ amd64_encode_mov:
                 
                 IF byte [r14 + OPERAND_kind], e, OP_SYMBOL
                     mov rdi, rbx
-                    mov rsi, [rbx + ASMCTX_text_size] ; Current offset
+                    mov rsi, [rbx + ASMCTX_curr_sec]
+                    mov rsi, [rsi + SECTION_size]     ; Current offset in active section
                     mov rdx, [r14 + OPERAND_sym]
-                    mov rcx, [r14 + OPERAND_imm]      ; Addend from math engine!
+                    mov rcx, [r14 + OPERAND_imm]      ; Addend
                     mov r8, R_X86_64_64
                     call reloc_record
                     xor rdi, rdi
@@ -1840,9 +1846,10 @@ amd64_encode_mov:
                 
                 IF byte [r14 + OPERAND_kind], e, OP_SYMBOL
                     mov rdi, rbx
-                    mov rsi, [rbx + ASMCTX_text_size]
+                    mov rsi, [rbx + ASMCTX_curr_sec]
+                    mov rsi, [rsi + SECTION_size]     ; Current offset
                     mov rdx, [r14 + OPERAND_sym]
-                    mov rcx, [r14 + OPERAND_imm]
+                    mov rcx, [r14 + OPERAND_imm]      ; Addend
                     mov r8, R_X86_64_32
                     call reloc_record
                     xor rdi, rdi
@@ -2248,6 +2255,10 @@ amd64_encode_push:
         jmp     .done
         ENDIF
     jmp     .error
+.error:
+    mov     rax, EXIT_ENCODE_FAIL
+.done:
+    epilogue
 
 amd64_encode_pop:
     prologue
@@ -2317,6 +2328,10 @@ amd64_encode_branch:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.error:
+    mov     rax, EXIT_ENCODE_FAIL
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_ret]
@@ -2337,6 +2352,8 @@ amd64_encode_ret:
     mov     rax, [r10 + OPERAND_imm]
     call    amd64_emit_word
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_jcc]
@@ -2362,10 +2379,15 @@ amd64_encode_jcc:
         mov     rsi, [r10 + OPERAND_sym]
         call    amd64_emit_reloc
         ENDIF
+    jmp     .done
+.done:
+    epilogue
     
     xor     rax, rax
     call    amd64_emit_dword
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_branch_short]
@@ -2386,6 +2408,8 @@ amd64_encode_branch_short:
     xor     rax, rax
     call    amd64_emit_byte    ; 1-byte placeholder
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_jcc_short]
@@ -2408,6 +2432,8 @@ amd64_encode_jcc_short:
     xor     rax, rax
     call    amd64_emit_byte
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_lea]
@@ -2489,6 +2515,8 @@ amd64_encode_unary:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_shift]
@@ -2560,6 +2588,9 @@ amd64_encode_imul:
         call amd64_emit_modrm_sib
         jmp .done
         ENDIF
+    jmp .done
+.done:
+    epilogue
     
     ; 3-Operand: IMUL reg, r/m, imm (69/6B)
     mov al, [r10 + OPERAND_size]
@@ -2615,6 +2646,8 @@ amd64_encode_unary_math:
     mov     rdi, r10
     call    amd64_emit_modrm_sib
     jmp     .done
+.done:
+    epilogue
 
 ;*
 ; * [amd64_encode_cmovcc]
@@ -3224,30 +3257,30 @@ amd64_encode_string:
     ; Check suffixes (This is a bit hardcoded but fast)
     ; MOVSB=1419, STOSB=1669, LODSB=1369, SCASB=1630, CMPSB=1079
     IF ax, e, 1419
-    OR ax, e, 1669
-    OR ax, e, 1369
-    OR ax, e, 1630
-    OR ax, e, 1079
+    ELSEIF ax, e, 1669
+    ELSEIF ax, e, 1369
+    ELSEIF ax, e, 1630
+    ELSEIF ax, e, 1079
         mov bl, 0
     ; MOVSW=1425, STOSW=1672, LODSW=1372, SCASW=1632, CMPSW=1083
     ELSEIF ax, e, 1425
-    OR ax, e, 1672
-    OR ax, e, 1372
-    OR ax, e, 1632
-    OR ax, e, 1083
+    ELSEIF ax, e, 1672
+    ELSEIF ax, e, 1372
+    ELSEIF ax, e, 1632
+    ELSEIF ax, e, 1083
         mov bl, 1
     ; MOVSD=1420, STOSD=1670, LODSD=1370, SCASD=1631, CMPSD=1080
     ELSEIF ax, e, 1420
-    OR ax, e, 1670
-    OR ax, e, 1370
-    OR ax, e, 1631
-    OR ax, e, 1080
+    ELSEIF ax, e, 1670
+    ELSEIF ax, e, 1370
+    ELSEIF ax, e, 1631
+    ELSEIF ax, e, 1080
         mov bl, 2
     ; MOVSQ=1423, STOSQ=1671, LODSQ=1371, SCASQ=???, CMPSQ=1081
     ELSEIF ax, e, 1423
-    OR ax, e, 1671
-    OR ax, e, 1371
-    OR ax, e, 1081
+    ELSEIF ax, e, 1671
+    ELSEIF ax, e, 1371
+    ELSEIF ax, e, 1081
         mov bl, 3
         ELSE
         ; Generic form - use operand 0 size
@@ -4312,8 +4345,160 @@ amd64_emit_vex3:
     pop     rax
     ret
 
+
 ;*
-; * [amd64_emit_prefixes]
-; * RDI = Op0 (Dest), RSI = Op1 (Src)
-; * Purpose: Emits 0x66 and/or REX based on sizes and register indices.
+; * [amd64_encode_sse]
+; * R13 = Opcode
+; * R14 = Format (0=0F, 1=66 0F, 2=0F 38, 3=0F 3A)
 ; ;
+amd64_encode_sse:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    ; REX calculation
+    xor     r15, r15
+    IF byte [r10 + OPERAND_reg], ge, 8
+        or  r15, 0x44
+    ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8
+        or  r15, 0x41
+    ENDIF
+    
+    IF r15, ne, 0
+        mov rax, r15
+        call amd64_emit_byte
+    ENDIF
+
+    ; Mandatory Prefix
+    IF r14b, e, 1
+        mov al, 0x66
+        call amd64_emit_byte
+    ENDIF
+    
+    ; Opcode Escape
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    IF r14b, e, 2
+        mov al, 0x38
+        call amd64_emit_byte
+    ELSEIF r14b, e, 3
+        mov al, 0x3A
+        call amd64_emit_byte
+    ENDIF
+    
+    mov     rax, r13
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    jmp     .done
+.done:
+    epilogue
+
+;*
+; * [amd64_encode_rm_r_0f]
+; ;
+amd64_encode_rm_r_0f:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    lea     r11, [r12 + INST_op1]
+    
+    ; REX.W
+    mov     al, 0x48
+    IF byte [r10 + OPERAND_reg], ge, 8
+        or  al, 0x04
+        ENDIF
+    IF byte [r11 + OPERAND_reg], ge, 8
+        or  al, 0x01
+        ENDIF
+    call    amd64_emit_byte
+    
+    ; 0F Escape
+    mov     al, 0x0F
+    call    amd64_emit_byte
+    
+    mov     al, r13b
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    jmp     .done
+.done:
+    epilogue
+
+;*
+; * [amd64_encode_rm_m]
+; ;
+amd64_encode_rm_m:
+    prologue
+    lea     r10, [r12 + INST_op0]
+    
+    ; Multi-byte Opcode (R13)
+    mov     ax, r13w
+    xchg    al, ah
+    IF al, ne, 0
+        call amd64_emit_byte
+    ENDIF
+    mov     al, ah
+    call    amd64_emit_byte
+    
+    ; ModRM with Digit (R14)
+    mov     al, r14b
+    mov     rdi, r10
+    call    amd64_emit_modrm_sib
+    jmp     .done
+.done:
+    epilogue
+
+;*
+; * [amd64_encode_vex_unary]
+; ;
+amd64_encode_vex_unary:
+    prologue
+    lea     r10, [r12 + INST_op0] ; Dest
+    lea     r11, [r12 + INST_op1] ; Src
+    
+    ; 1. REX/VEX R,X,B
+    xor     dl, dl
+    mov     al, [r10 + OPERAND_reg]
+    IF al, ge, 8
+        or dl, 0x04
+    ENDIF
+    IF byte [r11 + OPERAND_kind], e, OP_REG
+        mov al, [r11 + OPERAND_reg]
+        IF al, ge, 8
+            or dl, 0x01
+        ENDIF
+    ELSEIF byte [r11 + OPERAND_kind], e, OP_MEM
+        mov al, [r11 + OPERAND_base]
+        IF al, ge, 8
+            or dl, 0x01
+        ENDIF
+    ENDIF
+    
+    ; 2. Emit VEX2/VEX3
+    mov     al, 0xC4
+    call    amd64_emit_byte
+    xor     dl, 0x07
+    shl     dl, 5
+    or      dl, r14b               ; Map
+    mov     al, dl
+    call    amd64_emit_byte
+    
+    mov     al, 0x78               ; vvvv = 1111b (unused)
+    or      al, r15b               ; pp
+    call    amd64_emit_byte
+    
+    mov     al, r13b
+    call    amd64_emit_byte
+    
+    mov     al, [r10 + OPERAND_reg]
+    and     al, 7
+    mov     rdi, r11
+    call    amd64_emit_modrm_sib
+    jmp     .done
+.done:
+    epilogue
