@@ -1310,6 +1310,24 @@ parser_handle_pseudo_op:
         ENDIF
     
     mov     rdi, rbx
+    lea     rsi, [str_extern]
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_extern
+        mov     rax, OK
+        jmp     .done
+        ENDIF
+
+    mov     rdi, rbx
+    lea     rsi, [str_default]
+    call    str_cmp
+    IF rax, e, 0
+        call    parser_handle_default
+        mov     rax, OK
+        jmp     .done
+        ENDIF
+
+    mov     rdi, rbx
     lea     rsi, [str_equ]
     call    str_cmp
     IF rax, e, 0
@@ -1588,6 +1606,75 @@ parser_emit_data_64:
     epilogue
 
 .error:
+    epilogue
+
+;*
+; * [parser_handle_extern]
+; * Input: None (reads from preprocessor)
+; ;
+parser_handle_extern:
+    prologue
+    push    rbx
+    push    r12
+.loop:
+    call    preprocessor_next_token
+    check_err
+    mov     r12, rdx               ; r12 = token (name)
+    
+    IF byte [r12 + TOKEN_kind], ne, TOK_IDENT
+        mov     rax, EXIT_UNEXPECTED_TOKEN
+        jmp     .done
+        ENDIF
+
+    ; Create symbol with SYM_EXTERN kind
+    sub     rsp, SYMBOL_SIZE
+    mov     rdi, rsp
+    xor     rax, rax
+    mov     rcx, (SYMBOL_SIZE / 8)
+    rep stosq
+    
+    mov     rdi, [rbx + PREP_ctx]
+    mov     rsi, rsp
+    mov     byte [rsi + SYMBOL_tag], TAG_SYMBOL
+    mov     byte [rsi + SYMBOL_kind], SYM_EXTERN
+    mov     byte [rsi + SYMBOL_vis], VIS_GLOBAL
+    mov     rax, [r12 + TOKEN_value]
+    mov     [rsi + SYMBOL_name], rax
+    
+    extern  symbol_add
+    call    symbol_add
+    add     rsp, SYMBOL_SIZE
+    
+    ; Check for comma (extern name1, name2)
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        call    preprocessor_next_token
+        jmp     .loop
+        ENDIF
+
+.done:
+    pop     r12
+    pop     rbx
+    epilogue
+
+;*
+; * [parser_handle_default]
+; * Stub for 'default' directive (e.g. default rel)
+; ;
+parser_handle_default:
+    prologue
+    ; Just consume until end of line for now
+.loop:
+    call    preprocessor_peek_token
+    IF byte [rdx + TOKEN_kind], e, TOK_NEWLINE
+        jmp .done
+        ENDIF
+    IF byte [rdx + TOKEN_kind], e, TOK_EOF
+        jmp .done
+        ENDIF
+    call    preprocessor_next_token
+    jmp     .loop
+.done:
     epilogue
 
 ;*
@@ -2031,3 +2118,5 @@ str_text:      db ".text", 0
 str_data:      db ".data", 0
 str_bss:       db ".bss", 0
 str_rodata:    db ".rodata", 0
+str_extern:    db "extern", 0
+str_default:   db "default", 0
