@@ -125,6 +125,10 @@ _start:
     jnz     .exit_io_error
     mov     r12, rdx                         ; r12 = fd
     
+    ; DEBUG: File opened
+    lea     rsi, [rel .msg_debug_open]
+    call    print_str
+    
     mov     rdi, r12
     call    io_file_size
     mov     r13, rdx                         ; r13 = size
@@ -139,6 +143,10 @@ _start:
     test    rax, rax
     jnz     .exit_io_error
     mov     r14, rdx                         ; r14 = buffer
+    
+    ; DEBUG: File mapped
+    lea     rsi, [rel .msg_debug_mapped]
+    call    print_str
     
     ; 5.3 Initialize Pipeline Components
     lea     rdi, [rel global_lexer]
@@ -269,3 +277,5 @@ print_str:
     syscall
     pop     rbx
     ret
+.msg_debug_open:   db "DEBUG: File opened", 10, 0
+.msg_debug_mapped: db "DEBUG: File mapped", 10, 0
