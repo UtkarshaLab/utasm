@@ -76,17 +76,16 @@ _start:
     jnz     .exit_oom
 
     ; Link arena to context
+    lea     r8, [rel global_ctx]
     lea     rax, [rel global_arena]
-    mov     [global_ctx + ASMCTX_arena], rax
-    mov     byte [global_ctx + ASMCTX_tag], TAG_ASM_CTX
+    mov     [r8 + ASMCTX_arena], rax
+    mov     byte [r8 + ASMCTX_tag], TAG_ASM_CTX
 
     ; 2.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
     lea     rdi, [rel global_arena]
     mov     rsi, 524288
-    call    arena_alloc
-    test    rax, rax
-    jnz     .exit_oom
-    mov     [global_ctx + ASMCTX_symhash], rdx
+    lea     r8, [rel global_ctx]
+    mov     [r8 + ASMCTX_symhash], rdx
 
     ; 3. Parse Command Line Arguments
     lea     rdi, [rel global_ctx]
