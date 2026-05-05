@@ -52,7 +52,7 @@ extern error_report
 [SECTION .bss]
     align 8
     global global_arena
-    global_arena: resb 268435456 ; ARENA_SIZE (256 MiB)
+    global_arena: resb 64        ; ARENA_SIZE (enough for metadata)
     global global_ctx
     global_ctx:   resb 1024      ; ASMCTX_SIZE
 
