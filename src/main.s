@@ -84,6 +84,9 @@ _start:
     ; 2.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
     lea     rdi, [rel global_arena]
     mov     rsi, 524288
+    call    arena_alloc
+    test    rax, rax
+    jnz     .exit_oom
     lea     r8, [rel global_ctx]
     mov     [r8 + ASMCTX_symhash], rdx
 
@@ -96,7 +99,8 @@ _start:
     jnz     .show_usage      ; If error or help, show usage
 
     ; 4. Check if input file provided
-    cmp     qword [global_ctx + ASMCTX_input], 0
+    lea     r8, [rel global_ctx]
+    cmp     qword [r8 + ASMCTX_input], 0
     je      .show_usage
 
     ; 5. Compilation Pipeline
@@ -108,7 +112,8 @@ _start:
     jnz     .exit_error
 
     ; 5.2 Open and Map Input File
-    mov     rdi, [global_ctx + ASMCTX_input]
+    lea     r8, [rel global_ctx]
+    mov     rdi, [r8 + ASMCTX_input]
     mov     rsi, 0 ; O_RDONLY
     xor     rdx, rdx
     call    io_open
