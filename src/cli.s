@@ -164,6 +164,7 @@ cli_parse:
 
 .set_elf64:
     mov     byte [rbx + ASMCTX_fmt], FMT_ELF64
+    mov     byte [rbx + ASMCTX_target], TARGET_AMD64
     jmp     .next_arg
 
 .set_bin:

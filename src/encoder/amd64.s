@@ -34,6 +34,18 @@ amd64_encode_instruction:
     mov     rbx, rdi               ; RBX = AsmCtx
     mov     r12, rsi               ; R12 = INST
 
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_encoding_debug]
+    extern  print_str
+    call    print_str
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+
     ; A96: Dispatch Integrity - Validate operand count
     IF byte [r12 + INST_nops], g, 4
         mov rax, EXIT_ENCODE_FAIL
@@ -4545,3 +4557,6 @@ amd64_encode_vex_unary:
     jmp     .done
 .done:
     epilogue
+
+[SECTION .data]
+msg_encoding_debug: db "DEBUG: Encoding instruction", 10, 0

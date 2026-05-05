@@ -141,6 +141,27 @@ arena_alloc:
     mov     rax, [rbx + ARENA_ptr] ; rax = current free pointer
     mov     r8,  [rbx + ARENA_end] ; r8  = end of arena
 
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    
+    mov     rax, rsi
+    xor     rdx, rdx
+    mov     rcx, 10
+    div     rcx                     ; Just print a digit or something? 
+    ; Actually I'll just print the size char
+    add     al, '0'
+    mov     [rel msg_arena_alloc_size], al
+    lea     rsi, [rel msg_arena_alloc_trace]
+    extern  print_str
+    call    print_str
+    
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+
     ; check if enough space remains
     mov     rdx, rax
     add     rdx, rcx               ; rdx = new ptr after alloc
@@ -449,3 +470,7 @@ arena_zero:
     mov     rcx, rsi               ; count
     rep stosb                      ; zero rcx bytes at rdi
     ret
+
+[SECTION .data]
+msg_arena_alloc_trace: db "DEBUG: Arena alloc size: "
+msg_arena_alloc_size:  db "0", 10, 0

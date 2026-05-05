@@ -78,7 +78,7 @@ lexer_init:
     push    rcx
     push    r8
     push    r9
-    lea     rsi, [rel .msg_lexer_start]
+    lea     rsi, [rel msg_lexer_init_start]
     extern  print_str
     call    print_str
     pop     r9
@@ -1354,19 +1354,15 @@ lexer_next:
     ret
 
 .fail:
-    pop     r13
-    pop     r12
-    pop     rbx
-    ret
-
-.done:
-    pop     r13
-    pop     r12
-    pop     rbx
-    ret
+    mov     rax, EXIT_ERROR
+    jmp     .cleanup
 
 .bad_lexer:
     mov     rax, EXIT_INTERNAL
+    jmp     .cleanup
+
+.done:
+.cleanup:
     pop     r13
     pop     r12
     pop     rbx
@@ -1563,6 +1559,11 @@ lexer_char_props:
         db mask
     %assign i i+1
     %endrep
-[ S E C T I O N   . d a t a ] 
- . m s g _ l e x e r _ s t a r t :   d b   ' D E B U G :   L e x e r   i n i t   s t a r t ' ,   1 0 ,   0  
- 
+
+[SECTION .data]
+msg_lexer_init_start: db "DEBUG: Lexer init start", 10, 0
+msg_debug_lexer_bounds: db "DEBUG: Lexer call", 10, 0
+msg_debug_lexer_ret: db "DEBUG: Lexer ret: ", 0
+msg_token_kind_val:
+msg_token_kind_char: db "0", 10, 0
+msg_dot: db ".", 0

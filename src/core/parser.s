@@ -55,7 +55,16 @@ parser_parse_instruction:
     push    r13
     push    r14
     push    r15
-    mov     rbx, rdi                ; rbx = PrepState (argument from RDI)
+    mov     rbx, rdi               ; RBX = PrepState
+
+    ; Trace: Entry
+    push    rax
+    push    rsi
+    lea     rsi, [rel msg_parser_entry]
+    extern  print_str
+    call    print_str
+    pop     rsi
+    pop     rax
     
     ; Allocate instruction container
     mov     rdi, [rbx + PREP_arena]
@@ -77,16 +86,34 @@ parser_parse_instruction:
     check_err
     mov     r12, rdx
     
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_debug_token]
+    extern  print_str
+    call    print_str
+    mov     rsi, [r12 + TOKEN_value]
+    test    rsi, rsi
+    jz      .trace_null
+    call    print_str
+    jmp     .trace_done
+.trace_null:
+    lea     rsi, [rel msg_debug_null]
+    call    print_str
+.trace_done:
+    lea     rsi, [rel msg_newline]
+    call    print_str
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+    
     mov     al, [r12 + TOKEN_kind]
     IF al, e, TOK_EOF
         xor     rax, rax
         xor     rdx, rdx                ; RDX=0 signals EOF to main loop
-        pop     r15
-        pop     r14
-        pop     r13
-        pop     r12
-        pop     rbx
-        epilogue
+        jmp     .done
         ENDIF
     IF al, e, TOK_NEWLINE
         jmp     .get_mnemonic           ; Skip empty lines
@@ -138,6 +165,22 @@ parser_parse_instruction:
     ; 4. Lookup Mnemonic
     mov     rsi, [r12 + TOKEN_value]
     
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_debug_token]
+    extern  print_str
+    call    print_str
+    mov     rsi, [r12 + TOKEN_value]
+    call    print_str
+    lea     rsi, [rel msg_newline]
+    call    print_str
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+    
     ; Check for prefixes (A71)
     call    parser_check_prefix
     test    rax, rax
@@ -164,6 +207,19 @@ parser_parse_instruction:
     mov     rdi, r13
     mov     rsi, r11                ; Current Arch Mnemonic Table
     call    parser_lookup_mnemonic
+    
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_debug_lookup]
+    extern  print_str
+    call    print_str
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+
     test    rax, rax
     jz      .try_pseudo_op
     
@@ -172,19 +228,14 @@ parser_parse_instruction:
 
 .try_pseudo_op:
     ; Check for db, dw, dd, dq, resb, etc.
+    mov     rdi, rbx               ; rdi = PrepState
     mov     rsi, [r12 + TOKEN_value]
     call    parser_handle_pseudo_op
     test    rax, rax
     jz      .unknown_mnemonic
     
     ; Pseudo-op handled internally, move to next instruction
-    xor     rax, rax
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     rbx
-    epilogue
+    jmp     .get_mnemonic
 
     ; 4. Operand Parsing Loop
 .operand_loop:
@@ -219,13 +270,26 @@ parser_parse_instruction:
     
     mov     rax, OK
     mov     rdx, r15
-    epilogue
+    jmp     .done
+
+.eof:
+    xor     rax, rax
+    xor     rdx, rdx                ; RDX=0 signals EOF to main loop
+    jmp     .done
 
 .unknown_mnemonic:
     mov     rax, EXIT_UNKNOWN_INSTR
-    epilogue
+    jmp     .done
 
 .error:
+    ; RAX already has error code
+    
+.done:
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
     epilogue
 
 ;*
@@ -1281,64 +1345,95 @@ parser_handle_pseudo_op:
     prologue
     push    rbx
     push    r12
-    mov     rbx, rsi               ; rbx = mnemonic string
+    push    r13
+    mov     rbx, rdi               ; rbx = PrepState
+    mov     r12, rsi               ; r12 = mnemonic string
     
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_debug_pseudo]
+    extern  print_str
+    call    print_str
+    mov     rsi, r12
+    call    print_str
+    
+    ; Print a newline for the trace
+    push    rsi
+    lea     rsi, [rel msg_newline]
+    call    print_str
+    pop     rsi
+    
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+
     ; 1. Data Directives (db, dw, dd, dq)
-    mov     ax, [rbx]
+    mov     ax, [r12]
     IF ax, e, 'db'
+        mov     rdi, rbx
         call    parser_emit_data_8
         mov     rax, OK
         jmp     .done
     ELSEIF ax, e, 'dw'
+        mov     rdi, rbx
         call    parser_emit_data_16
         mov     rax, OK
         jmp     .done
     ELSEIF ax, e, 'dd'
+        mov     rdi, rbx
         call    parser_emit_data_32
         mov     rax, OK
         jmp     .done
     ELSEIF ax, e, 'dq'
+        mov     rdi, rbx
         call    parser_emit_data_64
         mov     rax, OK
         jmp     .done
         ENDIF
 
     ; 2. Section Directive
-    mov     rdi, rbx
-    lea     rsi, [str_section]
+    mov     rdi, r12
+    lea     rsi, [rel str_section]
     extern  str_cmp
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         call    parser_handle_section_directive
         mov     rax, OK
         jmp     .done
         ENDIF
 
     ; 2.5 Comm Directive
-    mov     rdi, rbx
-    lea     rsi, [str_comm]
+    mov     rdi, r12
+    lea     rsi, [rel str_comm]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         call    parser_handle_comm
         mov     rax, OK
         jmp     .done
         ENDIF
 
     ; 3. Align Directives
-    mov     rdi, rbx
-    lea     rsi, [str_align]
+    mov     rdi, r12
+    lea     rsi, [rel str_align]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         xor     rsi, rsi           ; type = 0 (byte)
         call    parser_handle_align
         mov     rax, OK
         jmp     .done
         ENDIF
 
-    mov     rdi, rbx
-    lea     rsi, [str_p2align]
+    mov     rdi, r12
+    lea     rsi, [rel str_p2align]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         mov     rsi, 1             ; type = 1 (p2)
         call    parser_handle_align
         mov     rax, OK
@@ -1346,68 +1441,85 @@ parser_handle_pseudo_op:
         ENDIF
 
     ; 4. Visibility Directives (global, weak, local)
-    mov     rdi, rbx
-    lea     rsi, [str_global]
+    mov     rdi, r12
+    lea     rsi, [rel str_global]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         mov     rsi, VIS_GLOBAL
         call    parser_handle_visibility
         mov     rax, OK
         jmp     .done
         ENDIF
 
-    mov     rdi, rbx
-    lea     rsi, [str_weak]
+    mov     rdi, r12
+    lea     rsi, [rel str_weak]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         mov     rsi, VIS_WEAK
         call    parser_handle_visibility
         mov     rax, OK
         jmp     .done
         ENDIF
 
-    mov     rdi, rbx
-    lea     rsi, [str_local]
+    mov     rdi, r12
+    lea     rsi, [rel str_local]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         mov     rsi, VIS_LOCAL
         call    parser_handle_visibility
         mov     rax, OK
         jmp     .done
         ENDIF
 
-    mov     rdi, rbx
-    lea     rsi, [str_org]
+    mov     rdi, r12
+    lea     rsi, [rel str_org]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         call    parser_handle_org
         mov     rax, OK
         jmp     .done
         ENDIF
     
-    mov     rdi, rbx
-    lea     rsi, [str_extern]
+    mov     rdi, r12
+    lea     rsi, [rel str_extern]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         call    parser_handle_extern
         mov     rax, OK
         jmp     .done
         ENDIF
 
-    mov     rdi, rbx
-    lea     rsi, [str_default]
+    mov     rdi, r12
+    lea     rsi, [rel str_default]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         call    parser_handle_default
         mov     rax, OK
         jmp     .done
         ENDIF
 
-    mov     rdi, rbx
-    lea     rsi, [str_equ]
+    mov     rdi, r12
+    lea     rsi, [rel str_equ]
     call    str_cmp
     IF rax, e, 0
+        mov     rdi, rbx
         call    parser_handle_equ
+        mov     rax, OK
+        jmp     .done
+        ENDIF
+
+    mov     rdi, r12
+    lea     rsi, [rel str_bits]
+    call    str_cmp
+    IF rax, e, 0
+        mov     rdi, rbx
+        call    parser_handle_default   ; reuse same skip logic
         mov     rax, OK
         jmp     .done
         ENDIF
@@ -1415,6 +1527,7 @@ parser_handle_pseudo_op:
     xor     rax, rax               ; Not a pseudo-op
 
 .done:
+    pop     r13
     pop     r12
     pop     rbx
     epilogue
@@ -2204,3 +2317,10 @@ str_bss:       db ".bss", 0
 str_rodata:    db ".rodata", 0
 str_extern:    db "extern", 0
 str_default:   db "default", 0
+str_bits:      db "bits", 0
+msg_debug_pseudo: db "DEBUG: Pseudo-op: ", 0
+msg_newline:      db 10, 0
+msg_debug_token:   db "DEBUG: Token: ", 0
+msg_parser_entry: db "DEBUG: Parser entry", 10, 0
+msg_debug_lookup: db "DEBUG: Mnemonic lookup finished", 10, 0
+msg_debug_null:   db "(null)", 0

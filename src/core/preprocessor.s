@@ -98,7 +98,6 @@ preprocessor_next_token:
     jnz     .error
     
     mov     rdx, r12
-    xor     rax, rax
     pop     r12
     pop     rbx
     ret
@@ -227,8 +226,12 @@ prep_internal_next:
 
 .not_skipping:
     cmp     byte [r12 + TOKEN_kind], TOK_PERCENT
-    jne     .done                  ; normal token
+    je      .is_directive
+    cmp     byte [r12 + TOKEN_kind], TOK_DIRECTIVE
+    je      .is_directive
+    jmp     .done                  ; normal token
 
+.is_directive:
     ; it's a directive. handle it.
     mov     rdi, rbx
     mov     rsi, r12
@@ -813,6 +816,11 @@ prep_handle_directive:
     push    r12
     push    r13
     mov     rbx, rdi               ; rbx = PrepState
+    mov     r13, rsi               ; r13 = the token triggering the directive (% or %name)
+    
+    ; check if we already have the identifier
+    cmp     byte [r13 + TOKEN_kind], TOK_DIRECTIVE
+    je      .have_ident
     
     ; next token should be the directive identifier
     mov     rdi, [rbx + PREP_lexer]
@@ -821,10 +829,37 @@ prep_handle_directive:
     mov     rsi, r12
     call    lexer_next
     test    rax, rax
-    jnz     .error
+    jnz     .error_pop_rsp
 
     cmp     byte [r12 + TOKEN_kind], TOK_IDENT
-    jne     .expected_ident
+    jne     .expected_ident_pop_rsp
+    jmp     .start_match
+
+.have_ident:
+    mov     r12, r13               ; use the directive token as the ident token
+    push    0                      ; flag: NO stack cleanup needed
+    jmp     .start_match_real
+
+.start_match:
+    push    1                      ; flag: stack cleanup needed
+
+.start_match_real:
+
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_preprocessor_dir_trace]
+    extern  print_str
+    call    print_str
+    mov     rsi, [r12 + TOKEN_value]
+    call    print_str
+    lea     rsi, [rel msg_newline]
+    call    print_str
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
 
     ; check which directive it is
     mov     rdi, [r12 + TOKEN_value] ; directive name
@@ -954,16 +989,28 @@ prep_handle_directive:
     mov     rax, EXIT_ERROR
     jmp     .done
 
-.error:
-    ; keep rax as error
+.error_pop_rsp:
+    push    1                      ; flag for .done
     jmp     .done
+
+.expected_ident_pop_rsp:
+    mov     rax, EXIT_ERROR
+    push    1
+    jmp     .done
+
+.error:
+    jmp     .done                  ; flag already on stack or handled
 
 .expected_ident:
     mov     rax, EXIT_ERROR
     jmp     .done
 
 .done:
+    pop     rcx                    ; flag: 1 if we did sub rsp, TOKEN_SIZE
+    test    rcx, rcx
+    jz      .no_rsp_cleanup
     add     rsp, TOKEN_SIZE
+.no_rsp_cleanup:
     pop     r13
     pop     r12
     pop     rbx
@@ -982,62 +1029,51 @@ prep_handle_inc:
     push    r13
     push    r14
     push    r15
-    mov     rbx, rdi               ; rbx = PrepState
+    mov     rbx, rdi
 
-    ; next token must be a string (filename)
+    ; 1. Get filename token
     mov     rdi, [rbx + PREP_lexer]
     sub     rsp, TOKEN_SIZE
-    mov     r12, rsp
+    mov     r12, rsp               ; r12 = temporary token buffer
     mov     rsi, r12
     call    lexer_next
     test    rax, rax
     jnz     .error
 
     cmp     byte [r12 + TOKEN_kind], TOK_STRING
-    jne     .expected_string
+    jne     .error_expected_string
+    
+    mov     r12, [r12 + TOKEN_value] ; r12 = filename string
+    add     rsp, TOKEN_SIZE
 
-    ; 0. Check include depth
+    ; 2. Check include depth
     mov     r8, [rbx + PREP_ctx]
     mov     r9, [r8 + ASMCTX_inc_ctx]
-    xor     eax, eax               ; default depth = 0
+    xor     eax, eax
     test    r9, r9
     jz      .depth_ok
     movzx   eax, byte [r9 + INCLUDECTX_depth]
     inc     eax
     cmp     eax, MAX_INCLUDES
     jge     .error_too_deep
-
 .depth_ok:
-    movzx   r15d, al               ; save new depth in r15 (will be overwritten later, but we need it for context)
-    ; Actually, r15 is used for buffer pointer later. 
-    ; Let's use the stack but be careful to pop.
-    push    rax
+    push    rax                    ; [STACK: new depth]
 
-    ; 1. Path traversal protection (Check for "..")
-    mov     rdi, [r12 + TOKEN_value]
-    lea     rsi, [str_dotdot]
-    extern  str_find_str
-    call    str_find_str
-    test    rax, rax
-    jnz     .path_traversal_error  ; A100.4: Corrected (jnz means found)
-
-    ; 2. Open the file
-    mov     rdi, [r12 + TOKEN_value]
-    mov     rsi, AMD64_O_RDONLY
-    xor     rdx, rdx
+    ; 3. Open file
+    mov     rdi, r12
     call    io_open
     test    rax, rax
-    jnz     .error_open
+    jnz     .error_open_pop
     mov     r13, rdx               ; r13 = fd
 
-    ; 2. Get file size
+    ; 4. Get file size
     mov     rdi, r13
     call    io_file_size
     test    rax, rax
-    jnz     .error_size
+    jnz     .error_size_pop
     mov     r14, rdx               ; r14 = size
 
-    ; 3. Map file into memory
+    ; 5. Map file into memory
     xor     rdi, rdi               ; addr = NULL
     mov     rsi, r14               ; length
     mov     rdx, PROT_READ         ; prot
@@ -1046,106 +1082,119 @@ prep_handle_inc:
     xor     r9, r9                 ; offset = 0
     call    io_mmap
     test    rax, rax
-    jnz     .error_mmap
+    jnz     .error_mmap_pop
     mov     r15, rdx               ; r15 = buffer
+    
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_debug_inc_buf]
+    extern  print_str
+    call    print_str
+    mov     rax, r15
+    call    debug_print_hex
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
 
-    ; 4. Create new LexerState
+    ; 6. Create new LexerState
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, LEXER_SIZE
     call    arena_alloc
     test    rax, rax
-    jnz     .error_oom
+    jnz     .error_oom_pop
     mov     r8, rdx                ; r8 = new lexer
 
     ; initialize new lexer
     mov     rdi, r8
+    push    r8                     ; [STACK: new_lexer]
     mov     rsi, r15               ; buf
     mov     rdx, r14               ; size
-    mov     rcx, [r12 + TOKEN_value] ; filename
-    mov     r9, [rbx + PREP_ctx]
-    mov     r10, [rbx + PREP_arena]
+    mov     rcx, r12               ; filename string
+    mov     r8, [rbx + PREP_ctx]   ; r8 = AsmCtx
+    mov     r9, [rbx + PREP_arena] ; r9 = Arena
     call    lexer_init
 
-    ; 5. Save state in IncludeCtx
-    mov     r12, [rbx + PREP_ctx]
+    ; 7. Save state in IncludeCtx
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, INCLUDECTX_SIZE
     call    arena_alloc
     test    rax, rax
-    jnz     .error_oom
+    jnz     .error_oom_pop_lexer
     mov     r9, rdx                ; r9 = new IncludeCtx
 
     mov     byte [r9 + INCLUDECTX_tag], TAG_INCLUDE_CTX
-    pop     rax                    ; restore new depth
-    mov     byte [r9 + INCLUDECTX_depth], al
     
-    mov     r10, [r12 + ASMCTX_inc_ctx]
-    mov     [r9 + INCLUDECTX_parent], r10 ; link to previous
-    mov     [r12 + ASMCTX_inc_ctx], r9    ; update current in AsmCtx
+    mov     r10, [rbx + PREP_ctx]
+    mov     r11, [r10 + ASMCTX_inc_ctx]
+    mov     [r9 + INCLUDECTX_parent], r11 ; link to previous
+    mov     [r10 + ASMCTX_inc_ctx], r9    ; update current in AsmCtx
     
-    ; Store current file info for unmapping later
     mov     [r9 + INCLUDECTX_buf], r15
     mov     [r9 + INCLUDECTX_size], r14
     
-    ; Save current lexer in the context so we can restore it
     mov     r11, [rbx + PREP_lexer]
     mov     [r9 + INCLUDECTX_lexer], r11
     
+    pop     r8                     ; [STACK: restore new_lexer]
     mov     [rbx + PREP_lexer], r8 ; Switch to new lexer
 
-    ; 6. Close the fd (mmap keeps it open if needed, but we don't need it)
+    pop     rax                    ; [STACK: restore new depth]
+    mov     byte [r9 + INCLUDECTX_depth], al
+
+    ; 8. Close the fd
     mov     rdi, r13
     call    io_close
 
     xor     rax, rax
     jmp     .done
 
-.error_too_deep:
-    mov     rdx, [rbx + PREP_lexer]
-    mov     rdi, [rbx + PREP_ctx]
-    mov     rsi, [rdx + LEXER_file]
-    mov     ecx, [rdx + LEXER_col]
-    mov     edx, [rdx + LEXER_line]
-    lea     r8,  [msg_include_too_deep]
-    call    error_emit
-    mov     rax, EXIT_MACRO_RECURSION
-    jmp     .done
-
-.error_open:
-    pop     rax
-    mov     rax, EXIT_FILE_NOT_FOUND
-    jmp     .done
-
-.error_size:
-.error_mmap:
+.error_oom_pop_lexer:
+    pop     rax                    ; clean up lexer pointer from stack
+.error_oom_pop:
+    pop     rax                    ; clean up depth from stack
 .error_oom:
+    mov     rax, EXIT_OOM
+    jmp     .done
+
+.error_mmap_pop:
     pop     rax
+    jmp     .error_mmap
+
+.error_size_pop:
+    pop     rax
+    jmp     .error_size
+
+.error_open_pop:
+    pop     rax
+    jmp     .error_open
+
+.error_expected_string:
     mov     rax, EXIT_ERROR
     jmp     .done
 
-.expected_string:
+.error_too_deep:
+    mov     rax, EXIT_ERROR
+    jmp     .done
+
+.error_open:
+    mov     rax, EXIT_ERROR
+    jmp     .done
+
+.error_size:
+    mov     rax, EXIT_ERROR
+    jmp     .done
+
+.error_mmap:
     mov     rax, EXIT_ERROR
     jmp     .done
 
 .error:
-    ; rax already set
-    jmp     .done
-
-.path_traversal_error:
-    pop     rax                    ; A100.3: Restore stack hygiene (depth counter)
-    mov     rdi, [rbx + PREP_ctx]
-    mov     r9, [rbx + PREP_lexer]
-    mov     rsi, [r9 + LEXER_file]
-    mov     edx, [r9 + LEXER_line]
-    mov     ecx, [r9 + LEXER_col]
-    lea     r8,  [msg_path_traversal]
-    extern  error_emit
-    call    error_emit
-    mov     rax, EXIT_FILE_PERM
     jmp     .done
 
 .done:
-    add     rsp, TOKEN_SIZE
     pop     r15
     pop     r14
     pop     r13
@@ -1154,8 +1203,8 @@ prep_handle_inc:
     ret
 
 [SECTION .rodata]
-dir_inc:    db "inc", 0
-dir_def:    db "def", 0
+dir_inc:    db "include", 0
+dir_def:    db "define", 0
 dir_if:     db "if", 0
 dir_ifdef:  db "ifdef", 0
 dir_ifndef: db "ifndef", 0
@@ -1167,9 +1216,9 @@ dir_macro:  db "macro", 0
 dir_endm:   db "endmacro", 0
 dir_struc:  db "struc", 0
 dir_endstruc: db "endstruc", 0
-str_dotdot: db "..", 0
-msg_path_traversal: db "path traversal detected in %inc: usage of '..' is prohibited", 0
-msg_include_too_deep: db "maximum include nesting depth exceeded", 0
+[SECTION .data]
+msg_token_kind_val:
+msg_token_kind_char: db "0", 10, 0
 
 ; ---- prep_handle_struc ------------------
 ;
@@ -1422,7 +1471,7 @@ prep_handle_ifdef:
 
     ; if already skipping, just return
     cmp     byte [rbx + PREP_skip_depth], 0
-    jne     .done
+    jne     .done_no_pop
 
     ; next token must be an identifier
     mov     rdi, [rbx + PREP_lexer]
@@ -1448,6 +1497,7 @@ prep_handle_ifdef:
 
 .done:
     add     rsp, TOKEN_SIZE
+.done_no_pop:
     pop     r12
     pop     rbx
     ret
@@ -1465,13 +1515,40 @@ prep_handle_ifndef:
 
     inc     byte [rbx + PREP_depth]
     cmp     byte [rbx + PREP_skip_depth], 0
-    jne     .done
+    jne     .done_no_pop
 
     mov     rdi, [rbx + PREP_lexer]
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp
     mov     rsi, r12
     call    lexer_next
+    
+    push    rax
+    push    rdx
+    push    rsi
+    push    rdi
+    lea     rsi, [rel msg_debug_prep_token_got]
+    extern  print_str
+    call    print_str
+    
+    movzx   rdi, byte [r12 + TOKEN_kind]
+    add     dil, '0'
+    mov     [rel msg_token_kind_char], dil
+    lea     rsi, [rel msg_token_kind_val]
+    call    print_str
+    
+    mov     rsi, [r12 + TOKEN_value]
+    test    rsi, rsi
+    jz      .no_val
+    call    print_str
+.no_val:
+    lea     rsi, [rel msg_newline]
+    call    print_str
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+
     test    rax, rax
     jnz     .error
 
@@ -1489,6 +1566,7 @@ prep_handle_ifndef:
 
 .done:
     add     rsp, TOKEN_SIZE
+.done_no_pop:
     pop     r12
     pop     rbx
     ret

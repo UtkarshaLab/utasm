@@ -168,22 +168,47 @@ _start:
     test    rax, rax
     jnz     .exit_error
 
-    ; DEBUG: Starting assembly
     lea     rsi, [rel msg_debug_assembly]
+    call    print_str
+    
+    lea     r8, [rel global_ctx]
+    movzx   rax, byte [r8 + ASMCTX_target]
+    add     al, '0'
+    mov     [rel msg_target_char], al
+    lea     rsi, [rel msg_target_id]
     call    print_str
     
     ; 5.4 Main Assembly Loop
 .assembly_loop:
     lea     rdi, [rel global_prep]
     call    parser_parse_instruction
+    
+    push    rax
+    push    rdx
+    test    rdx, rdx
+    jz      .trace_eof
+    lea     rsi, [rel msg_debug_parsed]
+    jmp     .do_trace
+.trace_eof:
+    lea     rsi, [rel msg_debug_eof]
+.do_trace:
+    call    print_str
+    pop     rdx
+    pop     rax
+
     test    rax, rax
     jnz     .error_in_parser
     
-    ; Check for EOF (RAX=0, RDX=0)
     test    rdx, rdx
     jz      .emission
     
     mov     r14, rdx                         ; r14 = INST*
+    
+    push    rax
+    lea     rsi, [rel msg_debug_dispatch]
+    call    print_str
+    pop     rax
+
     lea     r8,  [rel global_ctx]
     movzx   eax, byte [r8 + ASMCTX_target]
 
@@ -204,9 +229,15 @@ _start:
 .encode:
     lea     rdi, [rel global_ctx]
     lea     r8, [rel global_ctx]
-    movzx   eax, byte [r8 + ASMCTX_target]
-    
-    cmp     eax, 2 ; TARGET_AMD64
+    movzx   rax, byte [r8 + ASMCTX_target]
+    push    rax
+    add     al, '0'
+    mov     [rel msg_target_char], al
+    lea     rsi, [rel msg_target_id]
+    call    print_str
+    pop     rax
+
+    cmp     rax, 2 ; TARGET_AMD64
     je      .call_amd64
     cmp     eax, 1 ; TARGET_AARCH64
     je      .call_aarch64
@@ -282,6 +313,15 @@ print_str:
     push    rdi
     push    rsi
     
+    ; DEBUG: Trace every print
+    push    rsi
+    lea     rsi, [rel msg_p]
+    mov     rdx, 2
+    mov     rax, 1
+    mov     rdi, 1
+    syscall
+    pop     rsi
+
     mov     rdi, rsi
     call    str_len
     mov     rdx, rax               ; rdx = length
@@ -289,13 +329,20 @@ print_str:
     mov     rax, 1                 ; sys_write
     mov     rdi, 1                 ; stdout
     pop     rsi                    ; restore buffer pointer
-    pop     rdi                    ; restore original rdi
     syscall
     
+    pop     rdi                    ; restore original rdi
     pop     rbx
     pop     rbp
     ret
+[SECTION .data]
 msg_debug_open:   db "DEBUG: File opened", 10, 0
 msg_debug_mapped:   db "DEBUG: File mapped", 10, 0
 msg_debug_assembly: db "DEBUG: Starting assembly", 10, 0
 msg_crit_init:     db "CRITICAL: Initialization failed", 10, 0
+msg_debug_parsed: db "DEBUG: Instruction parsed", 10, 0
+msg_debug_eof:    db "DEBUG: EOF reached", 10, 0
+msg_target_id:   db "DEBUG: Target ID: "
+msg_target_char: db "0", 10, 0
+msg_debug_dispatch: db "DEBUG: Dispatching to encoder", 10, 0
+msg_p: db "> ", 0
