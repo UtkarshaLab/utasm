@@ -265,6 +265,8 @@ _start:
     syscall
 
 .exit_error:
+    lea     rsi, [rel msg_crit_init]
+    call    print_str
     mov     rdi, 1
     mov     rax, 60
     syscall
@@ -288,3 +290,4 @@ print_str:
 msg_debug_open:   db "DEBUG: File opened", 10, 0
 msg_debug_mapped:   db "DEBUG: File mapped", 10, 0
 msg_debug_assembly: db "DEBUG: Starting assembly", 10, 0
+msg_crit_init:     db "CRITICAL: Initialization failed", 10, 0
