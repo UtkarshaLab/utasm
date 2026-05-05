@@ -154,6 +154,7 @@ arena_alloc:
     mov     rax, 0                 ; zero value
     push    rcx                    ; save aligned size
     shr     rcx, 3                 ; rcx = number of 8-byte quads
+    cld                            ; ensure stosq moves forward
     rep stosq                      ; zero the memory
     pop     rcx                    ; restore aligned size
     pop     rax                    ; restore start of block
