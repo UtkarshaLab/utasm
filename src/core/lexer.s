@@ -1238,6 +1238,10 @@ lexer_next:
     jnz     .skip_ws
 
     ; check for ; comment
+    cmp     rcx, ';'
+    je      .skip_line_comment
+
+    ; check for // comment
     cmp     rcx, '/'
     jne     .skip_check_block
 
@@ -1250,8 +1254,9 @@ lexer_next:
     cmp     r11, '/'
     jne     .skip_check_block
 
+.skip_line_comment:
     ; skip until LF
-    add     qword [rbx + LEXER_pos], 2
+    inc     qword [rbx + LEXER_pos]
 .skip_line_loop:
     mov     r10, [rbx + LEXER_pos]
     cmp     r10, [rbx + LEXER_end]
