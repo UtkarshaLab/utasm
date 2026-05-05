@@ -156,12 +156,20 @@ _start:
     mov     rcx, [r8 + ASMCTX_input]         ; rcx = filename string
     lea     r9,  [rel global_arena]
     call    lexer_init
+    test    rax, rax
+    jnz     .exit_error
     
     lea     rdi, [rel global_prep]
     lea     rsi, [rel global_lexer]
     lea     rdx, [rel global_ctx]
     lea     rcx, [rel global_arena]
     call    prep_init
+    test    rax, rax
+    jnz     .exit_error
+
+    ; DEBUG: Starting assembly
+    lea     rsi, [rel msg_debug_assembly]
+    call    print_str
     
     ; 5.4 Main Assembly Loop
 .assembly_loop:
@@ -278,4 +286,5 @@ print_str:
     pop     rbx
     ret
 msg_debug_open:   db "DEBUG: File opened", 10, 0
-msg_debug_mapped: db "DEBUG: File mapped", 10, 0
+msg_debug_mapped:   db "DEBUG: File mapped", 10, 0
+msg_debug_assembly: db "DEBUG: Starting assembly", 10, 0
