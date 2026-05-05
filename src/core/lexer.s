@@ -294,14 +294,11 @@ lexer_next:
     call    error_emit
     
     ; skip one byte and try again
-    inc     qword [rbx + LEXER_pos]
-    inc     word  [rbx + LEXER_col]
-    mov     rdi, rbx
+    mov     rdi, [rbx + PREP_lexer]
+    sub     rsp, TOKEN_SIZE
+    mov     r12, rsp
     mov     rsi, r12
-    pop     r13
-    pop     r12
-    pop     rbx
-    jmp     lexer_next
+    call    lexer_next
 
 ; ---- EOF --------------------------------
 .emit_eof:
@@ -1562,8 +1559,4 @@ lexer_char_props:
 
 [SECTION .data]
 msg_lexer_init_start: db "DEBUG: Lexer init start", 10, 0
-msg_debug_lexer_bounds: db "DEBUG: Lexer call", 10, 0
-msg_debug_lexer_ret: db "DEBUG: Lexer ret: ", 0
-msg_token_kind_val:
-msg_token_kind_char: db "0", 10, 0
 msg_dot: db ".", 0

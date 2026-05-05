@@ -1084,20 +1084,6 @@ prep_handle_inc:
     test    rax, rax
     jnz     .error_mmap_pop
     mov     r15, rdx               ; r15 = buffer
-    
-    push    rax
-    push    rdx
-    push    rsi
-    push    rdi
-    lea     rsi, [rel msg_debug_inc_buf]
-    extern  print_str
-    call    print_str
-    mov     rax, r15
-    call    debug_print_hex
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
 
     ; 6. Create new LexerState
     mov     rdi, [rbx + PREP_arena]
@@ -1217,8 +1203,6 @@ dir_endm:   db "endmacro", 0
 dir_struc:  db "struc", 0
 dir_endstruc: db "endstruc", 0
 [SECTION .data]
-msg_token_kind_val:
-msg_token_kind_char: db "0", 10, 0
 
 ; ---- prep_handle_struc ------------------
 ;
@@ -1527,27 +1511,7 @@ prep_handle_ifndef:
     push    rdx
     push    rsi
     push    rdi
-    lea     rsi, [rel msg_debug_prep_token_got]
-    extern  print_str
-    call    print_str
-    
-    movzx   rdi, byte [r12 + TOKEN_kind]
-    add     dil, '0'
-    mov     [rel msg_token_kind_char], dil
-    lea     rsi, [rel msg_token_kind_val]
-    call    print_str
-    
-    mov     rsi, [r12 + TOKEN_value]
-    test    rsi, rsi
-    jz      .no_val
-    call    print_str
-.no_val:
-    lea     rsi, [rel msg_newline]
-    call    print_str
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
+    call    lexer_next
 
     test    rax, rax
     jnz     .error
