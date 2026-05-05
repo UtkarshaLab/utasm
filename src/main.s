@@ -95,7 +95,11 @@ _start:
     mov     [r8 + ASMCTX_symhash], rdx
 
     ; DEBUG: Starting initialization
-    mov rax, 1 | mov rdi, 1 | lea rsi, [rel .trace_init] | mov rdx, 13 | syscall
+    mov     rax, 1
+    mov     rdi, 1
+    lea     rsi, [rel .trace_init]
+    mov     rdx, 13
+    syscall
 
     ; 3. Parse Command Line Arguments
     lea     rdi, [rel global_ctx]
@@ -159,7 +163,11 @@ _start:
     call    prep_init
     
     ; DEBUG: Starting assembly loop
-    mov rax, 1 | mov rdi, 1 | lea rsi, [rel .trace_loop] | mov rdx, 24 | syscall
+    mov     rax, 1
+    mov     rdi, 1
+    lea     rsi, [rel .trace_loop]
+    mov     rdx, 24
+    syscall
 
     ; 5.4 Main Assembly Loop
 .assembly_loop:
@@ -225,7 +233,11 @@ _start:
     jmp     .exit_error
 
     ; DEBUG: Starting emission
-    mov rax, 1 | mov rdi, 1 | lea rsi, [rel .trace_emit] | mov rdx, 18 | syscall
+    mov     rax, 1
+    mov     rdi, 1
+    lea     rsi, [rel .trace_emit]
+    mov     rdx, 18
+    syscall
 
 .emission:
     lea     rdi, [rel global_ctx]
