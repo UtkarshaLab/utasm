@@ -49,16 +49,16 @@ extern parser_concat_local_name
 ; ;
 global parser_parse_instruction
 parser_parse_instruction:
-    prologue
     push    rbx
     push    r12
     push    r13
     push    r14
     push    r15
+    prologue
     mov     rbx, rdi               ; RBX = PrepState
 
-    ; Allocate instruction container
     mov     rdi, [rbx + PREP_arena]
+
     mov     rsi, INST_SIZE
     call    arena_alloc
     check_err
@@ -70,8 +70,17 @@ parser_parse_instruction:
     mov     r11, rax                ; R11 = Mnemonic Table
     mov     r10, rdx                ; R10 = Register Table
     
+    ; Reserve space for tables on stack
+    sub     rsp, 16
+    mov     [rbp - 8], r10
+    mov     [rbp - 16], r11
+    
     ; 2. Get mnemonic token
 .get_mnemonic:
+    ; Reload tables from stack
+    mov     r10, [rbp - 8]
+    mov     r11, [rbp - 16]
+
     mov     rdi, rbx
     call    preprocessor_next_token
     check_err
@@ -1177,11 +1186,15 @@ parser_parse_struc:
 
 .error:
 .done:
+    mov     rsp, rbp
+    pop     rbp
     pop     r15
     pop     r14
     pop     r13
     pop     r12
-    epilogue
+    pop     rbx
+    ret
+
 
 ;*
 ; * [parser_define_label]

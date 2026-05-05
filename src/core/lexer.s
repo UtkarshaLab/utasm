@@ -132,6 +132,9 @@ lexer_next:
     push    rbx
     push    r12
     push    r13
+    push    r14
+    push    r15
+
 
     mov     rbx, rdi               ; save LexerState
     mov     r12, rsi               ; save Token output pointer
@@ -1185,10 +1188,13 @@ lexer_next:
     ; retry â€” tail call back to lexer_next
     mov     rdi, rbx
     mov     rsi, r12
+    pop     r15
+    pop     r14
     pop     r13
     pop     r12
     pop     rbx
     jmp     lexer_next
+
 
 ; ---- shared helpers ---------------------
 
@@ -1344,10 +1350,13 @@ lexer_next:
 
 .done:
 .cleanup:
+    pop     r15
+    pop     r14
     pop     r13
     pop     r12
     pop     rbx
     ret
+
 
 ; ---- lexer_peek -------------------------
 ;
@@ -1365,6 +1374,10 @@ global lexer_peek
 lexer_peek:
     push    rbx
     push    r12
+    push    r13
+    push    r14
+    push    r15
+
 
     mov     rbx, rdi
     mov     r12, rsi
@@ -1407,14 +1420,21 @@ lexer_peek:
     mov     rdx, r12
 
 .done:
+    pop     r15
+    pop     r14
+    pop     r13
     pop     r12
     pop     rbx
     ret
 
 .fail:
+    pop     r15
+    pop     r14
+    pop     r13
     pop     r12
     pop     rbx
     ret
+
 
 ; ---- lexer_expect -----------------------
 ;

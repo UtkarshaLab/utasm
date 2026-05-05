@@ -199,10 +199,13 @@ symbol_find:
     jz      .not_found
     
     ; Compare names
+    push    rdx
     mov     rdi, [rdx + SYMBOL_name]
     mov     rsi, r12
     extern  str_cmp
     call    str_cmp
+    pop     rdx
+
     test    rax, rax
     jz      .found
     

@@ -1108,11 +1108,11 @@ prep_handle_inc:
     mov     r11, [rbx + PREP_lexer]
     mov     [r9 + INCLUDECTX_lexer], r11
     
-    pop     r8                     ; [STACK: restore new_lexer]
-    mov     [rbx + PREP_lexer], r8 ; Switch to new lexer
-
-    pop     rax                    ; [STACK: restore new depth]
+    pop     r8                     ; restore new_lexer pointer (pushed second)
+    pop     rax                    ; restore depth (pushed first)
+    
     mov     byte [r9 + INCLUDECTX_depth], al
+    mov     [rbx + PREP_lexer], r8 ; Switch to new lexer
 
     ; 8. Close the fd
     mov     rdi, r13
