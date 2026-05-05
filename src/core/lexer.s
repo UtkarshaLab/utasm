@@ -72,22 +72,6 @@ extern str_utf8_decode
 ;
 global lexer_init
 lexer_init:
-    push    rdi
-    push    rsi
-    push    rdx
-    push    rcx
-    push    r8
-    push    r9
-    lea     rsi, [rel msg_lexer_init_start]
-    extern  print_str
-    call    print_str
-    pop     r9
-    pop     r8
-    pop     rcx
-    pop     rdx
-    pop     rsi
-    pop     rdi
-
     ; validate all pointers
     test    rdi, rdi
     jz      .null_ptr
@@ -294,7 +278,7 @@ lexer_next:
     call    error_emit
     
     ; skip one byte and try again
-    mov     rdi, [rbx + PREP_lexer]
+    mov     rdi, rbx
     sub     rsp, TOKEN_SIZE
     mov     r12, rsp
     mov     rsi, r12

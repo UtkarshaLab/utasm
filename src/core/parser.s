@@ -57,15 +57,6 @@ parser_parse_instruction:
     push    r15
     mov     rbx, rdi               ; RBX = PrepState
 
-    ; Trace: Entry
-    push    rax
-    push    rsi
-    lea     rsi, [rel msg_parser_entry]
-    extern  print_str
-    call    print_str
-    pop     rsi
-    pop     rax
-    
     ; Allocate instruction container
     mov     rdi, [rbx + PREP_arena]
     mov     rsi, INST_SIZE
@@ -85,29 +76,6 @@ parser_parse_instruction:
     call    preprocessor_next_token
     check_err
     mov     r12, rdx
-    
-    push    rax
-    push    rdx
-    push    rsi
-    push    rdi
-    lea     rsi, [rel msg_debug_token]
-    extern  print_str
-    call    print_str
-    mov     rsi, [r12 + TOKEN_value]
-    test    rsi, rsi
-    jz      .trace_null
-    call    print_str
-    jmp     .trace_done
-.trace_null:
-    lea     rsi, [rel msg_debug_null]
-    call    print_str
-.trace_done:
-    lea     rsi, [rel msg_newline]
-    call    print_str
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
     
     mov     al, [r12 + TOKEN_kind]
     IF al, e, TOK_EOF
@@ -165,22 +133,6 @@ parser_parse_instruction:
     ; 4. Lookup Mnemonic
     mov     rsi, [r12 + TOKEN_value]
     
-    push    rax
-    push    rdx
-    push    rsi
-    push    rdi
-    lea     rsi, [rel msg_debug_token]
-    extern  print_str
-    call    print_str
-    mov     rsi, [r12 + TOKEN_value]
-    call    print_str
-    lea     rsi, [rel msg_newline]
-    call    print_str
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
-    
     ; Check for prefixes (A71)
     call    parser_check_prefix
     test    rax, rax
@@ -208,18 +160,6 @@ parser_parse_instruction:
     mov     rsi, r11                ; Current Arch Mnemonic Table
     call    parser_lookup_mnemonic
     
-    push    rax
-    push    rdx
-    push    rsi
-    push    rdi
-    lea     rsi, [rel msg_debug_lookup]
-    extern  print_str
-    call    print_str
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
-
     test    rax, rax
     jz      .try_pseudo_op
     
@@ -1015,7 +955,7 @@ parser_lookup_mnemonic:
 ; ;
 parser_check_prefix:
     prologue
-    extern str_compare
+    extern     str_compare
     mov     rdi, rsi
     
     lea     rsi, [str_rep]
@@ -1348,27 +1288,6 @@ parser_handle_pseudo_op:
     push    r13
     mov     rbx, rdi               ; rbx = PrepState
     mov     r12, rsi               ; r12 = mnemonic string
-    
-    push    rax
-    push    rdx
-    push    rsi
-    push    rdi
-    lea     rsi, [rel msg_debug_pseudo]
-    extern  print_str
-    call    print_str
-    mov     rsi, r12
-    call    print_str
-    
-    ; Print a newline for the trace
-    push    rsi
-    lea     rsi, [rel msg_newline]
-    call    print_str
-    pop     rsi
-    
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
 
     ; 1. Data Directives (db, dw, dd, dq)
     mov     ax, [r12]

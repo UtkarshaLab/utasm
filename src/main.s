@@ -73,9 +73,9 @@ _start:
     push    rbp
     mov     rbp, rsp
 
-    ; 2. Initialize Arena Allocator (256 MiB reservation)
+    ; 2. Initialize Arena Allocator (64 MiB reservation)
     lea     rdi, [rel global_arena]
-    mov     rsi, 0x10000000 ; UTASM_HEAP_SIZE
+    mov     rsi, 0x04000000 ; UTASM_HEAP_SIZE (64MB)
     call    arena_init
     test    rax, rax
     jnz     .exit_oom
@@ -127,6 +127,7 @@ _start:
     mov     r12, rdx                         ; r12 = fd
     
     ; DEBUG: File opened
+    mov     rdi, 1
     lea     rsi, [rel msg_debug_open]
     call    print_str
     
@@ -146,6 +147,7 @@ _start:
     mov     r14, rdx                         ; r14 = buffer
     
     ; DEBUG: File mapped
+    mov     rdi, 1
     lea     rsi, [rel msg_debug_mapped]
     call    print_str
     
@@ -168,6 +170,7 @@ _start:
     test    rax, rax
     jnz     .exit_error
 
+    mov     rdi, 1
     lea     rsi, [rel msg_debug_assembly]
     call    print_str
     
@@ -307,33 +310,34 @@ _start:
 
 global print_str
 print_str:
-    push    rbp
-    mov     rbp, rsp
-    push    rbx
+    push    rcx
+    push    r11
+    push    rax
+    push    rdx
+    push    rsi
     push    rdi
-    push    rsi
-    
-    ; DEBUG: Trace every print
-    push    rsi
-    lea     rsi, [rel msg_p]
-    mov     rdx, 2
-    mov     rax, 1
-    mov     rdi, 1
-    syscall
-    pop     rsi
 
+    ; 1. Calculate length
     mov     rdi, rsi
     call    str_len
     mov     rdx, rax               ; rdx = length
     
+    ; 2. Restore RDI and RSI for syscall
+    mov     rax, [rsp]             ; rdi was pushed last
+    mov     rdi, rax
+    mov     rax, [rsp + 8]         ; rsi was pushed before rdi
+    mov     rsi, rax
+    
+    ; 3. Write
     mov     rax, 1                 ; sys_write
-    mov     rdi, 1                 ; stdout
-    pop     rsi                    ; restore buffer pointer
     syscall
     
-    pop     rdi                    ; restore original rdi
-    pop     rbx
-    pop     rbp
+    pop     rdi
+    pop     rsi
+    pop     rdx
+    pop     rax
+    pop     r11
+    pop     rcx
     ret
 [SECTION .data]
 msg_debug_open:   db "DEBUG: File opened", 10, 0

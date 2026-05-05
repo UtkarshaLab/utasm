@@ -845,22 +845,6 @@ prep_handle_directive:
 
 .start_match_real:
 
-    push    rax
-    push    rdx
-    push    rsi
-    push    rdi
-    lea     rsi, [rel msg_preprocessor_dir_trace]
-    extern  print_str
-    call    print_str
-    mov     rsi, [r12 + TOKEN_value]
-    call    print_str
-    lea     rsi, [rel msg_newline]
-    call    print_str
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rax
-
     ; check which directive it is
     mov     rdi, [r12 + TOKEN_value] ; directive name
     lea     rsi, [dir_inc]
@@ -1202,17 +1186,15 @@ dir_macro:  db "macro", 0
 dir_endm:   db "endmacro", 0
 dir_struc:  db "struc", 0
 dir_endstruc: db "endstruc", 0
+
+msg_preprocessor_dir_trace: db "[+] PREP: Directive: ", 0
+msg_newline:                db 10, 0
 [SECTION .data]
 
 ; ---- prep_handle_struc ------------------
 ;
 [SECTION .text]
-prep_handle_struc:
-; Handles the %struc directive.
-; Input    : rdi = pointer to PrepState
-; Output   : rax = EXIT_OK or error code
-;
-prep_handle_struc:
+; prep_handle_struc
     push    rbx
     mov     rbx, rdi               ; rbx = PrepState
 
