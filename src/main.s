@@ -94,6 +94,9 @@ _start:
     lea     r8, [rel global_ctx]
     mov     [r8 + ASMCTX_symhash], rdx
 
+    ; DEBUG: Starting initialization
+    mov rax, 1 | mov rdi, 1 | lea rsi, [rel .trace_init] | mov rdx, 13 | syscall
+
     ; 3. Parse Command Line Arguments
     lea     rdi, [rel global_ctx]
     mov     rsi, [rbp + 8]   ; argc
@@ -155,6 +158,9 @@ _start:
     lea     rcx, [rel global_arena]
     call    prep_init
     
+    ; DEBUG: Starting assembly loop
+    mov rax, 1 | mov rdi, 1 | lea rsi, [rel .trace_loop] | mov rdx, 24 | syscall
+
     ; 5.4 Main Assembly Loop
 .assembly_loop:
     lea     rdi, [rel global_prep]
@@ -218,6 +224,9 @@ _start:
     ; Error already reported by parser, just exit
     jmp     .exit_error
 
+    ; DEBUG: Starting emission
+    mov rax, 1 | mov rdi, 1 | lea rsi, [rel .trace_emit] | mov rdx, 18 | syscall
+
 .emission:
     lea     rdi, [rel global_ctx]
     call    linker_run
@@ -253,6 +262,12 @@ _start:
     mov     rax, 60
     syscall
 
+
+[SECTION .data]
+.trace_init: db "DEBUG: init", 10, 0
+.trace_loop: db "DEBUG: assembly loop start", 10, 0
+.trace_emit: db "DEBUG: emission", 10, 0
+.trace_done: db "DEBUG: success", 10, 0
 
 global print_str
 print_str:
