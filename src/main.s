@@ -53,12 +53,16 @@ extern error_report
     align 64
     global global_arena
     global_arena: resb ARENA_SIZE
+    resb 1024 ; SAFETY PADDING
     global global_ctx
     global_ctx:   resb ASMCTX_SIZE
+    resb 1024 ; SAFETY PADDING
     global global_lexer
     global_lexer: resb LEXER_SIZE
+    resb 1024 ; SAFETY PADDING
     global global_prep
     global_prep:  resb PREP_SIZE
+    resb 1024 ; SAFETY PADDING
 
 [SECTION .text]
     global _start
@@ -163,7 +167,8 @@ _start:
     jz      .emission
     
     mov     r14, rdx                         ; r14 = INST*
-    movzx   eax, byte [global_ctx + ASMCTX_target]
+    lea     r8,  [rel global_ctx]
+    movzx   eax, byte [r8 + ASMCTX_target]
 
     ; Target-specific alignment
     cmp     eax, 1 ; TARGET_AARCH64
@@ -181,8 +186,8 @@ _start:
 
 .encode:
     lea     rdi, [rel global_ctx]
-    mov     rsi, r14
-    movzx   eax, byte [global_ctx + ASMCTX_target]
+    lea     r8, [rel global_ctx]
+    movzx   eax, byte [r8 + ASMCTX_target]
     
     cmp     eax, 2 ; TARGET_AMD64
     je      .call_amd64
@@ -193,9 +198,12 @@ _start:
     jmp     .assembly_loop
 
 .call_amd64:
+    lea     rdi, [rel global_ctx]
+    mov     rsi, r14
     call    amd64_encode_instruction
     jmp     .check_enc_err
 .call_aarch64:
+    lea     rdi, [rel global_ctx]
     call    aarch64_encode_instruction
     jmp     .check_enc_err
 .call_riscv64:
