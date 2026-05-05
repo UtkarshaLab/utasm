@@ -164,14 +164,14 @@ _start:
     ; Target-specific alignment
     cmp     eax, 1 ; TARGET_AARCH64
     jne     .check_riscv
-    mov     rdi, global_ctx
+    lea     rdi, [rel global_ctx]
     mov     rsi, 4
     call    asm_ctx_align
     jmp     .encode
 .check_riscv:
     cmp     eax, 3 ; TARGET_RISCV64
     jne     .encode
-    mov     rdi, global_ctx
+    lea     rdi, [rel global_ctx]
     mov     rsi, 2
     call    asm_ctx_align
 
