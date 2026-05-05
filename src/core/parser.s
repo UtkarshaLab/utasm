@@ -2110,13 +2110,7 @@ parser_handle_comm:
     mov     rax, EXIT_ALIGN_ERROR
     jmp     .done
 
-.emission:
-    lea     rdi, [rel global_ctx]
-    call    linker_run
-    test    rax, rax
-    jnz     .error
-
-    xor     rax, rax
+.done:
     pop     r15
     pop     r14
     pop     r13
