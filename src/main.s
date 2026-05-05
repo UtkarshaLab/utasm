@@ -126,7 +126,7 @@ _start:
     mov     r12, rdx                         ; r12 = fd
     
     ; DEBUG: File opened
-    lea     rsi, [rel .msg_debug_open]
+    lea     rsi, [rel msg_debug_open]
     call    print_str
     
     mov     rdi, r12
@@ -145,7 +145,7 @@ _start:
     mov     r14, rdx                         ; r14 = buffer
     
     ; DEBUG: File mapped
-    lea     rsi, [rel .msg_debug_mapped]
+    lea     rsi, [rel msg_debug_mapped]
     call    print_str
     
     ; 5.3 Initialize Pipeline Components
@@ -277,5 +277,5 @@ print_str:
     syscall
     pop     rbx
     ret
-.msg_debug_open:   db "DEBUG: File opened", 10, 0
-.msg_debug_mapped: db "DEBUG: File mapped", 10, 0
+msg_debug_open:   db "DEBUG: File opened", 10, 0
+msg_debug_mapped: db "DEBUG: File mapped", 10, 0
