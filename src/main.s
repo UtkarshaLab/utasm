@@ -55,6 +55,10 @@ extern error_report
     global_arena: resb ARENA_SIZE
     global global_ctx
     global_ctx:   resb ASMCTX_SIZE
+    global global_lexer
+    global_lexer: resb LEXER_SIZE
+    global global_prep
+    global_prep:  resb PREP_SIZE
 
 [SECTION .text]
     global _start
@@ -129,9 +133,7 @@ _start:
     mov     r14, rdx                         ; r14 = buffer
     
     ; 5.3 Initialize Pipeline Components
-    sub     rsp, 1024 ; LEXER_SIZE
-    mov     rbx, rsp
-    mov     rdi, rbx
+    lea     rdi, [rel global_lexer]
     mov     rsi, r14
     mov     rdx, r13
     mov     rcx, [global_ctx + ASMCTX_input]
@@ -139,17 +141,15 @@ _start:
     lea     r9,  [rel global_arena]
     call    lexer_init
     
-    sub     rsp, 1024 ; PREP_SIZE
-    mov     r15, rsp
-    mov     rdi, r15
-    mov     rsi, rbx
+    lea     rdi, [rel global_prep]
+    lea     rsi, [rel global_lexer]
     lea     rdx, [rel global_ctx]
     lea     rcx, [rel global_arena]
     call    prep_init
     
     ; 5.4 Main Assembly Loop
 .assembly_loop:
-    mov     rdi, r15
+    lea     rdi, [rel global_prep]
     call    parser_parse_instruction
     test    rax, rax
     jnz     .error_in_parser
@@ -203,8 +203,7 @@ _start:
     jmp     .assembly_loop
 
 .error_in_parser:
-    mov     rdi, rax
-    call    error_report
+    ; Error already reported by parser, just exit
     jmp     .exit_error
 
 .emission:
@@ -213,9 +212,9 @@ _start:
     test    rax, rax
     jnz     .exit_error
 
-    mov     rax, 60
-    mov     rdi, 0
-    syscall
+    xor     rax, rax
+    pop     rbp
+    ret
 
 .show_usage:
     mov     rdi, 1
