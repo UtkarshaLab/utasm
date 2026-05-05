@@ -452,6 +452,7 @@ parser_evaluate_expression:
 parser_evaluate_term:
     prologue
     push    rbx
+    mov     rbx, rdi               ; RBX = PrepState
     
     mov     rdi, rbx
     call    parser_evaluate_factor
@@ -558,6 +559,9 @@ parser_evaluate_term:
 ; ;
 parser_evaluate_factor:
     prologue
+    push    rbx
+    mov     rbx, rdi               ; RBX = PrepState
+    
     mov     rdi, rbx
     call    preprocessor_next_token
     check_err
@@ -577,6 +581,7 @@ parser_evaluate_factor:
         check_err
         not     rdx
         xor     rax, rax
+        pop     rbx
         epilogue
         ENDIF
 
@@ -585,6 +590,7 @@ parser_evaluate_factor:
         call    str_to_int
         mov     rdx, rax
         xor     rax, rax
+        pop     rbx
         epilogue
     ELSEIF al, e, TOK_DOLLAR
         ; Current location counter ($)
@@ -593,10 +599,12 @@ parser_evaluate_factor:
         IF rax, e, 0
             ; If no section, return 0 (or error?)
             xor rax, rax
+            pop rbx
             epilogue
             ENDIF
         mov     rdx, [rax + SECTION_size]
         xor     rax, rax
+        pop     rbx
         epilogue
     ELSEIF al, e, TOK_IDENT
         ; Symbol lookup
@@ -615,9 +623,10 @@ parser_evaluate_factor:
             mov     rcx, [r12 + TOKEN_value] ; return symbol name in RCX
             xor     rax, rax
             ENDIF
+        pop     rbx
         epilogue
     ELSEIF al, e, TOK_LPAREN
-        mov     rdi, [rbx + PREP_ctx]
+        mov     rdi, rbx
         call    parser_evaluate_expression
         check_err
         mov     r13, rdx
@@ -625,10 +634,12 @@ parser_evaluate_factor:
         call    preprocessor_next_token
         IF byte [rdx + TOKEN_kind], ne, TOK_RPAREN
             mov rax, EXIT_UNEXPECTED_TOKEN
+            pop rbx
             epilogue
             ENDIF
         mov     rdx, r13
         xor     rax, rax
+        pop     rbx
         epilogue
     ELSEIF al, e, TOK_COLON
         call    parser_handle_reloc_modifier
@@ -636,13 +647,16 @@ parser_evaluate_factor:
         IF rax, ne, OK
             jmp .error
         ENDIF
+        pop     rbx
         epilogue
         ENDIF
     
     mov     rax, EXIT_INVALID_EXPR
+    pop     rbx
     epilogue
 
 .error:
+    pop     rbx
     epilogue
 
 ;*
