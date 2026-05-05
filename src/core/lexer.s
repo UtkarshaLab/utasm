@@ -72,6 +72,22 @@ extern str_utf8_decode
 ;
 global lexer_init
 lexer_init:
+    push    rdi
+    push    rsi
+    push    rdx
+    push    rcx
+    push    r8
+    push    r9
+    lea     rsi, [rel .msg_lexer_start]
+    extern  print_str
+    call    print_str
+    pop     r9
+    pop     r8
+    pop     rcx
+    pop     rdx
+    pop     rsi
+    pop     rdi
+
     ; validate all pointers
     test    rdi, rdi
     jz      .null_ptr
@@ -1547,3 +1563,6 @@ lexer_char_props:
         db mask
     %assign i i+1
     %endrep
+[ S E C T I O N   . d a t a ] 
+ . m s g _ l e x e r _ s t a r t :   d b   ' D E B U G :   L e x e r   i n i t   s t a r t ' ,   1 0 ,   0  
+ 
