@@ -275,17 +275,23 @@ _start:
 
 global print_str
 print_str:
+    prologue
     push    rbx
-    push    rdi
     push    rsi
+    push    rdi
+    
     mov     rdi, rsi
     call    str_len
     mov     rdx, rax
-    mov     rax, 1
+    
+    mov     rax, 1                 ; sys_write
+    mov     rdi, 1                 ; stdout
     pop     rsi
     pop     rdi
     syscall
+    
     pop     rbx
+    epilogue
     ret
 msg_debug_open:   db "DEBUG: File opened", 10, 0
 msg_debug_mapped:   db "DEBUG: File mapped", 10, 0
