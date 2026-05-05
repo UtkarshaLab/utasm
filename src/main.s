@@ -138,10 +138,10 @@ _start:
     
     ; 5.3 Initialize Pipeline Components
     lea     rdi, [rel global_lexer]
-    mov     rsi, r14
-    mov     rdx, r13
-    mov     rcx, [global_ctx + ASMCTX_input]
+    mov     rsi, r14                         ; rsi = buffer pointer
+    mov     rdx, r13                         ; rdx = file size
     lea     r8,  [rel global_ctx]
+    mov     rcx, [r8 + ASMCTX_input]         ; rcx = filename string
     lea     r9,  [rel global_arena]
     call    lexer_init
     
