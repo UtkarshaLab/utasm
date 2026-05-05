@@ -80,6 +80,7 @@ parser_parse_instruction:
     mov     al, [r12 + TOKEN_kind]
     IF al, e, TOK_EOF
         xor     rax, rax
+        xor     rdx, rdx                ; RDX=0 signals EOF to main loop
         pop     r15
         pop     r14
         pop     r13
@@ -88,13 +89,7 @@ parser_parse_instruction:
         epilogue
         ENDIF
     IF al, e, TOK_NEWLINE
-        xor     rax, rax
-        pop     r15
-        pop     r14
-        pop     r13
-        pop     r12
-        pop     rbx
-        epilogue
+        jmp     .get_mnemonic           ; Skip empty lines
         ENDIF
 
     IF al, e, TOK_LABEL
