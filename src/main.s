@@ -249,22 +249,10 @@ _start:
     syscall
 
 .exit_error:
-    push    rax                    ; save error code
-    
-    ; Raw write of fatal message to STDOUT
-    mov     rax, 1                 ; sys_write
-    mov     rdi, 1                 ; stdout
-    lea     rsi, [msg_fatal_error]
-    mov     rdx, 37                ; length of msg_fatal_error
+    mov     rdi, 1
+    mov     rax, 60
     syscall
 
-    pop     rax
-    mov     rdi, rax               ; exit status = error code
-    mov     rax, 60                ; sys_exit
-    syscall
-
-[SECTION .data]
-msg_fatal_error: db "utasm: fatal: process exited with error", 10, 0
 
 global print_str
 print_str:
