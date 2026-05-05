@@ -50,7 +50,7 @@ extern error_report
         db "  --help       Show this professional assistance screen", 0x0A, 0
 
 [SECTION .bss]
-    align 16
+    align 64
     global global_arena
     global_arena: resb ARENA_SIZE
     global global_ctx
