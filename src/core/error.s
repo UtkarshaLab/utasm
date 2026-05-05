@@ -107,6 +107,39 @@ error_emit:
     mov     r13, rdx               ; save line
     mov     r14, rcx               ; save column
     mov     r15, r8                ; save message
+    
+    ; EMERGENCY DIAGNOSTIC: Print raw message to STDOUT immediately
+    push    rax
+    push    rdi
+    push    rsi
+    push    rdx
+    push    rcx
+    push    r11
+    
+    mov     rdi, r15
+    call    str_len
+    mov     rdx, rax
+    mov     rsi, r15
+    mov     rdi, 1                 ; STDOUT
+    mov     rax, 1                 ; sys_write
+    syscall
+    
+    ; newline
+    mov     rax, 1
+    mov     rdi, 1
+    sub     rsp, 8
+    mov     byte [rsp], 10
+    mov     rsi, rsp
+    mov     rdx, 1
+    syscall
+    add     rsp, 8
+    
+    pop     r11
+    pop     rcx
+    pop     rdx
+    pop     rsi
+    pop     rdi
+    pop     rax
 
     ; validate ctx
     test    rbx, rbx

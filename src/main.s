@@ -224,9 +224,9 @@ _start:
     test    rax, rax
     jnz     .exit_error
 
-    xor     rax, rax
-    pop     rbp
-    ret
+    mov     rdi, 0              ; status = 0
+    mov     rax, 60             ; sys_exit
+    syscall
 
 .show_usage:
     mov     rdi, 1
@@ -249,9 +249,18 @@ _start:
     syscall
 
 .exit_error:
-    mov     rax, 60
+    push    rax                    ; save error code
+    lea     rsi, [msg_fatal_error]
     mov     rdi, 1
+    call    print_str
+    pop     rax
+    
+    mov     rdi, rax               ; exit status = error code
+    mov     rax, 60                ; sys_exit
     syscall
+
+[SECTION .data]
+msg_fatal_error: db "utasm: fatal: process exited with error", 10, 0
 
 global print_str
 print_str:
