@@ -65,19 +65,19 @@ _start:
     mov     rbp, rsp
 
     ; 2. Initialize Arena Allocator (256 MiB reservation)
-    mov     rdi, global_arena
+    lea     rdi, [rel global_arena]
     mov     rsi, 0x10000000 ; UTASM_HEAP_SIZE
     call    arena_init
     test    rax, rax
     jnz     .exit_oom
 
     ; Link arena to context
-    mov     rax, global_arena
+    lea     rax, [rel global_arena]
     mov     [global_ctx + ASMCTX_arena], rax
     mov     byte [global_ctx + ASMCTX_tag], TAG_ASM_CTX
 
     ; 2.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
-    mov     rdi, global_arena
+    lea     rdi, [rel global_arena]
     mov     rsi, 524288
     call    arena_alloc
     test    rax, rax
@@ -85,7 +85,7 @@ _start:
     mov     [global_ctx + ASMCTX_symhash], rdx
 
     ; 3. Parse Command Line Arguments
-    mov     rdi, global_ctx
+    lea     rdi, [rel global_ctx]
     mov     rsi, [rbp + 8]   ; argc
     lea     rdx, [rbp + 16]  ; argv
     call    cli_parse
@@ -99,7 +99,7 @@ _start:
     ; 5. Compilation Pipeline
     
     ; 5.1 Initialize Relocation Engine
-    mov     rdi, global_ctx
+    lea     rdi, [rel global_ctx]
     call    reloc_init
     test    rax, rax
     jnz     .exit_error
@@ -135,16 +135,16 @@ _start:
     mov     rsi, r14
     mov     rdx, r13
     mov     rcx, [global_ctx + ASMCTX_input]
-    mov     r8, global_ctx
-    mov     r9, global_arena
+    lea     r8,  [rel global_ctx]
+    lea     r9,  [rel global_arena]
     call    lexer_init
     
     sub     rsp, 1024 ; PREP_SIZE
     mov     r15, rsp
     mov     rdi, r15
     mov     rsi, rbx
-    mov     rdx, global_ctx
-    mov     rcx, global_arena
+    lea     rdx, [rel global_ctx]
+    lea     rcx, [rel global_arena]
     call    prep_init
     
     ; 5.4 Main Assembly Loop
@@ -176,7 +176,7 @@ _start:
     call    asm_ctx_align
 
 .encode:
-    mov     rdi, global_ctx
+    lea     rdi, [rel global_ctx]
     mov     rsi, r14
     movzx   eax, byte [global_ctx + ASMCTX_target]
     
@@ -208,7 +208,7 @@ _start:
     jmp     .exit_error
 
 .emission:
-    mov     rdi, global_ctx
+    lea     rdi, [rel global_ctx]
     call    linker_run
     test    rax, rax
     jnz     .exit_error
