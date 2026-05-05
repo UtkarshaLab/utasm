@@ -50,6 +50,12 @@ extern parser_concat_local_name
 global parser_parse_instruction
 parser_parse_instruction:
     prologue
+    push    rbx
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    mov     rbx, rdi                ; rbx = PrepState (argument from RDI)
     
     ; Allocate instruction container
     mov     rdi, [rbx + PREP_arena]
@@ -73,10 +79,20 @@ parser_parse_instruction:
     mov     al, [r12 + TOKEN_kind]
     IF al, e, TOK_EOF
         xor     rax, rax
+        pop     r15
+        pop     r14
+        pop     r13
+        pop     r12
+        pop     rbx
         epilogue
         ENDIF
     IF al, e, TOK_NEWLINE
         xor     rax, rax
+        pop     r15
+        pop     r14
+        pop     r13
+        pop     r12
+        pop     rbx
         epilogue
         ENDIF
 
@@ -167,6 +183,11 @@ parser_parse_instruction:
     
     ; Pseudo-op handled internally, move to next instruction
     xor     rax, rax
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rbx
     epilogue
 
     ; 4. Operand Parsing Loop
@@ -2089,7 +2110,14 @@ parser_handle_comm:
     mov     rax, EXIT_ALIGN_ERROR
     jmp     .done
 
-.done:
+.emission:
+    lea     rdi, [rel global_ctx]
+    call    linker_run
+    test    rax, rax
+    jnz     .error
+
+    xor     rax, rax
+    pop     r15
     pop     r14
     pop     r13
     pop     r12
@@ -2097,6 +2125,7 @@ parser_handle_comm:
     epilogue
 
 .error:
+    pop     r15
     pop     r14
     pop     r13
     pop     r12
