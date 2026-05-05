@@ -72,6 +72,7 @@ parser_parse_instruction:
     
     ; 2. Get mnemonic token
 .get_mnemonic:
+    mov     rdi, rbx
     call    preprocessor_next_token
     check_err
     mov     r12, rdx
@@ -213,8 +214,10 @@ parser_parse_instruction:
     inc     r14
     mov     [r15 + INST_nops], r14b
     
+    mov     rdi, rbx
     call    preprocessor_peek_token
     IF byte [rdx + TOKEN_kind], e, TOK_COMMA
+        mov     rdi, rbx
         call    preprocessor_next_token
         jmp     .operand_loop
         ENDIF
@@ -244,6 +247,7 @@ parser_parse_operand:
     mov     r12, rdx
     mov     byte [r12 + OPERAND_tag], TAG_OPERAND
     
+    mov     rdi, rbx
     call    preprocessor_next_token
     mov     r13, rdx
     
@@ -285,9 +289,11 @@ parser_parse_operand:
             ; It's a shift! (RAX = SHIFT_*)
             mov     [r12 + OPERAND_shift_type], al
             ; Expect TOK_HASH or just expression
+            mov     rdi, rbx
             call    preprocessor_peek_token
             IF byte [rdx + TOKEN_kind], e, TOK_HASH
-                call preprocessor_next_token
+                mov     rdi, rbx
+                call    preprocessor_next_token
                 ENDIF
             call    parser_evaluate_expression
             check_err
@@ -315,10 +321,12 @@ parser_parse_operand:
                 ENDIF
 
 .not_shift:
+        mov     rdi, rbx
         call    preprocessor_putback_token ; put back the ident
         ENDIF
 
     ; 3. Expressions (Numbers, Symbols, Math)
+    mov     rdi, [rbx + PREP_ctx]
     call    parser_evaluate_expression
     test    rax, rax
     IF z
@@ -374,33 +382,41 @@ parser_evaluate_expression:
     push    rbx
     push    r12
     
-    mov     rbx, rdi               ; RBX = AsmCtx
+    mov     rbx, rdi               ; RBX = PrepState
+    mov     rdi, [rbx + PREP_ctx]  ; RDI = AsmCtx (for depth check)
     
     ; 1. Check Recursion Depth
-    inc     dword [rbx + ASMCTX_expr_depth]
-    IF dword [rbx + ASMCTX_expr_depth], g, 64
+    mov     r10, [rbx + PREP_ctx]
+    inc     dword [r10 + ASMCTX_expr_depth]
+    IF dword [r10 + ASMCTX_expr_depth], g, 64
         mov rax, EXIT_EXPR_TOO_DEEP
         jmp .done_err
         ENDIF
     
+    mov     rdi, rbx
     call    parser_evaluate_term
     check_err_to .done_err
     mov     r13, rdx               ; R13 = current running total
     
 .loop:
+    mov     rdi, rbx
     call    preprocessor_peek_token
     mov     r12, rdx
     mov     al, [r12 + TOKEN_kind]
     
     IF al, e, TOK_PLUS
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_term
         check_err_to .done_err
         add     r13, rdx
         jo      .overflow
         jmp     .loop
     ELSEIF al, e, TOK_MINUS
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_term
         check_err_to .done_err
         sub     r13, rdx
@@ -412,7 +428,8 @@ parser_evaluate_expression:
     xor     rax, rax
 
 .done:
-    dec     dword [rbx + ASMCTX_expr_depth]
+    mov     r10, [rbx + PREP_ctx]
+    dec     dword [r10 + ASMCTX_expr_depth]
     pop     r12
     pop     rbx
     epilogue
@@ -422,7 +439,8 @@ parser_evaluate_expression:
     jmp     .done_err
 
 .done_err:
-    dec     dword [rbx + ASMCTX_expr_depth]
+    mov     r10, [rbx + PREP_ctx]
+    dec     dword [r10 + ASMCTX_expr_depth]
     pop     r12
     pop     rbx
     epilogue
@@ -435,24 +453,30 @@ parser_evaluate_term:
     prologue
     push    rbx
     
+    mov     rdi, rbx
     call    parser_evaluate_factor
     check_err
     mov     rbx, rdx
     
 .loop:
+    mov     rdi, rbx
     call    preprocessor_peek_token
     mov     r12, rdx
     mov     al, [r12 + TOKEN_kind]
     
     IF al, e, TOK_STAR
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         imul    rbx, rdx
         jo      .overflow
         jmp     .loop
     ELSEIF al, e, TOK_SLASH
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         test    rdx, rdx
@@ -464,7 +488,9 @@ parser_evaluate_term:
         mov     rbx, rax
         jmp     .loop
     ELSEIF al, e, TOK_LSHIFT
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         mov     rcx, rdx
@@ -472,7 +498,9 @@ parser_evaluate_term:
         shl     rbx, cl
         jmp     .loop
     ELSEIF al, e, TOK_RSHIFT
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         mov     rcx, rdx
@@ -480,19 +508,25 @@ parser_evaluate_term:
         shr     rbx, cl
         jmp     .loop
     ELSEIF al, e, TOK_AMPERSAND
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         and     rbx, rdx
         jmp     .loop
     ELSEIF al, e, TOK_PIPE
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         or      rbx, rdx
         jmp     .loop
     ELSEIF al, e, TOK_CARET
+        mov     rdi, rbx
         call    preprocessor_next_token
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         xor     rbx, rdx
@@ -524,18 +558,21 @@ parser_evaluate_term:
 ; ;
 parser_evaluate_factor:
     prologue
+    mov     rdi, rbx
     call    preprocessor_next_token
     check_err
     mov     r12, rdx
     mov     al, [r12 + TOKEN_kind]
     
     IF al, e, TOK_MINUS
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         neg     rdx
         xor     rax, rax
         epilogue
     ELSEIF al, e, TOK_TILDE
+        mov     rdi, rbx
         call    parser_evaluate_factor
         check_err
         not     rdx
@@ -580,9 +617,11 @@ parser_evaluate_factor:
             ENDIF
         epilogue
     ELSEIF al, e, TOK_LPAREN
+        mov     rdi, [rbx + PREP_ctx]
         call    parser_evaluate_expression
         check_err
         mov     r13, rdx
+        mov     rdi, rbx
         call    preprocessor_next_token
         IF byte [rdx + TOKEN_kind], ne, TOK_RPAREN
             mov rax, EXIT_UNEXPECTED_TOKEN
@@ -633,6 +672,7 @@ parser_handle_reloc_modifier:
         mov r14d, 2 ; Placeholder for RELOC_AARCH64_PG_HI21
         ENDIF
     
+    mov     rdi, rbx
     call    preprocessor_next_token
     IF byte [rdx + TOKEN_kind], ne, TOK_COLON
         mov rax, EXIT_UNEXPECTED_TOKEN
@@ -703,6 +743,7 @@ parser_parse_mem_operand:
     mov     byte [r12 + OPERAND_kind], OP_MEM
     mov     byte [r12 + OPERAND_scale], 1 ; Default scale
     
+    mov     rdi, rbx
     call    preprocessor_peek_token
     mov     r13, rdx
     mov     al, [r13 + TOKEN_kind]
@@ -714,6 +755,7 @@ parser_parse_mem_operand:
         extern  str_cmp
         call    str_cmp
         IF rax, e, 0
+            mov     rdi, rbx
             call    preprocessor_next_token ; consume 'rel'
             mov     byte [r12 + OPERAND_flags], OP_FLAG_REL
             ; Fall through to parse the symbol/offset
@@ -756,9 +798,12 @@ parser_parse_mem_operand:
         .set_index:
             mov     [r12 + OPERAND_index], al
             ; Check for scale [base + index * scale]
+            mov     rdi, rbx
             call    preprocessor_peek_token
             IF byte [rdx + TOKEN_kind], e, TOK_STAR
+                mov     rdi, rbx
                 call    preprocessor_next_token ; consume '*'
+                mov     rdi, rbx
                 call    parser_evaluate_expression
                 check_err_to .error
                 mov     rax, rdx               ; evaluated scale value
@@ -789,6 +834,7 @@ parser_parse_mem_operand:
         ENDIF
 
     ; 2. Parse as expression (Displacement)
+    mov     rdi, rbx
     call    parser_evaluate_expression
     check_err_to .error
     ; result in rdx, symbol metadata in r11 (A78)
