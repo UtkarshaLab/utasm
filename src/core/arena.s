@@ -81,11 +81,9 @@ arena_init:
     mov     rax, AMD64_SYS_MMAP
     syscall
 
-    ; check mmap result â€” returns -1 to -4095 on failure
-    mov     rcx, rax
-    neg     rcx
-    cmp     rcx, 4095
-    jle     .mmap_failed
+    ; check mmap result — returns -1 to -4095 on failure
+    cmp     rax, -4095
+    jae     .mmap_failed
 
     ; write TAG_ARENA at offset 0
     mov     byte [rbx + ARENA_tag], TAG_ARENA
