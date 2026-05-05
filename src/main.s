@@ -68,6 +68,7 @@ extern error_report
     global _start
 
 _start:
+    cld                             ; Ensure string ops go forward
     ; 1. Establish stack frame
     push    rbp
     mov     rbp, rsp
@@ -273,25 +274,25 @@ _start:
 
 
 
-global print_str
 print_str:
-    prologue
+    push    rbp
+    mov     rbp, rsp
     push    rbx
-    push    rsi
     push    rdi
+    push    rsi
     
     mov     rdi, rsi
     call    str_len
-    mov     rdx, rax
+    mov     rdx, rax               ; rdx = length
     
     mov     rax, 1                 ; sys_write
     mov     rdi, 1                 ; stdout
-    pop     rsi
-    pop     rdi
+    pop     rsi                    ; restore buffer pointer
+    pop     rdi                    ; restore original rdi
     syscall
     
     pop     rbx
-    epilogue
+    pop     rbp
     ret
 msg_debug_open:   db "DEBUG: File opened", 10, 0
 msg_debug_mapped:   db "DEBUG: File mapped", 10, 0
