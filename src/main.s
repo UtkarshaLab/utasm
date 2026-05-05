@@ -250,11 +250,15 @@ _start:
 
 .exit_error:
     push    rax                    ; save error code
-    lea     rsi, [msg_fatal_error]
-    mov     rdi, 1
-    call    print_str
-    pop     rax
     
+    ; Raw write of fatal message to STDOUT
+    mov     rax, 1                 ; sys_write
+    mov     rdi, 1                 ; stdout
+    lea     rsi, [msg_fatal_error]
+    mov     rdx, 37                ; length of msg_fatal_error
+    syscall
+
+    pop     rax
     mov     rdi, rax               ; exit status = error code
     mov     rax, 60                ; sys_exit
     syscall
