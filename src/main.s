@@ -73,8 +73,8 @@ _start:
 
     ; Link arena to context
     mov     rax, global_arena
-    mov     [global_ctx + 8], rax ; ASMCTX_arena offset
-    mov     byte [global_ctx + 0], 0x08 ; TAG_ASM_CTX at offset 0
+    mov     [global_ctx + ASMCTX_arena], rax
+    mov     byte [global_ctx + ASMCTX_tag], TAG_ASM_CTX
 
     ; 2.5 Allocate Symbol Hash Table (64k entries * 8 bytes = 512 KiB)
     mov     rdi, global_arena
@@ -82,7 +82,7 @@ _start:
     call    arena_alloc
     test    rax, rax
     jnz     .exit_oom
-    mov     [global_ctx + 160], rdx ; ASMCTX_symhash offset
+    mov     [global_ctx + ASMCTX_symhash], rdx
 
     ; 3. Parse Command Line Arguments
     mov     rdi, global_ctx
@@ -93,7 +93,7 @@ _start:
     jnz     .show_usage      ; If error or help, show usage
 
     ; 4. Check if input file provided
-    cmp     qword [global_ctx + 136], 0 ; ASMCTX_input offset
+    cmp     qword [global_ctx + ASMCTX_input], 0
     je      .show_usage
 
     ; 5. Compilation Pipeline
@@ -105,7 +105,7 @@ _start:
     jnz     .exit_error
 
     ; 5.2 Open and Map Input File
-    mov     rdi, [global_ctx + 136]
+    mov     rdi, [global_ctx + ASMCTX_input]
     mov     rsi, 0 ; O_RDONLY
     xor     rdx, rdx
     call    io_open
@@ -134,7 +134,7 @@ _start:
     mov     rdi, rbx
     mov     rsi, r14
     mov     rdx, r13
-    mov     rcx, [global_ctx + 136]
+    mov     rcx, [global_ctx + ASMCTX_input]
     mov     r8, global_ctx
     mov     r9, global_arena
     call    lexer_init
@@ -159,7 +159,7 @@ _start:
     jz      .emission
     
     mov     r14, rdx                         ; r14 = INST*
-    movzx   eax, byte [global_ctx + 1]       ; ASMCTX_target offset
+    movzx   eax, byte [global_ctx + ASMCTX_target]
 
     ; Target-specific alignment
     cmp     eax, 1 ; TARGET_AARCH64
@@ -178,7 +178,7 @@ _start:
 .encode:
     mov     rdi, global_ctx
     mov     rsi, r14
-    movzx   eax, byte [global_ctx + 1]
+    movzx   eax, byte [global_ctx + ASMCTX_target]
     
     cmp     eax, 2 ; TARGET_AMD64
     je      .call_amd64
