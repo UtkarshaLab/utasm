@@ -1265,6 +1265,7 @@ lexer_next:
     cmp     rcx, 10             ; LF â€” stop, don't consume
     je      .skip_loop
     inc     qword [rbx + LEXER_pos]
+    inc     word  [rbx + LEXER_col]
     jmp     .skip_line_loop
 
 .skip_check_block:
