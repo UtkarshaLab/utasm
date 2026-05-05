@@ -211,6 +211,15 @@ reloc_resolve_all:
     jmp     .next
 
 .undef:
+    ; Report undefined symbol
+    mov     rdi, rbx               ; AsmCtx
+    xor     rsi, rsi               ; no filename
+    xor     rdx, rdx               ; no line
+    xor     rcx, rcx               ; no col
+    mov     r8, [r11 + RELOC_sym]  ; symbol name
+    extern  error_emit
+    call    error_emit
+    
     mov     rax, EXIT_UNDEF_REF
     jmp     .ret
 
