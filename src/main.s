@@ -274,6 +274,7 @@ _start:
 
 
 
+global print_str
 print_str:
     push    rbp
     mov     rbp, rsp
